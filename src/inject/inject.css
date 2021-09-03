@@ -64,6 +64,11 @@ h4 {
 #article-content h1 {
   font-weight: 500 !important;
   margin-top: 0 !important;
+  line-height: 112% !important;
+}
+
+.is-sticky {
+  top: 32px !important;
 }
 
 #article-sidebar .navbar .nav > li > a {
