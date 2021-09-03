@@ -1,0 +1,50 @@
+@import url('https://fonts.googleapis.com/css2?family=Newsreader:ital,wght@0,400;0,700;1,400;1,700&display=swap');
+
+body {
+  background: none !important;
+  -webkit-font-smoothing: antialiased;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+    Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif !important;
+}
+
+#article-content h1,
+#article-content h2,
+#article-content h3,
+#style_guide_content h1,
+#style_guide_content h2,
+#style_guide_content h3,
+#style_guide_content_wide h1,
+#style_guide_content_wide h2,
+#style_guide_content_wide h3 {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+    Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif !important;
+  letter-spacing: -0.01em;
+}
+
+#article-sidebar .navbar .nav > li > a {
+  font-size: 13px !important;
+}
+
+#container {
+  background: none !important;
+  box-shadow: none !important;
+  max-width: 900px !important;
+}
+
+#article-content,
+#style_guide_content,
+#style_guide_content_wide {
+  font-family: 'Newsreader', serif !important;
+  font-size: 18px !important;
+  line-height: 25px !important;
+}
+
+#header-wrapper {
+  background-image: none !important;
+}
+
+#article,
+#article-sidebar .navbar .nav {
+  box-shadow: none !important;
+  border: none !important;
+}
