@@ -74,9 +74,11 @@ h4 {
 #article-sidebar .navbar .nav > li > a {
   font-size: 13px !important;
   padding: 2px 6px !important;
+  padding-left: 0 !important;
   color: #767676 !important;
   text-shadow: none !important;
   transition: color 0.15s ease !important;
+  margin-right: 20px !important;
 }
 
 #article-sidebar .navbar .nav > li > a:hover {
@@ -90,8 +92,12 @@ h4 {
 }
 
 .navbar a i {
-  font-size: 14px !important;
-  color: #545454 !important;
+  font-size: 12px !important;
+  color: #979797 !important;
+}
+
+#navigation ul {
+  padding-left: 16px !important;
 }
 
 #container {
