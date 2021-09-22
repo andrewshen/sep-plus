@@ -67,6 +67,11 @@ h4 {
   line-height: 112% !important;
 }
 
+#article li,
+#content li {
+  line-height: 25px !important;
+}
+
 .is-sticky {
   top: 32px !important;
 }
