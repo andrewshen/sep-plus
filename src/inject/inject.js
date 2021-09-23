@@ -15,6 +15,17 @@ $(function () {
   $('#toc').find('li').prependTo(nav);
 });
 
+$(document).keyup(function (e) {
+  switch (e.which) {
+    case 191:
+      $('input[type=search]')[0].focus();
+      break;
+    case 27:
+      $('input[type=search]')[0].blur();
+      break;
+  }
+});
+
 appendCSS(
   'https://fonts.googleapis.com/css2?family=Newsreader:ital,wght@0,400;0,700;1,400;1,700&display=swap'
 );
