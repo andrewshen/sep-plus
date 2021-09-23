@@ -46,6 +46,7 @@ blockquote {
 
 #article-content h2 {
   font-size: 1.5em !important;
+  line-height: 1.4em;
 }
 
 #article-content h1,
@@ -137,4 +138,9 @@ h4 {
 
 #article-sidebar .navbar i {
   display: none;
+}
+
+#search input[type='search']:focus,
+#search input[type='search']:active {
+  box-shadow: none !important;
 }
