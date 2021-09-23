@@ -21,7 +21,7 @@
         "https://plato.stanford.edu/*"
       ],
       "css": ["src/inject/inject.css"],
-      "js": ["src/inject/inject.js"]
+      "js": ["src/inject/jquery-3.6.0.min.js", "src/inject/inject.js"]
     }
   ]
 }
