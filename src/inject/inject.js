@@ -13,6 +13,14 @@ $(function () {
   $("a:contains('Bibliography')")[0].remove();
   $("a:contains('Academic Tools')")[0].remove();
   $('#toc').find('li').prependTo(nav);
+  $('input[type=search]').attr('placeholder', 'Type / to search SEP');
+  if (
+    window.matchMedia &&
+    window.matchMedia('(prefers-color-scheme: dark)').matches
+  ) {
+    // swap logo for dark mode
+    $('#site-logo').find('img').attr('src', 'https://i.imgur.com/eRpN6wC.png');
+  }
 });
 
 $(document).keyup(function (e) {

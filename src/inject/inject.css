@@ -96,11 +96,13 @@ h4 {
   background: none !important;
   color: black !important;
 }
+
 .navbar .nav > li > a {
   font-size: 13px !important;
   margin-right: 24px !important;
   font-weight: 500 !important;
   color: #767676 !important;
+  text-shadow: none !important;
 }
 
 .navbar a i {
@@ -150,4 +152,112 @@ h4 {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
     Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif !important;
   font-size: 13px !important;
+}
+
+#article-copyright,
+#site-credits,
+#site-credits a,
+#mirrors p,
+#footer-menu a,
+#article-banner-content a {
+  font-size: 13px !important;
+  line-height: 20px !important;
+  text-decoration: none !important;
+}
+
+@media (prefers-color-scheme: dark) {
+  body,
+  #article {
+    background: #222 !important;
+    color: #f1f1f1 !important;
+  }
+
+  #article-sidebar .navbar .nav,
+  #article-sidebar .navbar .nav > li > a {
+    background: #222 !important;
+  }
+
+  #header-wrapper,
+  #article-copyright,
+  #footer,
+  hr {
+    border-color: #383838 !important;
+  }
+
+  #article-content h1,
+  #article-content h2,
+  #article-content h3,
+  #style_guide_content h1,
+  #style_guide_content h2,
+  #style_guide_content h3,
+  #style_guide_content_wide h1,
+  #style_guide_content_wide h2,
+  #style_guide_content_wide h3,
+  #article-content h1 a,
+  #article-content h2 a,
+  #article-content h3 a,
+  h4 {
+    color: #fff !important;
+  }
+
+  img {
+    opacity: 0.75;
+    transition: opacity 0.5s ease-in-out;
+  }
+
+  img:hover {
+    opacity: 1;
+  }
+
+  #site-logo img {
+    opacity: 1;
+  }
+
+  .icon-search,
+  #article-sidebar .navbar .nav > li > a:hover {
+    color: #fff !important;
+  }
+
+  #footer,
+  #footer i,
+  #pubinfo em,
+  .navbar .nav > li > a,
+  #article-sidebar .navbar .nav > li > a {
+    color: #a3a3a3 !important;
+  }
+
+  a:link,
+  a:visited {
+    color: #f79898 !important;
+  }
+
+  #search input[type='search'] {
+    color: #fff !important;
+    background: #383838 !important;
+    border-color: #464646 !important;
+  }
+
+  .dropdown-menu {
+    background: none !important;
+  }
+
+  .btn-group,
+  #mirrors .btn,
+  #mirrors .dropdown-menu a,
+  #article-banner-content {
+    border-radius: 6px !important;
+    border: none !important;
+    background: #383838 !important;
+    box-shadow: none !important;
+  }
+
+  #mirrors .btn,
+  #mirrors .dropdown-menu a,
+  #article-banner-content a {
+    color: #fff !important;
+  }
+
+  .caret {
+    border-top: 4px solid #fff !important;
+  }
 }
