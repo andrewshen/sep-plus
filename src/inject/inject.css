@@ -191,6 +191,11 @@ h4 {
     border-color: #383838 !important;
   }
 
+  table.all-rules td,
+  table.all-rules th {
+    border: 1px solid #a3a3a3 !important;
+  }
+
   #article-content h1,
   #article-content h2,
   #article-content h3,
@@ -283,6 +288,7 @@ h4 {
     padding-left: 100px !important;
     padding-right: 100px !important;
   }
+
   sup {
     top: 0 !important;
     font-size: 12px !important;
