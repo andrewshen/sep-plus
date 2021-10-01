@@ -21,6 +21,16 @@ $(function () {
   $("a:contains('Bibliography')")[0].remove();
   $("a:contains('Academic Tools')")[0].remove();
   $('#toc').find('li').prependTo(nav);
+
+  nav
+    .find('li')
+    .filter(function () {
+      return $(this)
+        .text()
+        .match(/^\d+\.\d+/);
+    })
+    .css('margin-left', '18px');
+
   $('input[type=search]').attr('placeholder', 'Type / to search SEP');
 
   if (
