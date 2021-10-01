@@ -1,6 +1,6 @@
 function appendCSS(url) {
-  var head = document.head;
-  var link = document.createElement('link');
+  const head = document.head;
+  const link = document.createElement('link');
   link.type = 'text/css';
   link.rel = 'stylesheet';
   link.href = url;
@@ -16,7 +16,7 @@ function swapLogo(dark) {
 }
 
 $(function () {
-  var nav = $('#article-nav').find('ul');
+  const nav = $('#article-nav').find('ul');
   $('#article-nav').find('li')[0].remove();
   $("a:contains('Bibliography')")[0].remove();
   $("a:contains('Academic Tools')")[0].remove();
@@ -29,7 +29,7 @@ $(function () {
         .text()
         .match(/^\d+\.\d+/);
     })
-    .css('margin-left', '18px');
+    .css('margin-left', '16px');
 
   $('input[type=search]').attr('placeholder', 'Type / to search SEP');
 

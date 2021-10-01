@@ -99,6 +99,10 @@ h4 {
   margin-right: 20px !important;
 }
 
+#article-sidebar .navbar .nav > li > a > em {
+  font-style: normal !important;
+}
+
 #article-sidebar .navbar .nav > li > a:hover {
   background: none !important;
   color: black !important;
