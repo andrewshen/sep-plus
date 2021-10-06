@@ -29,7 +29,16 @@ $(function () {
         .text()
         .match(/^\d+\.\d+/);
     })
-    .css('margin-left', '16px');
+    .css('margin-left', '20px');
+
+  nav
+    .find('li')
+    .filter(function () {
+      return $(this)
+        .text()
+        .match(/^\d+\.\d+\.\d+/);
+    })
+    .css('margin-left', '40px');
 
   $('input[type=search]').attr('placeholder', 'Type / to search SEP');
 
@@ -42,8 +51,8 @@ $(function () {
 
   window
     .matchMedia('(prefers-color-scheme: dark)')
-    .addEventListener('change', (event) => {
-      if (event.matches) {
+    .addEventListener('change', function (e) {
+      if (e.matches) {
         swapLogo(true);
       } else {
         swapLogo(false);
