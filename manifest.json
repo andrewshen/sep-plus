@@ -3,7 +3,7 @@
   "version": "0.0.1",
   "manifest_version": 2,
   "description": "Improve the Stanford Encyclopedia of Philosophy reading experience",
-  "homepage_url": "http://andrewshen.net",
+  "homepage_url": "https://andrewshen.net",
   "icons": {
     "16": "icons/icon16.png",
     "48": "icons/icon48.png",
