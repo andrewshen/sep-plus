@@ -21,6 +21,7 @@ $(function () {
   $("a:contains('Bibliography')")[0].remove();
   $("a:contains('Academic Tools')")[0].remove();
   $('#toc').find('li').prependTo(nav);
+  $('#toc').remove();
 
   nav
     .find('li')
