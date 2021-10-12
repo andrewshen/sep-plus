@@ -50,20 +50,11 @@ function updateTheme() {
       } else {
         setDarkMode(false);
       }
-      window
-        .matchMedia('(prefers-color-scheme: dark)')
-        .addEventListener('change', setTheme);
       break;
     case 'dark':
-      window
-        .matchMedia('(prefers-color-scheme: dark)')
-        .removeEventListener('change', setTheme);
       setDarkMode(true);
       break;
     case 'light':
-      window
-        .matchMedia('(prefers-color-scheme: dark)')
-        .removeEventListener('change', setTheme);
       setDarkMode(false);
       break;
   }
