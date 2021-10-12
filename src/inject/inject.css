@@ -133,6 +133,14 @@ h4 {
   flex: 1;
 }
 
+#navigation .navbar-inner {
+  margin-top: 3px !important;
+}
+
+#site-logo {
+  margin-top: -2px !important;
+}
+
 #navigation ul {
   padding-left: 16px !important;
 }
@@ -187,6 +195,7 @@ h4 {
   font-size: 13px !important;
   height: 28px !important;
   padding-left: 8px !important;
+  transition: none !important;
 }
 
 #article-copyright,
@@ -223,7 +232,7 @@ select {
 }
 
 #search {
-  width: 420px !important;
+  width: 428px !important;
   display: flex !important;
   flex-direction: row-reverse !important;
 }
@@ -239,7 +248,7 @@ select {
 }
 
 #theme-selector {
-  width: 132px !important;
+  width: 112px !important;
   height: 28px !important;
   margin-bottom: 0px !important;
   padding: 0 !important;
