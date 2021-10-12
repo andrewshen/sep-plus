@@ -47,6 +47,8 @@ function updateTheme() {
         window.matchMedia('(prefers-color-scheme: dark)').matches
       ) {
         setDarkMode(true);
+      } else {
+        setDarkMode(false);
       }
       window
         .matchMedia('(prefers-color-scheme: dark)')
@@ -63,6 +65,21 @@ function updateTheme() {
         .matchMedia('(prefers-color-scheme: dark)')
         .removeEventListener('change', setTheme);
       setDarkMode(false);
+      break;
+  }
+}
+
+function updateThemeIcon() {
+  const theme = localStorage.getItem('theme');
+  switch (theme) {
+    case 'auto':
+      $('#theme-icon').attr('src', 'https://i.imgur.com/e1Zorrs.png');
+      break;
+    case 'dark':
+      $('#theme-icon').attr('src', 'https://i.imgur.com/TyBZlqK.png');
+      break;
+    case 'light':
+      $('#theme-icon').attr('src', 'https://i.imgur.com/UUO3OBn.png');
       break;
   }
 }
@@ -128,7 +145,24 @@ $(function () {
   light.setAttribute('value', 'light');
   light.innerHTML = 'Light';
 
+  const themeIcon = document.createElement('img');
+  themeIcon.setAttribute('id', 'theme-icon');
+  themeIcon.setAttribute('src', 'https://i.imgur.com/UUO3OBn.png');
+  themeIcon.setAttribute('alt', 'Theme Icon');
+  themeIcon.setAttribute('width', 12);
+  themeIcon.setAttribute('height', 12);
+
+  const chevronIcon = document.createElement('img');
+  chevronIcon.setAttribute('id', 'chevron-icon');
+  chevronIcon.setAttribute('src', 'https://i.imgur.com/H0Ih6cL.png');
+  chevronIcon.setAttribute('alt', 'Chevron');
+  chevronIcon.setAttribute('width', 12);
+  chevronIcon.setAttribute('height', 12);
+
   selectContainer.append(themeSelector);
+  selectContainer.append(themeIcon);
+  selectContainer.append(chevronIcon);
+
   $('#search').append(selectContainer);
   $('#theme-selector').append(light);
   $('#theme-selector').append(dark);
@@ -148,10 +182,12 @@ $(function () {
       }
     });
     updateTheme();
+    updateThemeIcon();
   });
 
   updateTheme();
   updateThemeSelector();
+  updateThemeIcon();
 
   $('input[type=search]').attr('placeholder', 'Type / to search SEP');
 });
