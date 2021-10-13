@@ -10,4 +10,4 @@ SEP+ is a browser extension for the Stanford Encyclopedia of Encyclopedia that:
 
 Install the extension on the [Chrome Web Store](https://chrome.google.com/webstore/detail/sep%2B/falicmbacjghbjdmmnaagmbkpgiphbbg).
 
-SEP+ only has access to plato.stanford.edu and will never serve ads or collect user data.
+SEP+ only has access to [plato.stanford.edu](https://plato.stanford.edu) and will never serve ads or collect user data.
