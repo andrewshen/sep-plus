@@ -106,7 +106,7 @@ h4 {
 }
 
 #article-sidebar .navbar .nav > li.active-item > a {
-  color: #383838 !important;
+  color: #222 !important;
 }
 
 #article-sidebar .navbar .nav > li > a > em {
@@ -115,7 +115,7 @@ h4 {
 
 #article-sidebar .navbar .nav > li > a:hover {
   background: none !important;
-  color: #383838 !important;
+  color: #222 !important;
 }
 
 .navbar .nav > li > a {

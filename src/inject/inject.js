@@ -49,11 +49,9 @@ function setDarkMode(dark) {
   }
 }
 
-function setTheme(e) {
-  if (e.matches) {
-    setDarkMode(true);
-  } else {
-    setDarkMode(false);
+function matchSystemTheme(e) {
+  if (localStorage.getItem('theme') === 'auto') {
+    setDarkMode(e.matches);
   }
 }
 
@@ -225,6 +223,10 @@ window.addEventListener('storage', function (e) {
     updateThemeIcon();
   }
 });
+
+window
+  .matchMedia('(prefers-color-scheme: dark)')
+  .addEventListener('change', matchSystemTheme);
 
 $(document).keyup(function (e) {
   switch (e.which) {
