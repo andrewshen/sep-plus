@@ -7,6 +7,19 @@ function appendCSS(url) {
   head.appendChild(link);
 }
 
+function identifyPrintBlock() {
+  $('div')
+    .filter(function () {
+      return (
+        $(this).css('display') === 'block' &&
+        $(this).css('width') === '242px' &&
+        $(this).css('height') === '463px' &&
+        $(this).css('float') === 'left'
+      );
+    })
+    .attr('id', 'print-block');
+}
+
 function swapLogo(dark) {
   if (dark) {
     $('#site-logo').find('img').attr('src', 'https://i.imgur.com/eRpN6wC.png');
@@ -181,6 +194,10 @@ $(function () {
   updateThemeIcon();
 
   $('input[type=search]').attr('placeholder', 'Type / to search SEP');
+});
+
+$(window).scroll(function () {
+  identifyPrintBlock();
 });
 
 $(document).keyup(function (e) {

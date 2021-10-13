@@ -387,7 +387,8 @@ body.dark .caret {
 /* Print */
 
 @media print {
-  #article-nav .nav,
+  #print-block,
+  #article-sidebar,
   #theme-selector,
   #academic-tools,
   #other-internet-resources,
