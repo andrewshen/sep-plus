@@ -90,23 +90,7 @@ function updateThemeIcon() {
 
 function updateThemeSelector() {
   const theme = localStorage.getItem('theme');
-  switch (theme) {
-    case 'auto':
-      $('#theme-selector option[value="light"]').removeAttr('selected');
-      $('#theme-selector option[value="dark"]').removeAttr('selected');
-      $('#theme-selector option[value="auto"]').attr('selected', 'selected');
-      break;
-    case 'dark':
-      $('#theme-selector option[value="light"]').removeAttr('selected');
-      $('#theme-selector option[value="auto"]').removeAttr('selected');
-      $('#theme-selector option[value="dark"]').attr('selected', 'selected');
-      break;
-    case 'light':
-      $('#theme-selector option[value="dark"]').removeAttr('selected');
-      $('#theme-selector option[value="auto"]').removeAttr('selected');
-      $('#theme-selector option[value="light"]').attr('selected', 'selected');
-      break;
-  }
+  $('#theme-selector').val(theme);
 }
 
 $(function () {
@@ -203,9 +187,11 @@ $(function () {
 });
 
 window.addEventListener('storage', function (e) {
-  updateTheme();
-  updateThemeSelector();
-  updateThemeIcon();
+  if (e.key === 'theme') {
+    updateTheme();
+    updateThemeSelector();
+    updateThemeIcon();
+  }
 });
 
 $(window).scroll(function () {
