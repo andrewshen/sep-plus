@@ -7,6 +7,16 @@ function appendCSS(url) {
   head.appendChild(link);
 }
 
+function getMaxIndex(arr, num) {
+  let maxIndex = -1;
+  for (let i = 0; i < arr.length; i++) {
+    if (arr[i] < num) {
+      maxIndex = i;
+    }
+  }
+  return maxIndex;
+}
+
 function identifyPrintBlock() {
   $('div')
     .filter(function () {
@@ -93,8 +103,9 @@ function updateThemeSelector() {
 }
 
 $(function () {
+  const isArticle = $('#article-nav').find('li')[0];
   const nav = $('#article-nav').find('ul');
-  if ($('#article-nav').find('li')[0]) {
+  if (isArticle) {
     $('#article-nav').find('li')[0].remove();
     $("a:contains('Bibliography')")[0].remove();
     $("a:contains('Academic Tools')")[0].remove();
@@ -183,6 +194,28 @@ $(function () {
   updateThemeIcon();
 
   $('input[type=search]').attr('placeholder', 'Type / to search SEP');
+
+  if (isArticle) {
+    $(window).scroll(function () {
+      identifyPrintBlock();
+      const scroll = $(window).scrollTop() + 1;
+      const distances = [];
+
+      $('#article-nav a').each(function () {
+        const id = $(this).attr('href');
+        if (!id.includes('://') && id !== '#pagetopright') {
+          distances.push(
+            $(`[name=${id.substring(1)}],[id=${id.substring(1)}]`).offset().top
+          );
+        }
+      });
+
+      $('#article-nav .nav li').removeClass('active-item');
+      $(
+        `#article-nav .nav li:nth-child(${getMaxIndex(distances, scroll) + 1})`
+      ).addClass('active-item');
+    });
+  }
 });
 
 window.addEventListener('storage', function (e) {
@@ -191,10 +224,6 @@ window.addEventListener('storage', function (e) {
     updateThemeSelector();
     updateThemeIcon();
   }
-});
-
-$(window).scroll(function () {
-  identifyPrintBlock();
 });
 
 $(document).keyup(function (e) {
