@@ -13,7 +13,6 @@ function identifyPrintBlock() {
       return (
         $(this).css('display') === 'block' &&
         $(this).css('width') === '242px' &&
-        $(this).css('height') === '463px' &&
         $(this).css('float') === 'left'
       );
     })
