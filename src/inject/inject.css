@@ -232,7 +232,7 @@ select {
 }
 
 #search {
-  width: 428px !important;
+  width: 464px !important;
   display: flex !important;
   flex-direction: row-reverse !important;
 }
@@ -248,7 +248,7 @@ select {
 }
 
 #theme-selector {
-  width: 112px !important;
+  width: 108px !important;
   height: 28px !important;
   margin-bottom: 0px !important;
   padding: 0 !important;
@@ -389,6 +389,12 @@ body.dark .caret {
 @media print {
   #article-nav .nav,
   #theme-selector,
+  #academic-tools,
+  #other-internet-resources,
+  #related-entries,
+  #article-copyright,
+  #article-banner,
+  #footer,
   #search,
   #site-logo {
     display: none !important;
@@ -398,6 +404,32 @@ body.dark .caret {
     padding-top: 0 !important;
     padding-left: 80px !important;
     padding-right: 80px !important;
+  }
+
+  li,
+  p {
+    color: #000 !important;
+  }
+
+  body.dark a:link,
+  body.dark a:visited {
+    color: #383838 !important;
+  }
+
+  a:link,
+  a:visited {
+    color: #383838 !important;
+  }
+
+  body.dark h1,
+  body.dark h2,
+  body.dark h3,
+  body.dark h1 a,
+  body.dark h2 a,
+  body.dark h3 a,
+  body.dark h4,
+  body.dark h5 {
+    color: #000 !important;
   }
 
   sup {
