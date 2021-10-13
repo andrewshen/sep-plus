@@ -92,12 +92,18 @@ function updateThemeSelector() {
   const theme = localStorage.getItem('theme');
   switch (theme) {
     case 'auto':
+      $('#theme-selector option[value="light"]').removeAttr('selected');
+      $('#theme-selector option[value="dark"]').removeAttr('selected');
       $('#theme-selector option[value="auto"]').attr('selected', 'selected');
       break;
     case 'dark':
+      $('#theme-selector option[value="light"]').removeAttr('selected');
+      $('#theme-selector option[value="auto"]').removeAttr('selected');
       $('#theme-selector option[value="dark"]').attr('selected', 'selected');
       break;
     case 'light':
+      $('#theme-selector option[value="dark"]').removeAttr('selected');
+      $('#theme-selector option[value="auto"]').removeAttr('selected');
       $('#theme-selector option[value="light"]').attr('selected', 'selected');
       break;
   }
@@ -194,6 +200,12 @@ $(function () {
   updateThemeIcon();
 
   $('input[type=search]').attr('placeholder', 'Type / to search SEP');
+});
+
+window.addEventListener('storage', function (e) {
+  updateTheme();
+  updateThemeSelector();
+  updateThemeIcon();
 });
 
 $(window).scroll(function () {
