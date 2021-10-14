@@ -165,7 +165,16 @@ $(function () {
   selectContainer.append(themeIcon);
   selectContainer.append(chevronIcon);
 
-  $('#search').append(selectContainer);
+  if ((!isArticle && $('.searchpage #search')[0]) || $('#content #search')[0]) {
+    const searchContainer = document.createElement('div');
+    searchContainer.setAttribute('id', 'search');
+    searchContainer.append(selectContainer);
+    $('#header').append(searchContainer);
+    $('.select-container').css('margin-top', '-15px');
+  } else {
+    $('#search').append(selectContainer);
+  }
+
   $('#theme-selector').append(light);
   $('#theme-selector').append(dark);
   $('#theme-selector').append(auto);
