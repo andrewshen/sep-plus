@@ -253,5 +253,5 @@ appendCSS(
 );
 
 appendCSS(
-  'https://fonts.googleapis.com/css2?family=Inter:wght@300;500&display=swap'
+  'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap'
 );

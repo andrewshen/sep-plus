@@ -8,7 +8,7 @@ body {
 }
 
 blockquote {
-  border-left: 2px solid #eee !important;
+  border-left: 2px solid #d8d8d8 !important;
   padding: 0px 20px !important;
   font-style: italic !important;
   margin: 24px 0 !important;
@@ -18,6 +18,11 @@ h1,
 h2,
 h3 {
   font-weight: 500 !important;
+}
+
+#pubinfo {
+  margin-top: -4px !important;
+  margin-bottom: 20px !important;
 }
 
 #pubinfo em {
@@ -42,6 +47,8 @@ h3 {
   display: flex;
 }
 
+#article-sidebar .navbar i,
+#operations,
 #site-title {
   display: none;
 }
@@ -112,7 +119,7 @@ h4 {
   color: #767676 !important;
   text-shadow: none !important;
   transition: color 0.1s ease !important;
-  margin-right: 16px !important;
+  margin-right: 20px !important;
 }
 
 #article-sidebar .navbar .nav > li.active-item > a {
@@ -194,10 +201,6 @@ h4 {
   padding-top: 0 !important;
 }
 
-#article-sidebar .navbar i {
-  display: none;
-}
-
 #search input[type='search']:focus,
 #search input[type='search']:active {
   box-shadow: none !important;
@@ -207,6 +210,7 @@ h4 {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
     Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif !important;
   font-size: 13px !important;
+  font-weight: 500 !important;
   height: 28px !important;
   padding-left: 8px !important;
   transition: none !important;
@@ -225,6 +229,7 @@ h4 {
 
 .homepage #search input[type='search'] {
   padding: 20px !important;
+  padding-left: 12px !important;
 }
 
 .homepage #search .btn.search-btn {
@@ -250,12 +255,30 @@ select {
 }
 
 .dropdown-menu li a {
+  font-weight: 500 !important;
   color: #767676 !important;
   transition: all 0.1s ease !important;
 }
 
 .dropdown-menu li a:hover {
   color: #222 !important;
+}
+
+#footer-menu a,
+#principal-editor,
+#about-links,
+#mirror-info p,
+#site-credits,
+#pubinfo,
+#article-banner-content,
+#article-copyright,
+.btn {
+  font-weight: 500 !important;
+  font-size: 13px !important;
+}
+
+#footer {
+  background-image: none !important;
 }
 
 .btn i {
@@ -275,11 +298,37 @@ select {
 }
 
 #search-switch {
+  margin-top: 8px;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
     Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif !important;
+  font-size: 13px !important;
+}
+
+.btn,
+.btn-group,
+#mirrors .btn,
+#mirrors .dropdown-menu a,
+#mission,
+.notice,
+#toc-nav,
+#article-banner-content {
+  border-radius: 4px !important;
+  border: none !important;
+  background: #edebe9 !important;
+  box-shadow: none !important;
+}
+
+.btn:hover {
+  color: #8c1515 !important;
+}
+
+.homepage #search input[type='search'] {
+  font-weight: 500 !important;
 }
 
 .search_results {
+  border: none !important;
+  box-shadow: none !important;
   padding: 0 !important;
 }
 
@@ -363,7 +412,7 @@ body.dark .search_results {
 
 body.dark img {
   opacity: 0.75;
-  transition: opacity 0.5s ease-in-out;
+  transition: opacity 0.1s ease;
 }
 
 body.dark img:hover {
@@ -427,10 +476,7 @@ body.dark #mission,
 body.dark .notice,
 body.dark #toc-nav,
 body.dark #article-banner-content {
-  border-radius: 6px !important;
-  border: none !important;
   background: #383838 !important;
-  box-shadow: none !important;
 }
 
 body.dark #mirrors .btn,
@@ -449,7 +495,12 @@ body.dark .dropdown-menu li a {
 }
 
 body.dark .dropdown-menu li a:hover {
+  background: #464646 !important;
   color: #fff !important;
+}
+
+body.dark blockquote {
+  border-color: #464646 !important;
 }
 
 /* Print */
@@ -465,6 +516,8 @@ body.dark .dropdown-menu li a:hover {
   #article-banner,
   #footer,
   #search,
+  #search-form,
+  .select-container,
   #site-logo {
     display: none !important;
   }
@@ -489,6 +542,10 @@ body.dark .dropdown-menu li a:hover {
   a:link,
   a:visited {
     color: #383838 !important;
+  }
+
+  body.dark blockquote {
+    border-color: #d8d8d8 !important;
   }
 
   body.dark h1,
