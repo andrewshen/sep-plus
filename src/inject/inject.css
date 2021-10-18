@@ -20,6 +20,10 @@ h3 {
   font-weight: 500 !important;
 }
 
+a:hover {
+  color: #b91616 !important;
+}
+
 #pubinfo {
   margin-top: -4px !important;
   margin-bottom: 20px !important;
@@ -442,14 +446,15 @@ body.dark #article-sidebar .navbar .nav > li.active-item > a {
 
 body.dark a:link,
 body.dark a:visited {
-  color: #ffbebe !important;
+  color: #f9acac !important;
 }
+
 body.dark a:hover {
-  color: #fff !important;
+  color: #ffcbcb !important;
 }
 
 body.dark .btn:hover i {
-  color: #fff !important;
+  color: #ffcbcb !important;
 }
 
 body.dark #search-switch {
