@@ -3,6 +3,7 @@
 body {
   background: none !important;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
     Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif !important;
 }
@@ -81,6 +82,14 @@ h4 {
   letter-spacing: -0.02em;
 }
 
+#article-content h1 a:hover,
+#article-content h2 a:hover,
+#article-content h3 a:hover,
+#article-content h4 a:hover,
+#article-content h5 a:hover {
+  color: inherit !important;
+}
+
 #article-content h1 {
   font-weight: 500 !important;
   margin-top: 0 !important;
@@ -92,14 +101,16 @@ h4 {
   line-height: 1.4em;
 }
 
-#article-content h2 em {
+#article-content h1 em,
+#article-content h2 em,
+#article-content h3 em {
   font-style: normal;
 }
 
 #article-content h3 {
   margin-top: 32px !important;
   font-size: 1.2em !important;
-  line-height: 1.2em;
+  line-height: 1.4em;
 }
 
 #article li,
@@ -373,6 +384,93 @@ select {
   right: 8px;
 }
 
+@keyframes fadeIn {
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+@-moz-keyframes fadeIn {
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+@-webkit-keyframes fadeIn {
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+@-o-keyframes fadeIn {
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+@-ms-keyframes fadeIn {
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+.footnote-annotation {
+  z-index: 999;
+  position: absolute;
+  padding: 16px 20px;
+  background: #fff;
+  border: 1px solid #d8d8d8;
+  border-radius: 4px;
+  bottom: 28px;
+  width: 400px;
+  left: 50%;
+  margin-left: -200px;
+  height: fit-content;
+  animation: fadeIn 0.1s;
+  -webkit-animation: fadeIn 0.1s;
+  -moz-animation: fadeIn 0.1s;
+  -o-animation: fadeIn 0.1s;
+  -ms-animation: fadeIn 0.1s;
+}
+
+.footnote-annotation:after {
+  content: '';
+  border-bottom: 1px solid #d8d8d8;
+  border-right: 1px solid #d8d8d8;
+  background-color: #fff;
+  position: absolute;
+  left: 50%;
+  margin-left: -28px;
+  bottom: -7px;
+  width: 12px;
+  height: 12px;
+  transform: rotate(45deg);
+}
+
+.footnote-annotation p {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+    Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+  color: #545454;
+  font-weight: 500;
+  font-size: 13px;
+  line-height: 20px;
+  margin-bottom: 2px;
+}
 /* Dark Mode */
 
 body.dark,
@@ -506,6 +604,21 @@ body.dark .dropdown-menu li a:hover {
 
 body.dark blockquote {
   border-color: #464646 !important;
+}
+
+body.dark .footnote-annotation {
+  background: #383838;
+  border-color: #464646;
+}
+
+body.dark .footnote-annotation p {
+  color: #d8d8d8;
+}
+
+body.dark .footnote-annotation:after {
+  border-bottom-color: #464646;
+  border-right-color: #464646;
+  background-color: #383838;
 }
 
 /* Print */

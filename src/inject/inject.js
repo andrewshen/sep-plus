@@ -100,6 +100,60 @@ function updateThemeSelector() {
   $('#theme-selector').val(theme);
 }
 
+function addFootnotes() {
+  if ($('#article-content sup a')[0]) {
+    const footnotesURL = $('#article-content sup a')
+      .first()
+      .prop('href')
+      .split('#')[0];
+    fetch(footnotesURL)
+      .then(function (response) {
+        return response.text();
+      })
+      .then(function (html) {
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(html, 'text/html');
+
+        const footnotes = doc.getElementById('aueditable');
+        footnotes.setAttribute('id', 'footnotes');
+        $('#bibliography').before(footnotes);
+
+        $('#footnotes h2').html('Footnotes');
+        $('#footnotes p a').each(function () {
+          const oldURL = $(this).attr('href');
+          $(this).attr('href', `#${oldURL.split('#')[1]}`);
+        });
+
+        addFootnoteHoverState();
+      })
+      .catch(function (err) {
+        console.log('No footnotes found');
+      });
+  }
+}
+
+function addFootnoteHoverState() {
+  if ($('#footnotes')[0]) {
+    $('sup a').hover(
+      function () {
+        const footnote = $('#footnotes p').eq($('sup a').index(this)).clone();
+        const footnoteContainer = $('<div>', { class: 'footnote-annotation' });
+        footnoteContainer.append(footnote);
+        $(this).parent().append(footnoteContainer);
+      },
+      function () {
+        $(this)
+          .parent()
+          .find('.footnote-annotation')
+          .last()
+          .fadeOut(100, function () {
+            $(this).remove();
+          });
+      }
+    );
+  }
+}
+
 $(function () {
   const isArticle = $('#article-nav').find('li')[0];
   const nav = $('#article-nav').find('ul');
@@ -109,6 +163,7 @@ $(function () {
     $("a:contains('Academic Tools')")[0].remove();
     $('#toc').find('li').prependTo(nav);
     $('#toc').remove();
+    addFootnotes();
   }
 
   nav
@@ -202,7 +257,7 @@ $(function () {
 
   $('input[type=search]').attr('placeholder', 'Type / to search SEP');
 
-  if (isArticle) {
+  if (isArticle && !location.href.match(/notes.html/)) {
     $(window).scroll(function () {
       identifyPrintBlock();
       const scroll = $(window).scrollTop() + 1;
