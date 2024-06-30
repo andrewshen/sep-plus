@@ -203,6 +203,7 @@ h4 {
 #header-wrapper {
   background-image: none !important;
   padding-bottom: 0 !important;
+  border-bottom: 1px solid #eeeeee !important;
 }
 
 #article,
@@ -488,7 +489,7 @@ body.dark #header-wrapper,
 body.dark #article-copyright,
 body.dark #footer,
 body.dark hr {
-  border-color: #383838 !important;
+  border-color: #2f2f2f !important;
 }
 
 body.dark table.all-rules td,

@@ -1,7 +1,7 @@
 {
   "name": "SEP+",
-  "version": "1.1.0",
-  "manifest_version": 2,
+  "version": "1.1.1",
+  "manifest_version": 3,
   "description": "Improve the Stanford Encyclopedia of Philosophy reading experience",
   "homepage_url": "https://andrewshen.net",
   "icons": {
