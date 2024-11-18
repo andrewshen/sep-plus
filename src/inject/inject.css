@@ -21,6 +21,10 @@ h3 {
   font-weight: 500 !important;
 }
 
+a {
+  text-decoration: none !important;
+}
+
 a:hover {
   color: #650303 !important;
 }
@@ -240,7 +244,6 @@ h4 {
 #article-banner-content a {
   font-size: 13px !important;
   line-height: 20px !important;
-  text-decoration: none !important;
 }
 
 .homepage #search input[type='search'] {
