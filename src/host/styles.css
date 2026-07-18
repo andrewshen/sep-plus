@@ -4,7 +4,7 @@ body {
   background: none !important;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+  font-family: 'Public Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
     Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif !important;
 }
 
@@ -18,7 +18,7 @@ blockquote {
 h1,
 h2,
 h3 {
-  font-weight: 500 !important;
+  font-weight: 700 !important;
 }
 
 a {
@@ -36,7 +36,7 @@ a:hover {
 }
 
 #pubinfo em {
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+  font-family: 'Public Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
     Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif !important;
   font-style: normal !important;
   color: #767676 !important;
@@ -46,7 +46,7 @@ a:hover {
 #pubinfo a.sep-pubinfo-author {
   font-family: inherit !important;
   font-size: inherit !important;
-  font-weight: 500 !important;
+  font-weight: 700 !important;
   font-style: normal !important;
   color: #767676 !important;
   text-decoration: none !important;
@@ -101,7 +101,7 @@ a:hover {
   padding-right: 0 !important;
 }
 
-body.sep-toc-enabled #article {
+body.sep-plus-article #article {
   margin-left: auto !important;
   margin-right: auto !important;
   padding-left: 0 !important;
@@ -110,14 +110,65 @@ body.sep-toc-enabled #article {
   max-width: 560px !important;
 }
 
-body.sep-toc-enabled #article-content {
+body.sep-plus-article #article-content {
   max-width: 560px !important;
   margin-left: auto !important;
   margin-right: auto !important;
 }
 
-body.sep-toc-enabled #article-sidebar {
+body.sep-plus-article #article-sidebar {
   display: none !important;
+}
+
+/* Sidebar layout (React chrome lives in Shadow DOM) */
+:root {
+  --sep-plus-sidebar-width: 272px;
+}
+
+html.sep-plus-sidebar-open,
+body.sep-plus-article.sep-plus-sidebar-open {
+  overflow-x: hidden !important;
+}
+
+body.sep-plus-article.sep-plus-sidebar-open {
+  padding-left: var(--sep-plus-sidebar-width) !important;
+  box-sizing: border-box !important;
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
+/* Kill the full-bleed 100vw header breakout while the sidebar is open —
+   otherwise body padding + 100vw creates horizontal overflow. */
+body.sep-plus-article.sep-plus-sidebar-open #header-wrapper {
+  width: 100% !important;
+  max-width: 100% !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+}
+
+body.sep-plus-article.sep-plus-sidebar-open #container,
+body.sep-plus-article.sep-plus-sidebar-open #header {
+  width: 100% !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+#sep-plus-root {
+  all: initial;
+  position: fixed;
+  inset: 0;
+  z-index: 2147483000;
+  pointer-events: none;
+}
+
+@media print {
+  #sep-plus-root {
+    display: none !important;
+  }
+
+  body.sep-plus-article.sep-plus-sidebar-open {
+    padding-left: 0 !important;
+  }
 }
 
 #article-content h1,
@@ -132,9 +183,9 @@ body.sep-toc-enabled #article-sidebar {
 h4 {
   margin-top: 40px !important;
   margin-bottom: 16px !important;
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+  font-family: 'Public Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
     Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif !important;
-  font-weight: 500 !important;
+  font-weight: 700 !important;
   letter-spacing: -0.02em;
 }
 
@@ -147,7 +198,7 @@ h4 {
 }
 
 #article-content h1 {
-  font-weight: 500 !important;
+  font-weight: 700 !important;
   margin-top: 0 !important;
   line-height: 112% !important;
 }
@@ -209,7 +260,7 @@ h4 {
 .navbar .nav > li > a {
   font-size: 13px !important;
   margin-right: 20px !important;
-  font-weight: 500 !important;
+  font-weight: 700 !important;
   color: #767676 !important;
   text-shadow: none !important;
   padding-bottom: 0 !important;
@@ -248,7 +299,7 @@ h4 {
 }
 
 .result_title a {
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+  font-family: 'Public Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
     Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif !important;
 }
 
@@ -256,9 +307,24 @@ h4 {
 #article-content,
 #style_guide_content,
 #style_guide_content_wide {
-  font-family: 'Newsreader', serif !important;
+  font-family: 'Libre Baskerville', Georgia, 'Times New Roman', serif !important;
   font-size: 18px !important;
   line-height: 25px !important;
+}
+
+#article-content,
+#style_guide_content,
+#style_guide_content_wide {
+  font-synthesis: none;
+}
+
+#article-content strong,
+#article-content b,
+#style_guide_content strong,
+#style_guide_content b,
+#style_guide_content_wide strong,
+#style_guide_content_wide b {
+  font-weight: 600 !important;
 }
 
 #header-wrapper {
@@ -308,10 +374,10 @@ h4 {
 }
 
 #search input[type='search'] {
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+  font-family: 'Public Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
     Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif !important;
   font-size: 13px !important;
-  font-weight: 500 !important;
+  font-weight: 700 !important;
   height: 28px !important;
   margin-bottom: 0 !important;
   padding-left: 28px !important;
@@ -339,11 +405,11 @@ h4 {
 }
 
 select {
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+  font-family: 'Public Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
     Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif !important;
   font-size: 13px !important;
   line-height: 16px !important;
-  font-weight: 500 !important;
+  font-weight: 700 !important;
 }
 
 .dropdown-menu {
@@ -357,7 +423,7 @@ select {
 }
 
 .dropdown-menu li a {
-  font-weight: 500 !important;
+  font-weight: 700 !important;
   color: #767676 !important;
   transition: all 0.1s ease !important;
 }
@@ -375,7 +441,7 @@ select {
 #article-banner-content,
 #article-copyright,
 .btn {
-  font-weight: 500 !important;
+  font-weight: 700 !important;
   font-size: 13px !important;
 }
 
@@ -414,7 +480,7 @@ select {
 
 #search-switch {
   margin-top: 8px;
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+  font-family: 'Public Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
     Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif !important;
   font-size: 13px !important;
 }
@@ -438,245 +504,13 @@ select {
 }
 
 .homepage #search input[type='search'] {
-  font-weight: 500 !important;
+  font-weight: 700 !important;
 }
 
 .search_results {
   border: none !important;
   box-shadow: none !important;
   padding: 0 !important;
-}
-
-/* Paper-style TOC rail */
-
-.sep-toc {
-  --sep-toc-font-size: 13px;
-  --sep-toc-line-height: 1.35;
-  --sep-toc-row-pad: 5px;
-  --sep-toc-row-height: calc(
-    var(--sep-toc-font-size) * var(--sep-toc-line-height) +
-      var(--sep-toc-row-pad) * 2 - 4px
-  );
-  --sep-toc-max-height: calc(100vh - 300px);
-
-  position: fixed;
-  top: 50%;
-  left: 12px;
-  z-index: 1000;
-  display: grid;
-  grid-template-columns: 280px;
-  grid-template-rows: minmax(0, auto);
-  align-items: start;
-  justify-items: start;
-  /* 28px rail + 40px transparent hover hit-area to the right.
-     Keep expanded width for 200ms after unhover so the panel
-     can fade out without being clipped. */
-  width: 68px;
-  max-height: var(--sep-toc-max-height);
-  overflow: visible;
-  transform: translateY(-50%);
-  transition: width 0s linear 200ms;
-}
-
-.sep-toc:hover,
-.sep-toc:focus-within {
-  width: 288px;
-  transition-delay: 0s;
-}
-
-.sep-toc-rail,
-.sep-toc-panel {
-  grid-area: 1 / 1;
-  width: 280px;
-  max-height: var(--sep-toc-max-height);
-  box-sizing: border-box;
-}
-
-.sep-toc-rail {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 0;
-  padding: 0;
-  width: 28px;
-  overflow-x: hidden;
-  overflow-y: auto;
-  scrollbar-width: none;
-}
-
-.sep-toc-rail::-webkit-scrollbar {
-  display: none;
-}
-
-.sep-toc:hover .sep-toc-rail,
-.sep-toc:focus-within .sep-toc-rail {
-  pointer-events: none;
-}
-
-.sep-toc-bar {
-  display: flex;
-  align-items: center;
-  flex-shrink: 0;
-  box-sizing: border-box;
-  height: var(--sep-toc-row-height) !important;
-  min-height: var(--sep-toc-row-height) !important;
-  margin-left: 0;
-  background: transparent;
-  text-decoration: none !important;
-}
-
-.sep-toc-bar:focus,
-.sep-toc-bar:focus-visible {
-  outline: none !important;
-  box-shadow: none !important;
-}
-
-.sep-toc-bar::before {
-  content: '';
-  display: block;
-  height: 2px;
-  border-radius: 1px;
-  background: #d0d0d0;
-  transform: scaleX(1);
-  transform-origin: left center;
-  opacity: 1;
-  transition: transform 200ms ease, opacity 200ms ease, background 0.12s ease;
-}
-
-.sep-toc:hover .sep-toc-bar::before,
-.sep-toc:focus-within .sep-toc-bar::before {
-  transform: scaleX(0);
-  opacity: 0;
-}
-
-.sep-toc-bar--level-1::before {
-  width: 22px;
-}
-
-.sep-toc-bar--level-2::before {
-  width: 14px;
-}
-
-.sep-toc-bar--level-3::before {
-  width: 9px;
-}
-
-.sep-toc-bar.is-active::before {
-  background: #222;
-}
-
-.sep-toc-bar:hover::before {
-  background: #999;
-}
-
-.sep-toc-bar.is-active:hover::before {
-  background: #222;
-}
-
-.sep-toc-panel {
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  overflow-x: hidden;
-  overflow-y: auto;
-  padding: 0;
-  background: #fff;
-  border: none;
-  border-radius: 0;
-  box-shadow: none;
-  opacity: 0;
-  visibility: hidden;
-  pointer-events: none;
-  transform: translateX(0);
-  transition: opacity 200ms ease, transform 200ms ease, visibility 200ms ease;
-}
-
-.sep-toc:hover .sep-toc-panel,
-.sep-toc:focus-within .sep-toc-panel {
-  opacity: 1;
-  visibility: visible;
-  pointer-events: auto;
-  transform: translateX(8px);
-}
-
-.sep-toc-fade {
-  position: absolute;
-  left: 8px;
-  z-index: 2;
-  width: 280px;
-  height: 40px;
-  pointer-events: none;
-  opacity: 0;
-  visibility: hidden;
-  transition: opacity 200ms ease, visibility 200ms ease;
-}
-
-.sep-toc-fade--top {
-  top: 0;
-  background: linear-gradient(to bottom, #fff 0%, rgba(255, 255, 255, 0) 100%);
-}
-
-.sep-toc-fade--bottom {
-  bottom: 0;
-  background: linear-gradient(to top, #fff 0%, rgba(255, 255, 255, 0) 100%);
-}
-
-.sep-toc:hover .sep-toc-fade,
-.sep-toc:focus-within .sep-toc-fade {
-  visibility: visible;
-}
-
-.sep-toc.sep-toc--fade-top:hover .sep-toc-fade--top,
-.sep-toc.sep-toc--fade-top:focus-within .sep-toc-fade--top,
-.sep-toc.sep-toc--fade-bottom:hover .sep-toc-fade--bottom,
-.sep-toc.sep-toc--fade-bottom:focus-within .sep-toc-fade--bottom {
-  opacity: 1;
-}
-
-.sep-toc-link {
-  display: block !important;
-  box-sizing: border-box !important;
-  width: 100%;
-  max-width: 100%;
-  height: var(--sep-toc-row-height) !important;
-  min-height: var(--sep-toc-row-height) !important;
-  max-height: var(--sep-toc-row-height) !important;
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
-    Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif !important;
-  font-size: var(--sep-toc-font-size) !important;
-  font-weight: 500 !important;
-  line-height: var(--sep-toc-row-height) !important;
-  color: #767676 !important;
-  text-decoration: none !important;
-  text-shadow: none !important;
-  padding: 0 !important;
-  margin: 0 !important;
-  transition: color 0.1s ease;
-  white-space: nowrap !important;
-  overflow: hidden !important;
-  text-overflow: ellipsis !important;
-}
-
-.sep-toc-link--level-2 {
-  padding-left: 14px !important;
-}
-
-.sep-toc-link--level-3 {
-  padding-left: 28px !important;
-}
-
-.sep-toc-link:hover {
-  color: #222 !important;
-}
-
-.sep-toc-link.is-active {
-  color: #222 !important;
-}
-
-.sep-toc-link:focus,
-.sep-toc-link:focus-visible {
-  outline: none !important;
-  box-shadow: none !important;
 }
 
 /* Custom Components */
@@ -796,10 +630,10 @@ select {
 }
 
 .footnote-annotation p {
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+  font-family: 'Public Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
     Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
   color: #545454;
-  font-weight: 500;
+  font-weight: 700;
   font-size: 13px;
   line-height: 20px;
   margin-bottom: 2px;
@@ -965,51 +799,12 @@ body.dark .footnote-annotation:after {
   background-color: #383838;
 }
 
-body.dark .sep-toc-bar::before {
-  background: #464646;
-}
-
-body.dark .sep-toc-bar.is-active::before {
-  background: #fff;
-}
-
-body.dark .sep-toc-bar:hover::before {
-  background: #a3a3a3;
-}
-
-body.dark .sep-toc-bar.is-active:hover::before {
-  background: #fff;
-}
-
-body.dark .sep-toc-panel {
-  background: #222;
-  border: none;
-  box-shadow: none;
-}
-
-body.dark .sep-toc-fade--top {
-  background: linear-gradient(to bottom, #222 0%, rgba(34, 34, 34, 0) 100%);
-}
-
-body.dark .sep-toc-fade--bottom {
-  background: linear-gradient(to top, #222 0%, rgba(34, 34, 34, 0) 100%);
-}
-
-body.dark .sep-toc-link {
-  color: #a3a3a3 !important;
-}
-
-body.dark .sep-toc-link:hover,
-body.dark .sep-toc-link.is-active {
-  color: #fff !important;
-}
 
 /* Print */
 
 @media print {
   #print-block,
   #article-sidebar,
-  #sep-toc,
   #theme-selector,
   #academic-tools,
   #other-internet-resources,
