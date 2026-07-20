@@ -35,8 +35,6 @@ type AnchorRect = {
   height: number;
 };
 
-type Phase = 'from' | 'open' | 'closing';
-
 function navigateTo(
   url: string,
   onClose: () => void,
@@ -55,7 +53,7 @@ function prefersReducedMotion(): boolean {
   return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 }
 
-const EXIT_MS = 160;
+const EXIT_MS = 180;
 const PROTRUDE_PX = 60;
 /** Sidebar content padding-right; included so width clears the sidebar edge. */
 const SIDEBAR_PAD_RIGHT = 20;
@@ -92,31 +90,30 @@ export function Palette({ open, onClose, anchorRef, dark }: PaletteProps) {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [activeIndex, setActiveIndex] = useState(0);
   const [mounted, setMounted] = useState(open);
-  const [phase, setPhase] = useState<Phase>('from');
+  const [expanded, setExpanded] = useState(false);
   const [anchor, setAnchor] = useState<AnchorRect | null>(null);
 
-  const expanded = phase === 'open';
-  const closing = phase === 'closing';
+  const closing = mounted && !open;
 
   useEffect(() => {
     if (!open) {
       return;
     }
+    setRelated(collectRelatedEntries());
     const next = measureAnchor(anchorRef);
     setAnchor(next);
     setMounted(true);
-    setPhase(prefersReducedMotion() ? 'open' : 'from');
+    setExpanded(prefersReducedMotion());
   }, [open, anchorRef]);
 
   useEffect(() => {
     if (open || !mounted) {
       return;
     }
-    setPhase('closing');
+    setExpanded(false);
     const delay = prefersReducedMotion() ? 0 : EXIT_MS;
     const timer = window.setTimeout(() => {
       setMounted(false);
-      setPhase('from');
       setQuery('');
       setActiveIndex(0);
       setLoadError(null);
@@ -126,20 +123,18 @@ export function Palette({ open, onClose, anchorRef, dark }: PaletteProps) {
   }, [open, mounted]);
 
   useLayoutEffect(() => {
-    if (!mounted || !open || phase !== 'from') {
+    if (!mounted || !open || !anchor) {
       return;
     }
     if (prefersReducedMotion()) {
-      setPhase('open');
+      setExpanded(true);
       return;
     }
     const id = window.requestAnimationFrame(() => {
-      window.requestAnimationFrame(() => {
-        setPhase('open');
-      });
+      setExpanded(true);
     });
     return () => window.cancelAnimationFrame(id);
-  }, [mounted, open, phase]);
+  }, [mounted, open, anchor]);
 
   useEffect(() => {
     if (!mounted) {
@@ -158,14 +153,6 @@ export function Palette({ open, onClose, anchorRef, dark }: PaletteProps) {
   }, [mounted, anchorRef]);
 
   useEffect(() => {
-    if (!open || closing || !mounted) {
-      return;
-    }
-    setRelated(collectRelatedEntries());
-  }, [open, closing, mounted]);
-
-  useEffect(() => {
-    // Focus once the shell is painted so typing works through the morph.
     if (!mounted || closing || !anchor) {
       return;
     }
@@ -176,33 +163,38 @@ export function Palette({ open, onClose, anchorRef, dark }: PaletteProps) {
   }, [mounted, closing, anchor]);
 
   useEffect(() => {
-    if (!open || closing) {
+    if (!open || closing || entries) {
       return;
     }
     let cancelled = false;
-    setLoading(true);
-    setLoadError(null);
-    void getEntryIndex()
-      .then((items) => {
-        if (!cancelled) {
-          setEntries(items);
-        }
-      })
-      .catch(() => {
-        if (!cancelled) {
-          setLoadError('Could not load entry titles');
-          setEntries([]);
-        }
-      })
-      .finally(() => {
-        if (!cancelled) {
-          setLoading(false);
-        }
-      });
+    // Defer index fetch until after the open morph so setState doesn't
+    // re-render mid-animation (first open only — later opens are cached).
+    const timer = window.setTimeout(() => {
+      setLoading(true);
+      setLoadError(null);
+      void getEntryIndex()
+        .then((items) => {
+          if (!cancelled) {
+            setEntries(items);
+          }
+        })
+        .catch(() => {
+          if (!cancelled) {
+            setLoadError('Could not load entry titles');
+            setEntries([]);
+          }
+        })
+        .finally(() => {
+          if (!cancelled) {
+            setLoading(false);
+          }
+        });
+    }, EXIT_MS);
     return () => {
       cancelled = true;
+      window.clearTimeout(timer);
     };
-  }, [open, closing]);
+  }, [open, closing, entries]);
 
   const matches = useMemo(
     () => (entries ? filterEntries(entries, query, related) : []),
@@ -225,14 +217,19 @@ export function Palette({ open, onClose, anchorRef, dark }: PaletteProps) {
   }, [query, rows.length]);
 
   useEffect(() => {
-    if (!open || closing || !listRef.current) {
+    if (!open || closing || !expanded || !listRef.current) {
+      return;
+    }
+    // Wrap-to-top: scrollTop (scrollIntoView on #0 was skipped before and broke ↑ wrap).
+    if (activeIndex === 0) {
+      listRef.current.scrollTop = 0;
       return;
     }
     const active = listRef.current.querySelector<HTMLElement>(
       '[role="option"][aria-selected="true"]'
     );
     active?.scrollIntoView({ block: 'nearest' });
-  }, [open, closing, activeIndex, rows.length]);
+  }, [open, closing, expanded, activeIndex]);
 
   useEffect(() => {
     if (!open || closing) {
@@ -296,8 +293,7 @@ export function Palette({ open, onClose, anchorRef, dark }: PaletteProps) {
     return null;
   }
 
-  const shellOpen = expanded;
-  const width = shellOpen
+  const width = expanded
     ? anchor.width + SIDEBAR_PAD_RIGHT + PROTRUDE_PX
     : anchor.width;
 
@@ -310,13 +306,13 @@ export function Palette({ open, onClose, anchorRef, dark }: PaletteProps) {
       <div
         className={[
           'sep-palette-scrim',
-          shellOpen ? 'is-visible' : '',
+          expanded ? 'is-visible' : '',
           closing ? 'is-exiting' : '',
         ]
           .filter(Boolean)
           .join(' ')}
         onMouseDown={(event) => {
-          if (closing || !shellOpen) {
+          if (closing || !expanded) {
             return;
           }
           if (event.target === event.currentTarget) {
@@ -327,13 +323,13 @@ export function Palette({ open, onClose, anchorRef, dark }: PaletteProps) {
       <div
         className={[
           'sep-palette-inline',
-          shellOpen ? 'is-open' : '',
+          expanded ? 'is-open' : '',
           closing ? 'is-closing' : '',
         ]
           .filter(Boolean)
           .join(' ')}
         role="dialog"
-        aria-modal={shellOpen ? true : undefined}
+        aria-modal={expanded ? true : undefined}
         aria-label="Search"
         style={{
           top: anchor.top,
@@ -359,15 +355,20 @@ export function Palette({ open, onClose, anchorRef, dark }: PaletteProps) {
 
         <div className="sep-palette-results-wrap">
           <div className="sep-palette-body">
-            {loading && !entries ? (
+            {/* Never stack loading above related rows — that shifts the list on first open. */}
+            {loading && !entries && rows.length === 0 ? (
               <div className="sep-palette-empty">Loading titles…</div>
             ) : null}
 
-            {!loading && loadError ? (
+            {!loading && loadError && rows.length === 0 ? (
               <div className="sep-palette-empty">{loadError}</div>
             ) : null}
 
-            {!loading && !loadError && !trimmed && related.length === 0 ? (
+            {!loading &&
+            !loadError &&
+            !trimmed &&
+            related.length === 0 &&
+            rows.length === 0 ? (
               <div className="sep-palette-empty">Type to search by title</div>
             ) : null}
 

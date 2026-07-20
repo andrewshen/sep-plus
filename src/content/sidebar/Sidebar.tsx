@@ -135,7 +135,7 @@ export function Sidebar({
       setSearchActive(true);
       return;
     }
-    const timer = window.setTimeout(() => setSearchActive(false), 160);
+    const timer = window.setTimeout(() => setSearchActive(false), 180);
     return () => window.clearTimeout(timer);
   }, [paletteOpen]);
 
