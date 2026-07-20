@@ -70,8 +70,6 @@ function measureAnchor(
 export function Palette({ open, onClose, anchorRef, dark }: PaletteProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLUListElement>(null);
-  const paletteRef = useRef<HTMLDivElement>(null);
-  const pendingNavigationRef = useRef<string | null>(null);
   const [query, setQuery] = useState('');
   const [entries, setEntries] = useState<EntryIndexItem[] | null>(null);
   const [related, setRelated] = useState<EntryIndexItem[]>([]);
@@ -87,14 +85,12 @@ export function Palette({ open, onClose, anchorRef, dark }: PaletteProps) {
   const navigateTo = useCallback(
     (url: string, newTab = false): void => {
       if (newTab) {
-        pendingNavigationRef.current = null;
         window.open(url, '_blank', 'noopener,noreferrer');
         onClose();
         return;
       }
 
-      pendingNavigationRef.current = url;
-      onClose();
+      window.location.assign(url);
     },
     [onClose]
   );
@@ -115,47 +111,15 @@ export function Palette({ open, onClose, anchorRef, dark }: PaletteProps) {
       return;
     }
     setExpanded(false);
-    const palette = paletteRef.current;
-    let finished = false;
-
-    function finishClose(): void {
-      if (finished) {
-        return;
-      }
-      finished = true;
+    const delay = prefersReducedMotion() ? 0 : EXIT_MS;
+    const timer = window.setTimeout(() => {
       setMounted(false);
       setQuery('');
       setActiveIndex(0);
       setLoadError(null);
       setAnchor(null);
-
-      const destination = pendingNavigationRef.current;
-      pendingNavigationRef.current = null;
-      if (destination) {
-        window.location.assign(destination);
-      }
-    }
-
-    function onTransitionEnd(event: TransitionEvent): void {
-      if (
-        event.target === palette &&
-        event.propertyName === 'max-height'
-      ) {
-        finishClose();
-      }
-    }
-
-    if (prefersReducedMotion()) {
-      finishClose();
-      return;
-    }
-
-    palette?.addEventListener('transitionend', onTransitionEnd);
-    const timer = window.setTimeout(finishClose, EXIT_MS + 100);
-    return () => {
-      palette?.removeEventListener('transitionend', onTransitionEnd);
-      window.clearTimeout(timer);
-    };
+    }, delay);
+    return () => window.clearTimeout(timer);
   }, [open, mounted]);
 
   useLayoutEffect(() => {
@@ -340,7 +304,6 @@ export function Palette({ open, onClose, anchorRef, dark }: PaletteProps) {
         .join(' ')}
     >
       <div
-        ref={paletteRef}
         className={[
           'sep-palette-scrim',
           expanded ? 'is-visible' : '',
