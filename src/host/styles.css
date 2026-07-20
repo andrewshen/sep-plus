@@ -1,5 +1,23 @@
 @import '../lib/sand.css';
 
+/* Hide the host page until SEP+ has committed its first complete frame. */
+html.sep-plus-booting {
+  min-height: 100%;
+  background: var(--sep-page-bg) !important;
+}
+
+html.sep-plus-booting > body,
+html.sep-plus-booting > #sep-plus-root,
+html.sep-plus-booting > #sep-plus-edge-toggle,
+html.sep-plus-booting > #sep-plus-palette-layer {
+  visibility: hidden !important;
+}
+
+html.sep-plus-booting body *,
+html.sep-plus-booting #sep-plus-edge-toggle * {
+  transition: none !important;
+}
+
 /* General Styling */
 
 body {

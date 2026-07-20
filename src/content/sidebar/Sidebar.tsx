@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import type { SidebarSurface, ThemePreference, TocItem } from '../../lib/types';
-import { getTheme, setTheme } from '../../lib/storage';
+import { setTheme } from '../../lib/storage';
 import { IconSearch } from '../icons';
 import { Palette } from '../palette/Palette';
 import { ContentsTab } from './ContentsTab';
@@ -15,6 +15,7 @@ type SidebarProps = {
   onOpenPalette: () => void;
   onClosePalette: () => void;
   dark: boolean;
+  initialTheme: ThemePreference;
 };
 
 function IconAnnotations() {
@@ -117,18 +118,15 @@ export function Sidebar({
   onOpenPalette,
   onClosePalette,
   dark,
+  initialTheme,
 }: SidebarProps) {
   const [surface, setSurface] = useState<SidebarSurface>('toc');
-  const [theme, setThemeState] = useState<ThemePreference>('light');
+  const [theme, setThemeState] = useState<ThemePreference>(initialTheme);
   const [searchActive, setSearchActive] = useState(paletteOpen);
   const searchSlotRef = useRef<HTMLDivElement>(null);
   const logoSrc = chrome.runtime.getURL(
     dark ? 'sep-logo-white.png' : 'sep-logo.png'
   );
-
-  useEffect(() => {
-    void getTheme().then(setThemeState);
-  }, []);
 
   useEffect(() => {
     if (paletteOpen) {

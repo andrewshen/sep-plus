@@ -1,22 +1,77 @@
+import { flushSync } from 'react-dom';
 import { createRoot } from 'react-dom/client';
 import {
-  bootstrapHost,
-  isArticlePage,
-  reformatPubinfo,
   addFootnotes,
+  applyTheme,
+  bootstrapHost,
+  injectLocalFonts,
+  isArticlePage,
+  preloadLocalFonts,
+  reformatPubinfo,
 } from '../host/bootstrap';
 import {
   collectTocItems,
   prepareArticleNav,
 } from '../host/toc';
+import {
+  getTheme,
+  readSidebarCollapsed,
+} from '../lib/storage';
+import type { ThemePreference } from '../lib/types';
 import { App } from './App';
 import uiStyles from './styles.css?inline';
 import '../host/styles.css';
 
-function mountArticleShell(items: ReturnType<typeof collectTocItems>): void {
+const BOOT_CLASS = 'sep-plus-booting';
+const READY_CLASS = 'sep-plus-ready';
+const BOOT_TIMEOUT_MS = 8000;
+
+let bootTimedOut = false;
+let bootTimeout: number | undefined;
+
+function revealPage(): void {
+  if (bootTimeout !== undefined) {
+    window.clearTimeout(bootTimeout);
+    bootTimeout = undefined;
+  }
+  document
+    .getElementById('sep-plus-root')
+    ?.removeAttribute('data-sep-plus-booting');
+  document.documentElement.classList.remove(BOOT_CLASS);
+  document.documentElement.classList.add(READY_CLASS);
+}
+
+function waitForDomReady(): Promise<void> {
+  if (document.readyState !== 'loading') {
+    return Promise.resolve();
+  }
+
+  return new Promise((resolve) => {
+    document.addEventListener('DOMContentLoaded', () => resolve(), {
+      once: true,
+    });
+  });
+}
+
+function waitForNextFrame(): Promise<void> {
+  return new Promise((resolve) => {
+    window.requestAnimationFrame(() => resolve());
+  });
+}
+
+function mountArticleShell(
+  items: ReturnType<typeof collectTocItems>,
+  initialCollapsed: boolean,
+  initialTheme: ThemePreference
+): void {
+  const sidebarOpen = !initialCollapsed;
+  document.documentElement.classList.add('sep-plus-article');
   document.body.classList.add('sep-plus-article');
-  document.documentElement.classList.add('sep-plus-sidebar-open');
-  document.body.classList.add('sep-plus-sidebar-open');
+  document.documentElement.classList.toggle(
+    'sep-plus-sidebar-open',
+    sidebarOpen
+  );
+  document.body.classList.toggle('sep-plus-sidebar-open', sidebarOpen);
 
   const articleSidebar = document.querySelector<HTMLElement>('#article-sidebar');
   if (articleSidebar) {
@@ -29,6 +84,7 @@ function mountArticleShell(items: ReturnType<typeof collectTocItems>): void {
 
   const host = document.createElement('div');
   host.id = 'sep-plus-root';
+  host.setAttribute('data-sep-plus-booting', '');
   document.documentElement.appendChild(host);
 
   const edgeToggle = document.createElement('div');
@@ -56,25 +112,81 @@ function mountArticleShell(items: ReturnType<typeof collectTocItems>): void {
   paletteMount.id = 'sep-plus-palette-mount';
   paletteShadow.appendChild(paletteMount);
 
-  createRoot(mount).render(<App items={items} />);
+  const root = createRoot(mount);
+  flushSync(() => {
+    root.render(
+      <App
+        items={items}
+        initialCollapsed={initialCollapsed}
+        initialTheme={initialTheme}
+      />
+    );
+  });
 }
 
 async function main(): Promise<void> {
+  await waitForDomReady();
+  if (bootTimedOut) {
+    return;
+  }
+
+  const theme = await themePromise;
+  if (bootTimedOut) {
+    return;
+  }
+
   const articleMode = isArticlePage();
+  let shouldLoadFootnotes = false;
 
   if (articleMode) {
     prepareArticleNav();
     const tocItems = collectTocItems();
     reformatPubinfo();
-    addFootnotes();
-    await bootstrapHost({ articleMode: true });
+    bootstrapHost({ articleMode: true, theme });
     if (tocItems.length || document.querySelector('#article')) {
-      mountArticleShell(tocItems);
+      mountArticleShell(tocItems, readSidebarCollapsed(), theme);
     }
+    shouldLoadFootnotes = true;
+  } else {
+    bootstrapHost({ articleMode: false, theme });
+  }
+
+  await fontsReadyPromise;
+  if (bootTimedOut) {
     return;
   }
 
-  await bootstrapHost({ articleMode: false });
+  await waitForNextFrame();
+  revealPage();
+
+  if (shouldLoadFootnotes) {
+    addFootnotes();
+  }
 }
 
-void main();
+document.documentElement.classList.remove(READY_CLASS);
+document.documentElement.classList.add(BOOT_CLASS);
+
+injectLocalFonts();
+const fontsReadyPromise = preloadLocalFonts();
+const themePromise: Promise<ThemePreference> = getTheme().then(
+  (theme) => {
+    applyTheme(theme);
+    return theme;
+  },
+  (error: unknown) => {
+    console.warn('SEP+ could not load the saved theme.', error);
+    applyTheme('light');
+    return 'light';
+  }
+);
+
+bootTimeout = window.setTimeout(() => {
+  bootTimedOut = true;
+  revealPage();
+}, BOOT_TIMEOUT_MS);
+
+void main().catch((error: unknown) => {
+  console.error('SEP+ failed to initialize.', error);
+  revealPage();
+});

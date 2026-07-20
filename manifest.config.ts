@@ -24,7 +24,7 @@ export default defineManifest({
         'https://plato.stanford.edu/*',
       ],
       js: ['src/content/main.tsx'],
-      run_at: 'document_idle',
+      run_at: 'document_start',
     },
   ],
   web_accessible_resources: [

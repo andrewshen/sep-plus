@@ -1,6 +1,7 @@
 import type { ThemePreference } from './types';
 
 const THEME_KEY = 'theme';
+const SIDEBAR_COLLAPSED_KEY = 'sepPlusSidebarCollapsed';
 
 function isTheme(value: unknown): value is ThemePreference {
   return value === 'light' || value === 'dark' || value === 'auto';
@@ -31,6 +32,22 @@ export async function getTheme(): Promise<ThemePreference> {
 
 export async function setTheme(theme: ThemePreference): Promise<void> {
   await chrome.storage.local.set({ [THEME_KEY]: theme });
+}
+
+export function readSidebarCollapsed(): boolean {
+  try {
+    return localStorage.getItem(SIDEBAR_COLLAPSED_KEY) === '1';
+  } catch {
+    return false;
+  }
+}
+
+export function writeSidebarCollapsed(collapsed: boolean): void {
+  try {
+    localStorage.setItem(SIDEBAR_COLLAPSED_KEY, collapsed ? '1' : '0');
+  } catch {
+    // Ignore restricted storage access.
+  }
 }
 
 export function onThemeChanged(

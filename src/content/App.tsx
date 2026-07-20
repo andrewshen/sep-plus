@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
-import type { TocItem } from '../lib/types';
+import { writeSidebarCollapsed } from '../lib/storage';
+import type { ThemePreference, TocItem } from '../lib/types';
 import {
   getActiveTocIndex,
   identifyPrintBlock,
@@ -8,25 +9,9 @@ import { Sidebar } from './sidebar/Sidebar';
 
 type AppProps = {
   items: TocItem[];
+  initialCollapsed: boolean;
+  initialTheme: ThemePreference;
 };
-
-const SIDEBAR_COLLAPSED_KEY = 'sepPlusSidebarCollapsed';
-
-function readCollapsed(): boolean {
-  try {
-    return localStorage.getItem(SIDEBAR_COLLAPSED_KEY) === '1';
-  } catch {
-    return false;
-  }
-}
-
-function writeCollapsed(collapsed: boolean): void {
-  try {
-    localStorage.setItem(SIDEBAR_COLLAPSED_KEY, collapsed ? '1' : '0');
-  } catch {
-    // Ignore.
-  }
-}
 
 function syncSidebarOpenClass(collapsed: boolean): void {
   const open = !collapsed;
@@ -34,8 +19,12 @@ function syncSidebarOpenClass(collapsed: boolean): void {
   document.body.classList.toggle('sep-plus-sidebar-open', open);
 }
 
-export function App({ items }: AppProps) {
-  const [collapsed, setCollapsed] = useState(readCollapsed);
+export function App({
+  items,
+  initialCollapsed,
+  initialTheme,
+}: AppProps) {
+  const [collapsed, setCollapsed] = useState(initialCollapsed);
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
   const [dark, setDark] = useState(() =>
@@ -44,7 +33,7 @@ export function App({ items }: AppProps) {
 
   useEffect(() => {
     syncSidebarOpenClass(collapsed);
-    writeCollapsed(collapsed);
+    writeSidebarCollapsed(collapsed);
   }, [collapsed]);
 
   useEffect(() => {
@@ -121,6 +110,7 @@ export function App({ items }: AppProps) {
         onOpenPalette={openPalette}
         onClosePalette={closePalette}
         dark={dark}
+        initialTheme={initialTheme}
       />
     </div>
   );

@@ -50,6 +50,24 @@ export function injectLocalFonts(): void {
   document.documentElement.appendChild(style);
 }
 
+export async function preloadLocalFonts(): Promise<void> {
+  const fontsReady = Promise.all([
+    document.fonts.load('400 1em "Public Sans"'),
+    document.fonts.load('700 1em "Public Sans"'),
+    document.fonts.load('400 1em "Libre Baskerville"'),
+    document.fonts.load('italic 400 1em "Libre Baskerville"'),
+    document.fonts.load('600 1em "Libre Baskerville"'),
+  ]).then(
+    () => undefined,
+    () => undefined
+  );
+  const timeout = new Promise<void>((resolve) => {
+    window.setTimeout(resolve, 300);
+  });
+
+  await Promise.race([fontsReady, timeout]);
+}
+
 function swapLogo(dark: boolean): void {
   const img = document.querySelector<HTMLImageElement>('#site-logo img');
   if (!img) {
@@ -61,13 +79,13 @@ function swapLogo(dark: boolean): void {
 }
 
 export function setDarkMode(dark: boolean): void {
-  document.body.classList.toggle('dark', dark);
+  document.documentElement.classList.toggle('dark', dark);
+  document.body?.classList.toggle('dark', dark);
   swapLogo(dark);
 }
 
-export async function applyTheme(theme?: ThemePreference): Promise<void> {
-  const preference = theme ?? (await getTheme());
-  switch (preference) {
+export function applyTheme(theme: ThemePreference): void {
+  switch (theme) {
     case 'auto':
       setDarkMode(
         Boolean(
@@ -327,12 +345,11 @@ function themeIconSrc(theme: ThemePreference): string {
 }
 
 /** Theme picker in the SEP header — used on non-article pages only. */
-export async function mountHeaderThemeSelector(): Promise<void> {
+export function mountHeaderThemeSelector(theme: ThemePreference): void {
   if (document.querySelector('.select-container')) {
     return;
   }
 
-  const theme = await getTheme();
   const selectContainer = document.createElement('div');
   selectContainer.className = 'select-container';
 
@@ -419,9 +436,10 @@ export function isArticlePage(): boolean {
   );
 }
 
-export async function bootstrapHost(options: {
+export function bootstrapHost(options: {
   articleMode: boolean;
-}): Promise<void> {
+  theme: ThemePreference;
+}): void {
   injectLocalFonts();
 
   const searchInput = document.querySelector<HTMLInputElement>(
@@ -431,10 +449,10 @@ export async function bootstrapHost(options: {
     searchInput.placeholder = 'Type / to search SEP';
   }
 
-  await applyTheme();
+  applyTheme(options.theme);
 
   if (!options.articleMode) {
-    await mountHeaderThemeSelector();
+    mountHeaderThemeSelector(options.theme);
   }
 
   bindSearchKeyboard();
@@ -444,13 +462,13 @@ export async function bootstrapHost(options: {
     .addEventListener('change', () => {
       void getTheme().then((theme) => {
         if (theme === 'auto') {
-          void applyTheme('auto');
+          applyTheme('auto');
         }
       });
     });
 
   onThemeChanged((theme) => {
-    void applyTheme(theme);
+    applyTheme(theme);
     const selector = document.querySelector<HTMLSelectElement>(
       '#theme-selector'
     );

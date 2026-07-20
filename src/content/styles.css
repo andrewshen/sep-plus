@@ -103,6 +103,10 @@
   box-sizing: border-box;
 }
 
+:host([data-sep-plus-booting]) .sep-sidebar {
+  transition: none;
+}
+
 .sep-sidebar > * {
   width: 100%;
   min-width: 0;
