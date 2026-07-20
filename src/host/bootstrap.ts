@@ -171,7 +171,18 @@ function collectEntryAuthors(): EntryAuthor[] {
     }
 
     const href = el.getAttribute('href') || '';
-    if (href.includes('info.html') || href.startsWith('mailto:')) {
+    if (href.includes('info.html')) {
+      continue;
+    }
+
+    if (href.startsWith('mailto:')) {
+      if (afterBy) {
+        flushTextAuthor();
+      }
+      const last = authors.at(-1);
+      if (last && last.href === null) {
+        last.href = (el as HTMLAnchorElement).href;
+      }
       continue;
     }
 
@@ -219,8 +230,10 @@ export function reformatPubinfo(): void {
       const link = document.createElement('a');
       link.className = 'sep-pubinfo-author';
       link.href = author.href;
-      link.target = 'other';
-      link.rel = 'noopener noreferrer';
+      if (!author.href.startsWith('mailto:')) {
+        link.target = 'other';
+        link.rel = 'noopener noreferrer';
+      }
       link.textContent = author.name;
       em.appendChild(link);
     } else {

@@ -154,12 +154,3 @@ export function searchResultsUrl(query: string): string {
   const params = new URLSearchParams({ query: query.trim() });
   return `${window.location.origin}/search/searcher.py?${params.toString()}`;
 }
-
-/** Display helper — capitalize each word for palette result rows. */
-export function toTitleCase(text: string): string {
-  return text
-    .toLowerCase()
-    .replace(/(^|[^\p{L}\p{N}])([\p{L}])/gu, (_, sep: string, char: string) => {
-      return sep + char.toUpperCase();
-    });
-}

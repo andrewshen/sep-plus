@@ -1,5 +1,4 @@
 import {
-  useCallback,
   useEffect,
   useLayoutEffect,
   useMemo,
@@ -13,8 +12,8 @@ import {
   filterEntries,
   getEntryIndex,
   searchResultsUrl,
-  toTitleCase,
 } from '../../lib/entryIndex';
+import { formatEntryTitle } from '../../lib/formatEntryTitle';
 import type { EntryIndexItem } from '../../lib/types';
 import { IconSearch } from '../icons';
 
@@ -35,6 +34,20 @@ type AnchorRect = {
   width: number;
   height: number;
 };
+
+function navigateTo(
+  url: string,
+  onClose: () => void,
+  newTab = false
+): void {
+  if (newTab) {
+    window.open(url, '_blank', 'noopener,noreferrer');
+    onClose();
+    return;
+  }
+  onClose();
+  window.location.assign(url);
+}
 
 function prefersReducedMotion(): boolean {
   return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -81,19 +94,6 @@ export function Palette({ open, onClose, anchorRef, dark }: PaletteProps) {
   const [anchor, setAnchor] = useState<AnchorRect | null>(null);
 
   const closing = mounted && !open;
-
-  const navigateTo = useCallback(
-    (url: string, newTab = false): void => {
-      if (newTab) {
-        window.open(url, '_blank', 'noopener,noreferrer');
-        onClose();
-        return;
-      }
-
-      window.location.assign(url);
-    },
-    [onClose]
-  );
 
   useEffect(() => {
     if (!open) {
@@ -217,12 +217,8 @@ export function Palette({ open, onClose, anchorRef, dark }: PaletteProps) {
   }, [query, rows.length]);
 
   useEffect(() => {
-    if (!open || closing || !expanded || !listRef.current) {
-      return;
-    }
-    // Wrap-to-top: scrollTop (scrollIntoView on #0 was skipped before and broke ↑ wrap).
-    if (activeIndex === 0) {
-      listRef.current.scrollTop = 0;
+    // Skip index 0 / mount — scrollIntoView during the open morph nudges the list.
+    if (!open || closing || !expanded || activeIndex === 0 || !listRef.current) {
       return;
     }
     const active = listRef.current.querySelector<HTMLElement>(
@@ -238,10 +234,10 @@ export function Palette({ open, onClose, anchorRef, dark }: PaletteProps) {
 
     function activateRow(row: PaletteRow, newTab = false): void {
       if (row.kind === 'entry') {
-        navigateTo(row.entry.href, newTab);
+        navigateTo(row.entry.href, onClose, newTab);
         return;
       }
-      navigateTo(searchResultsUrl(row.query), newTab);
+      navigateTo(searchResultsUrl(row.query), onClose, newTab);
     }
 
     function onKeyDown(event: KeyboardEvent) {
@@ -285,7 +281,7 @@ export function Palette({ open, onClose, anchorRef, dark }: PaletteProps) {
 
     window.addEventListener('keydown', onKeyDown, true);
     return () => window.removeEventListener('keydown', onKeyDown, true);
-  }, [open, closing, navigateTo, onClose, rows, activeIndex]);
+  }, [open, closing, onClose, rows, activeIndex]);
 
   const mountNode = getPaletteMount();
 
@@ -396,9 +392,9 @@ export function Palette({ open, onClose, anchorRef, dark }: PaletteProps) {
                             .filter(Boolean)
                             .join(' ')}
                           onMouseEnter={() => setActiveIndex(index)}
-                          onClick={() => navigateTo(row.entry.href)}
+                          onClick={() => navigateTo(row.entry.href, onClose)}
                         >
-                          {toTitleCase(row.entry.title)}
+                          {formatEntryTitle(row.entry.title, row.entry.href)}
                         </button>
                       </li>
                     );
@@ -418,7 +414,7 @@ export function Palette({ open, onClose, anchorRef, dark }: PaletteProps) {
                           .join(' ')}
                         onMouseEnter={() => setActiveIndex(index)}
                         onClick={() =>
-                          navigateTo(searchResultsUrl(row.query))
+                          navigateTo(searchResultsUrl(row.query), onClose)
                         }
                       >
                         Search for “{row.query}”
