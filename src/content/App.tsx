@@ -5,7 +5,6 @@ import {
   identifyPrintBlock,
 } from '../host/toc';
 import { Sidebar } from './sidebar/Sidebar';
-import { Palette } from './palette/Palette';
 
 type AppProps = {
   items: TocItem[];
@@ -80,15 +79,36 @@ export function App({ items }: AppProps) {
     function onKeyDown(event: KeyboardEvent) {
       const isPaletteShortcut =
         (event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k';
-      if (!isPaletteShortcut) {
+      if (isPaletteShortcut) {
+        event.preventDefault();
+        setPaletteOpen((open) => !open);
         return;
       }
-      event.preventDefault();
-      setPaletteOpen((open) => !open);
+
+      if (
+        event.key === '/' &&
+        !event.metaKey &&
+        !event.ctrlKey &&
+        !event.altKey &&
+        !paletteOpen
+      ) {
+        const target = event.target;
+        if (
+          target instanceof HTMLElement &&
+          (target.isContentEditable ||
+            target.tagName === 'INPUT' ||
+            target.tagName === 'TEXTAREA' ||
+            target.tagName === 'SELECT')
+        ) {
+          return;
+        }
+        event.preventDefault();
+        setPaletteOpen(true);
+      }
     }
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, []);
+  }, [paletteOpen]);
 
   return (
     <div className={['sep-plus-app', dark ? 'is-dark' : ''].filter(Boolean).join(' ')}>
@@ -96,11 +116,12 @@ export function App({ items }: AppProps) {
         items={items}
         activeIndex={activeIndex}
         collapsed={collapsed}
-        dark={dark}
         onToggleCollapsed={() => setCollapsed((value) => !value)}
+        paletteOpen={paletteOpen}
         onOpenPalette={openPalette}
+        onClosePalette={closePalette}
+        dark={dark}
       />
-      <Palette open={paletteOpen} onClose={closePalette} />
     </div>
   );
 }

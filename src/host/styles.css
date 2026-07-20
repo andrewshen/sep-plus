@@ -1,3 +1,5 @@
+@import '../lib/sand.css';
+
 /* General Styling */
 
 body {
@@ -9,7 +11,7 @@ body {
 }
 
 blockquote {
-  border-left: 2px solid #d8d8d8 !important;
+  border-left: 2px solid var(--sep-border) !important;
   padding: 0px 20px !important;
   font-style: italic !important;
   margin: 24px 0 !important;
@@ -31,30 +33,32 @@ a:hover {
 }
 
 #pubinfo {
-  margin-top: -4px !important;
-  margin-bottom: 20px !important;
+  margin-top: 0 !important;
+  margin-bottom: 40px !important;
+  padding-bottom: 0 !important;
 }
 
 #pubinfo em {
-  font-family: 'Public Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
-    Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif !important;
+  font-family: 'Public Sans', system-ui, sans-serif !important;
   font-style: normal !important;
-  color: #767676 !important;
-  font-size: 13px !important;
+  color: var(--sep-muted) !important;
+  font-size: 14px !important;
+  line-height: 20px !important;
+  font-weight: 400 !important;
 }
 
 #pubinfo a.sep-pubinfo-author {
   font-family: inherit !important;
   font-size: inherit !important;
-  font-weight: 700 !important;
+  font-weight: 400 !important;
   font-style: normal !important;
-  color: #767676 !important;
+  color: var(--sep-muted) !important;
   text-decoration: none !important;
   text-shadow: none !important;
 }
 
 #pubinfo a.sep-pubinfo-author:hover {
-  color: #222 !important;
+  color: var(--sep-text) !important;
   text-decoration: none !important;
 }
 
@@ -101,73 +105,221 @@ a:hover {
   padding-right: 0 !important;
 }
 
-body.sep-plus-article #article {
-  margin-left: auto !important;
-  margin-right: auto !important;
-  padding-left: 0 !important;
-  padding-right: 0 !important;
-  width: 100% !important;
-  max-width: 560px !important;
+body.sep-plus-article {
+  background: var(--sep-page-bg) !important;
 }
 
-body.sep-plus-article #article-content {
-  max-width: 560px !important;
-  margin-left: auto !important;
-  margin-right: auto !important;
-}
-
+body.sep-plus-article #header-wrapper,
+body.sep-plus-article #header,
+body.sep-plus-article #navigation,
+body.sep-plus-article #search,
 body.sep-plus-article #article-sidebar {
   display: none !important;
 }
 
+body.sep-plus-article #container,
+body.sep-plus-article #content,
+body.sep-plus-article #article {
+  width: 100% !important;
+  max-width: none !important;
+  margin: 0 !important;
+  box-sizing: border-box !important;
+}
+
+body.sep-plus-article #container {
+  /* Explicit closed sizes so expand can interpolate (max-width: none cannot). */
+  margin-left: 0 !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  padding: 0 !important;
+  transition:
+    margin-left 150ms ease,
+    width 150ms ease,
+    max-width 150ms ease;
+}
+
+body.sep-plus-article #content {
+  padding: 0 !important;
+}
+
+body.sep-plus-article #article {
+  position: relative !important;
+  z-index: 2 !important;
+  padding: 80px 24px 120px !important;
+  min-height: 100vh !important;
+  background: var(--sep-article-bg) !important;
+  /* Soft ambient shadow; sits above the sidebar so the left edge reads clearly */
+  box-shadow: 0 0 16px color-mix(in srgb, var(--sand-12) 5%, transparent) !important;
+}
+
+body.sep-plus-article #article-content {
+  max-width: 585px !important;
+  width: 100% !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
+}
+
 /* Sidebar layout (React chrome lives in Shadow DOM) */
 :root {
-  --sep-plus-sidebar-width: 272px;
+  --sep-plus-sidebar-width: 380px;
 }
 
-html.sep-plus-sidebar-open,
-body.sep-plus-article.sep-plus-sidebar-open {
+html.sep-plus-article,
+body.sep-plus-article {
   overflow-x: hidden !important;
+  /* Prevent load-time layout (sidebar offset / fonts) from nudging scroll. */
+  overflow-anchor: none;
 }
 
-body.sep-plus-article.sep-plus-sidebar-open {
-  padding-left: var(--sep-plus-sidebar-width) !important;
-  box-sizing: border-box !important;
-  width: 100% !important;
-  max-width: 100% !important;
+body.sep-plus-article #container,
+body.sep-plus-article #article {
+  overflow-anchor: none;
 }
 
-/* Kill the full-bleed 100vw header breakout while the sidebar is open —
-   otherwise body padding + 100vw creates horizontal overflow. */
-body.sep-plus-article.sep-plus-sidebar-open #header-wrapper {
-  width: 100% !important;
-  max-width: 100% !important;
-  margin-left: 0 !important;
-  margin-right: 0 !important;
-}
-
-body.sep-plus-article.sep-plus-sidebar-open #container,
-body.sep-plus-article.sep-plus-sidebar-open #header {
-  width: 100% !important;
-  max-width: 100% !important;
-  box-sizing: border-box !important;
+/* Offset content with margin (not body padding) so the article's left
+   box-shadow can paint over the sidebar instead of being clipped. */
+body.sep-plus-article.sep-plus-sidebar-open #container {
+  margin-left: var(--sep-plus-sidebar-width) !important;
+  width: calc(100% - var(--sep-plus-sidebar-width)) !important;
+  max-width: calc(100% - var(--sep-plus-sidebar-width)) !important;
 }
 
 #sep-plus-root {
   all: initial;
   position: fixed;
   inset: 0;
-  z-index: 2147483000;
+  /* Below the article sheet so content shadow overlays the sidebar */
+  z-index: 1;
   pointer-events: none;
 }
 
+/* Search palette layer sits above the article so it can protrude, while
+   #sep-plus-root stays below so the article edge shadow still paints. */
+#sep-plus-palette-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  pointer-events: none;
+}
+
+/* Edge expander lives outside the shadow root so it can sit above the
+   article while the sidebar stays below the content shadow. */
+#sep-plus-edge-toggle {
+  position: fixed;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+}
+
+#sep-plus-edge-toggle .sep-sidebar-toggle {
+  pointer-events: auto;
+  position: fixed;
+  top: 0;
+  left: calc(var(--sep-plus-sidebar-width) - 8px);
+  width: 60px;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  opacity: 0;
+  transition: left 150ms ease, opacity 150ms ease;
+}
+
+#sep-plus-edge-toggle .sep-sidebar-toggle.is-collapsed {
+  left: -8px;
+}
+
+#sep-plus-edge-toggle .sep-sidebar-toggle:hover {
+  opacity: 1;
+}
+
+#sep-plus-edge-toggle .sep-sidebar-expander {
+  appearance: none;
+  border: none;
+  background: transparent;
+  position: relative;
+  cursor: pointer;
+  width: 40px;
+  height: 100px;
+  margin-top: calc(100vh / 2 - 50px);
+  margin-left: 2px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+}
+
+#sep-plus-edge-toggle .sep-expander {
+  display: block;
+  width: 4px;
+  border-radius: 8px;
+  background: var(--sand-7);
+  transition: transform 150ms ease, background 150ms ease;
+  transform-origin: center center;
+}
+
+#sep-plus-edge-toggle .sep-expander.top {
+  height: 20px;
+  margin-bottom: -2px;
+}
+
+#sep-plus-edge-toggle .sep-expander.bottom {
+  height: 20px;
+  margin-top: -2px;
+}
+
+#sep-plus-edge-toggle .sep-sidebar-expander:hover .sep-expander {
+  background: var(--sand-9);
+}
+
+#sep-plus-edge-toggle
+  .sep-sidebar-toggle:not(.is-collapsed)
+  .sep-sidebar-expander:hover
+  .sep-expander.top {
+  transform: rotate(15deg);
+}
+
+#sep-plus-edge-toggle
+  .sep-sidebar-toggle:not(.is-collapsed)
+  .sep-sidebar-expander:hover
+  .sep-expander.bottom {
+  transform: rotate(-15deg);
+}
+
+#sep-plus-edge-toggle
+  .sep-sidebar-toggle.is-collapsed
+  .sep-sidebar-expander:hover
+  .sep-expander.top {
+  transform: rotate(-15deg);
+}
+
+#sep-plus-edge-toggle
+  .sep-sidebar-toggle.is-collapsed
+  .sep-sidebar-expander:hover
+  .sep-expander.bottom {
+  transform: rotate(15deg);
+}
+
+body.dark #sep-plus-edge-toggle .sep-expander {
+  background: var(--sand-7);
+}
+
+body.dark #sep-plus-edge-toggle .sep-sidebar-expander:hover .sep-expander {
+  background: var(--sand-9);
+}
+
 @media print {
-  #sep-plus-root {
+  #sep-plus-root,
+  #sep-plus-edge-toggle {
     display: none !important;
   }
 
-  body.sep-plus-article.sep-plus-sidebar-open {
-    padding-left: 0 !important;
+  body.sep-plus-article.sep-plus-sidebar-open #container {
+    margin-left: 0 !important;
+    width: 100% !important;
+    max-width: none !important;
   }
 }
 
@@ -183,9 +335,9 @@ body.sep-plus-article.sep-plus-sidebar-open #header {
 h4 {
   margin-top: 40px !important;
   margin-bottom: 16px !important;
-  font-family: 'Public Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
-    Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif !important;
+  font-family: 'Public Sans', system-ui, sans-serif !important;
   font-weight: 700 !important;
+  color: var(--sep-text) !important;
   letter-spacing: -0.02em;
 }
 
@@ -198,14 +350,18 @@ h4 {
 }
 
 #article-content h1 {
+  font-size: 45px !important;
   font-weight: 700 !important;
+  line-height: 50.4px !important;
+  letter-spacing: -0.9px !important;
   margin-top: 0 !important;
-  line-height: 112% !important;
+  margin-bottom: 12px !important;
 }
 
 #article-content h2 {
-  font-size: 1.5em !important;
-  line-height: 1.4em;
+  font-size: 27px !important;
+  line-height: 37.8px !important;
+  letter-spacing: -0.54px !important;
 }
 
 #article-content h1 em,
@@ -216,8 +372,8 @@ h4 {
 
 #article-content h3 {
   margin-top: 32px !important;
-  font-size: 1.2em !important;
-  line-height: 1.4em;
+  font-size: 20px !important;
+  line-height: 28px !important;
 }
 
 #article li,
@@ -238,14 +394,14 @@ h4 {
   line-height: 20px !important;
   padding: 2px 6px !important;
   padding-left: 0 !important;
-  color: #767676 !important;
+  color: var(--sand-10) !important;
   text-shadow: none !important;
   transition: color 0.1s ease !important;
   margin-right: 20px !important;
 }
 
 #article-sidebar .navbar .nav > li.active-item > a {
-  color: #222 !important;
+  color: var(--sep-text) !important;
 }
 
 #article-sidebar .navbar .nav > li > a > em {
@@ -254,20 +410,20 @@ h4 {
 
 #article-sidebar .navbar .nav > li > a:hover {
   background: none !important;
-  color: #222 !important;
+  color: var(--sep-text) !important;
 }
 
 .navbar .nav > li > a {
   font-size: 13px !important;
   margin-right: 20px !important;
   font-weight: 700 !important;
-  color: #767676 !important;
+  color: var(--sand-10) !important;
   text-shadow: none !important;
   padding-bottom: 0 !important;
 }
 
 .navbar .nav > li > a:hover {
-  color: #222 !important;
+  color: var(--sep-text) !important;
   text-decoration: none !important;
 }
 
@@ -308,8 +464,9 @@ h4 {
 #style_guide_content,
 #style_guide_content_wide {
   font-family: 'Libre Baskerville', Georgia, 'Times New Roman', serif !important;
-  font-size: 18px !important;
+  font-size: 15px !important;
   line-height: 25px !important;
+  color: var(--sep-text) !important;
 }
 
 #article-content,
@@ -330,7 +487,7 @@ h4 {
 #header-wrapper {
   background-image: none !important;
   padding: 12px 24px !important;
-  border-bottom: 1px solid #eeeeee !important;
+  border-bottom: 1px solid var(--sep-border-subtle) !important;
   width: 100vw !important;
   max-width: none !important;
   box-sizing: border-box !important;
@@ -364,7 +521,7 @@ h4 {
   font-weight: normal;
   font-size: 13px;
   line-height: 1;
-  color: #767676;
+  color: var(--sand-10);
   position: absolute;
   left: 10px;
   top: 50%;
@@ -415,7 +572,7 @@ select {
 .dropdown-menu {
   border-radius: 4px !important;
   box-shadow: none !important;
-  border-color: #d8d8d8;
+  border-color: var(--sep-border);
 }
 
 .dropdown-menu li {
@@ -424,12 +581,12 @@ select {
 
 .dropdown-menu li a {
   font-weight: 700 !important;
-  color: #767676 !important;
+  color: var(--sand-10) !important;
   transition: all 0.1s ease !important;
 }
 
 .dropdown-menu li a:hover {
-  color: #222 !important;
+  color: var(--sep-text) !important;
 }
 
 #footer-menu a,
@@ -495,7 +652,7 @@ select {
 #article-banner-content {
   border-radius: 4px !important;
   border: none !important;
-  background: #edebe9 !important;
+  background: var(--sep-control-bg) !important;
   box-shadow: none !important;
 }
 
@@ -529,8 +686,8 @@ select {
   margin-bottom: 0px !important;
   padding: 0 !important;
   padding-left: 28px !important;
-  color: #999999 !important;
-  border-color: #d8d8d8 !important;
+  color: var(--sep-muted-soft) !important;
+  border-color: var(--sep-border) !important;
   border-radius: 6px !important;
   outline: 0px;
   appearance: none;
@@ -600,8 +757,8 @@ select {
   z-index: 999;
   position: absolute;
   padding: 16px 20px;
-  background: #fff;
-  border: 1px solid #d8d8d8;
+  background: var(--sep-panel-bg);
+  border: 1px solid var(--sep-border);
   border-radius: 4px;
   bottom: 28px;
   width: 400px;
@@ -617,9 +774,9 @@ select {
 
 .footnote-annotation:after {
   content: '';
-  border-bottom: 1px solid #d8d8d8;
-  border-right: 1px solid #d8d8d8;
-  background-color: #fff;
+  border-bottom: 1px solid var(--sep-border);
+  border-right: 1px solid var(--sep-border);
+  background-color: var(--sep-panel-bg);
   position: absolute;
   left: 50%;
   margin-left: -28px;
@@ -632,35 +789,45 @@ select {
 .footnote-annotation p {
   font-family: 'Public Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
     Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
-  color: #545454;
+  color: var(--sep-muted);
   font-weight: 700;
   font-size: 13px;
   line-height: 20px;
   margin-bottom: 2px;
 }
-/* Dark Mode */
+/* Dark Mode — sand scale flips on body.dark; only overrides that need
+   different semantic roles or non-sand brand colors live here. */
 
 body.dark,
 body.dark #article {
-  background: #222 !important;
-  color: #f1f1f1 !important;
+  background: var(--sep-article-bg) !important;
+  color: var(--sep-text) !important;
+}
+
+body.dark.sep-plus-article {
+  background: var(--sep-page-bg) !important;
+}
+
+body.dark.sep-plus-article #article {
+  background: var(--sep-article-bg) !important;
+  box-shadow: 0 0 16px color-mix(in srgb, var(--sand-1) 35%, transparent) !important;
 }
 
 body.dark #article-sidebar .navbar .nav,
 body.dark #article-sidebar .navbar .nav > li > a {
-  background: #222 !important;
+  background: var(--sep-article-bg) !important;
 }
 
 body.dark #header-wrapper,
 body.dark #article-copyright,
 body.dark #footer,
 body.dark hr {
-  border-color: #2f2f2f !important;
+  border-color: var(--sep-border-subtle) !important;
 }
 
 body.dark table.all-rules td,
 body.dark table.all-rules th {
-  border: 1px solid #a3a3a3 !important;
+  border: 1px solid var(--sep-muted) !important;
 }
 
 body.dark h1,
@@ -671,7 +838,7 @@ body.dark h2 a,
 body.dark h3 a,
 body.dark h4,
 body.dark h5 {
-  color: #fff !important;
+  color: var(--sep-text) !important;
 }
 
 body.dark .search_results {
@@ -693,8 +860,13 @@ body.dark #site-logo img {
 }
 
 body.dark .icon-search,
-body.dark #article-sidebar .navbar .nav > li > a:hover {
-  color: #fff !important;
+body.dark #article-sidebar .navbar .nav > li > a:hover,
+body.dark #article-sidebar .navbar .nav > li.active-item > a,
+body.dark #search-switch,
+body.dark #mirrors .btn,
+body.dark #mirrors .dropdown-menu a,
+body.dark #article-banner-content a {
+  color: var(--sep-text) !important;
 }
 
 body.dark #footer,
@@ -702,19 +874,18 @@ body.dark #footer i,
 body.dark #pubinfo em,
 body.dark #pubinfo a.sep-pubinfo-author,
 body.dark .navbar .nav > li > a,
-body.dark #article-sidebar .navbar .nav > li > a {
-  color: #a3a3a3 !important;
+body.dark #article-sidebar .navbar .nav > li > a,
+body.dark #search-form::before,
+body.dark #theme-selector {
+  color: var(--sep-muted) !important;
 }
 
 body.dark #pubinfo a.sep-pubinfo-author:hover,
 body.dark .navbar .nav > li > a:hover {
-  color: #f1f1f1 !important;
+  color: var(--sep-text) !important;
 }
 
-body.dark #article-sidebar .navbar .nav > li.active-item > a {
-  color: #fff !important;
-}
-
+/* Brand link accents — outside the sand scale */
 body.dark a:link,
 body.dark a:visited {
   color: #f9acac !important;
@@ -728,27 +899,9 @@ body.dark .btn:hover i {
   color: #ffcbcb !important;
 }
 
-body.dark #search-switch {
-  color: #fff !important;
-}
-
-body.dark #search-form::before {
-  color: #a3a3a3 !important;
-}
-
 body.dark .dropdown-menu,
 body.dark #theme-selector,
-body.dark #search input[type='search'] {
-  color: #fff !important;
-  background: #383838 !important;
-  border-color: #464646 !important;
-}
-
-body.dark #theme-selector {
-  color: #a3a3a3 !important;
-  border-radius: 6px !important;
-}
-
+body.dark #search input[type='search'],
 body.dark .btn,
 body.dark .btn-group,
 body.dark #mirrors .btn,
@@ -756,47 +909,40 @@ body.dark #mirrors .dropdown-menu a,
 body.dark #mission,
 body.dark .notice,
 body.dark #toc-nav,
-body.dark #article-banner-content {
-  background: #383838 !important;
+body.dark #article-banner-content,
+body.dark .dropdown-menu li a {
+  background: var(--sep-panel-bg) !important;
+  border-color: var(--sep-border) !important;
 }
 
-body.dark #mirrors .btn,
-body.dark #mirrors .dropdown-menu a,
-body.dark #article-banner-content a {
-  color: #fff !important;
+body.dark .dropdown-menu,
+body.dark #search input[type='search'] {
+  color: var(--sep-text) !important;
+}
+
+body.dark #theme-selector {
+  border-radius: 6px !important;
 }
 
 body.dark .caret {
-  border-top: 4px solid #fff !important;
+  border-top: 4px solid var(--sep-text) !important;
 }
 
 body.dark .dropdown-menu li a {
-  background: #383838 !important;
-  color: #a3a3a3 !important;
+  color: var(--sep-muted) !important;
 }
 
 body.dark .dropdown-menu li a:hover {
-  background: #464646 !important;
-  color: #fff !important;
+  background: var(--sand-7) !important;
+  color: var(--sep-text) !important;
 }
 
 body.dark blockquote {
-  border-color: #464646 !important;
-}
-
-body.dark .footnote-annotation {
-  background: #383838;
-  border-color: #464646;
+  border-color: var(--sep-border) !important;
 }
 
 body.dark .footnote-annotation p {
-  color: #d8d8d8;
-}
-
-body.dark .footnote-annotation:after {
-  border-bottom-color: #464646;
-  border-right-color: #464646;
-  background-color: #383838;
+  color: var(--sep-muted) !important;
 }
 
 
@@ -825,24 +971,22 @@ body.dark .footnote-annotation:after {
     padding-right: 80px !important;
   }
 
+  /* Fixed ink colors — do not use theme vars (dark sand would invert) */
   li,
   p,
   blockquote {
-    color: #000 !important;
+    color: #21201c !important; /* sand-12 light */
   }
 
   body.dark a:link,
-  body.dark a:visited {
-    color: #383838 !important;
-  }
-
+  body.dark a:visited,
   a:link,
   a:visited {
-    color: #383838 !important;
+    color: #3b3a37 !important; /* sand-6 dark ≈ print link gray */
   }
 
   body.dark blockquote {
-    border-color: #d8d8d8 !important;
+    border-color: #dad9d6 !important; /* sand-6 light */
   }
 
   body.dark h1,
@@ -853,7 +997,7 @@ body.dark .footnote-annotation:after {
   body.dark h3 a,
   body.dark h4,
   body.dark h5 {
-    color: #000 !important;
+    color: #21201c !important; /* sand-12 light */
   }
 
   sup {

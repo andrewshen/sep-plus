@@ -1,78 +1,108 @@
-import { useEffect, useState } from 'react';
-import type { SidebarTab, ThemePreference, TocItem } from '../../lib/types';
+import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
+import type { SidebarSurface, ThemePreference, TocItem } from '../../lib/types';
 import { getTheme, setTheme } from '../../lib/storage';
+import { IconSearch } from '../icons';
+import { Palette } from '../palette/Palette';
 import { ContentsTab } from './ContentsTab';
 
 type SidebarProps = {
   items: TocItem[];
   activeIndex: number;
   collapsed: boolean;
-  dark: boolean;
   onToggleCollapsed: () => void;
+  paletteOpen: boolean;
   onOpenPalette: () => void;
+  onClosePalette: () => void;
+  dark: boolean;
 };
 
-function IconContents() {
+function IconAnnotations() {
   return (
-    <svg viewBox="0 0 16 16" aria-hidden="true">
+    <svg viewBox="0 0 16 16" aria-hidden="true" fill="none">
       <path
-        fill="currentColor"
-        d="M2 3.5h12v1.25H2V3.5zm0 4h12v1.25H2V7.5zm0 4h8V12.75H2V11.5z"
+        transform="translate(2.5 4.38)"
+        d="M0.322 10.005C0.249 10.067 0.16 10.106 0.066 10.119-0.029 10.131-0.124 10.117-0.21 10.077-0.297 10.037-0.37 9.973-0.421 9.893-0.473 9.812-0.5 9.719-0.5 9.624-0.5 9.624-0.5-0.376-0.5-0.376-0.5-0.509-0.447-0.636-0.353-0.73-0.26-0.823-0.133-0.876 0-0.876 0-0.876 11-0.876 11-0.876 11.133-0.876 11.26-0.823 11.354-0.73 11.447-0.636 11.5-0.509 11.5-0.376 11.5-0.376 11.5 7.624 11.5 7.624 11.5 7.757 11.447 7.884 11.354 7.977 11.26 8.071 11.133 8.124 11 8.124 11 8.124 2.5 8.124 2.5 8.124 2.5 8.124 0.322 10.005 0.322 10.005Z"
+        stroke="currentColor"
+        strokeWidth="1.2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M6 7h4"
+        stroke="currentColor"
+        strokeWidth="1.2"
+        strokeLinecap="round"
+      />
+      <path
+        d="M6 9h4"
+        stroke="currentColor"
+        strokeWidth="1.2"
+        strokeLinecap="round"
       />
     </svg>
   );
 }
 
-function IconHighlight() {
+function IconSettings() {
   return (
-    <svg viewBox="0 0 16 16" aria-hidden="true">
+    <svg viewBox="0 0 16 16" aria-hidden="true" fill="none">
+      <circle
+        cx="6.5"
+        cy="5"
+        r="1.5"
+        stroke="currentColor"
+        strokeWidth="1.2"
+      />
+      <circle
+        cx="10.5"
+        cy="11"
+        r="1.5"
+        stroke="currentColor"
+        strokeWidth="1.2"
+      />
       <path
-        fill="currentColor"
-        d="M12.2 1.8a1.5 1.5 0 0 1 2.1 2.1l-7.4 7.4-.9 2.2 2.2-.9 7.4-7.4a1.5 1.5 0 0 0-2.1-2.1L3.9 10.7l-.5 1.9 1.9-.5L12.2 1.8zM2 13.25h7v1.25H2v-1.25z"
+        d="M8 5h5.5"
+        stroke="currentColor"
+        strokeWidth="1.2"
+        strokeLinecap="round"
+      />
+      <path
+        d="M2.5 5H5"
+        stroke="currentColor"
+        strokeWidth="1.2"
+        strokeLinecap="round"
+      />
+      <path
+        d="M12 11h1.5"
+        stroke="currentColor"
+        strokeWidth="1.2"
+        strokeLinecap="round"
+      />
+      <path
+        d="M2.5 11H9"
+        stroke="currentColor"
+        strokeWidth="1.2"
+        strokeLinecap="round"
       />
     </svg>
   );
 }
 
-function IconNotes() {
+function IconChevron() {
   return (
-    <svg viewBox="0 0 16 16" aria-hidden="true">
-      <path
-        fill="currentColor"
-        d="M3 2.5h7.5L13 5v8.5H3V2.5zm7.25.6v2.15H12.3L10.25 3.1zM5 7h6v1.2H5V7zm0 2.5h6V10.7H5V9.5zm0 2.5h4v1.2H5V12z"
-      />
-    </svg>
-  );
-}
-
-function IconSearch() {
-  return (
-    <svg viewBox="0 0 16 16" aria-hidden="true">
-      <path
-        fill="currentColor"
-        d="M6.8 2.5a4.3 4.3 0 1 1 2.7 7.65l2.7 2.7-.9.9-2.75-2.75A4.3 4.3 0 0 1 6.8 2.5zm0 1.25a3.05 3.05 0 1 0 0 6.1 3.05 3.05 0 0 0 0-6.1z"
-      />
-    </svg>
-  );
-}
-
-function IconCollapse() {
-  return (
-    <svg viewBox="0 0 16 16" aria-hidden="true">
-      <path
-        fill="currentColor"
-        d="M9.8 3.2 5 8l4.8 4.8.9-.9L6.8 8l3.9-3.9-.9-.9z"
-      />
-    </svg>
-  );
-}
-
-function IconExpand() {
-  return (
-    <svg viewBox="0 0 16 16" aria-hidden="true">
-      <path
-        fill="currentColor"
-        d="M6.2 3.2 11 8l-4.8 4.8-.9-.9L9.2 8 5.3 4.1l.9-.9z"
+    <svg
+      className="sep-appearance-chevron"
+      viewBox="0 0 12 12"
+      aria-hidden="true"
+      fill="none"
+    >
+      <polyline
+        points="9.75 4.5 6 8.25 2.25 4.5"
+        stroke="currentColor"
+        strokeWidth="1.2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
       />
     </svg>
   );
@@ -82,89 +112,137 @@ export function Sidebar({
   items,
   activeIndex,
   collapsed,
-  dark,
   onToggleCollapsed,
+  paletteOpen,
   onOpenPalette,
+  onClosePalette,
+  dark,
 }: SidebarProps) {
-  const [tab, setTab] = useState<SidebarTab>('contents');
+  const [surface, setSurface] = useState<SidebarSurface>('toc');
   const [theme, setThemeState] = useState<ThemePreference>('light');
+  const [searchActive, setSearchActive] = useState(paletteOpen);
+  const searchSlotRef = useRef<HTMLDivElement>(null);
+  const logoSrc = chrome.runtime.getURL(
+    dark ? 'sep-logo-white.png' : 'sep-logo.png'
+  );
 
   useEffect(() => {
     void getTheme().then(setThemeState);
   }, []);
 
+  useEffect(() => {
+    if (paletteOpen) {
+      setSearchActive(true);
+      return;
+    }
+    const timer = window.setTimeout(() => setSearchActive(false), 160);
+    return () => window.clearTimeout(timer);
+  }, [paletteOpen]);
+
   return (
     <>
       <aside
-        className={['sep-sidebar', collapsed ? 'is-collapsed' : '']
+        className={[
+          'sep-sidebar',
+          collapsed ? 'is-collapsed' : '',
+          searchActive ? 'is-searching' : '',
+        ]
           .filter(Boolean)
           .join(' ')}
         aria-label="SEP+ sidebar"
       >
-        <div className="sep-sidebar-header">
-          <div className="sep-logo" aria-hidden="true" />
-          <div className="sep-tabs" role="tablist" aria-label="Sidebar tabs">
-            <button
-              type="button"
-              className={['sep-tab', tab === 'contents' ? 'is-active' : '']
-                .filter(Boolean)
-                .join(' ')}
-              role="tab"
-              aria-selected={tab === 'contents'}
-              onClick={() => setTab('contents')}
-            >
-              <IconContents />
-              <span className="sep-tab-label">Contents</span>
-            </button>
-            <button
-              type="button"
-              className="sep-tab"
-              role="tab"
-              aria-selected={false}
-              disabled
-              title="Coming soon"
-            >
-              <IconHighlight />
-            </button>
-            <button
-              type="button"
-              className="sep-tab"
-              role="tab"
-              aria-selected={false}
-              disabled
-              title="Coming soon"
-            >
-              <IconNotes />
-            </button>
+        <div className="sep-logo-row">
+          <div className="sep-logo-mark">
+            <img
+              className="sep-logo"
+              src={logoSrc}
+              alt="SEP+"
+              width={18}
+              height={28}
+            />
           </div>
+        </div>
+
+        <div className="sep-search-slot" ref={searchSlotRef}>
           <button
             type="button"
-            className="sep-icon-btn"
+            className={[
+              'sep-search-trigger',
+              searchActive ? 'is-placeholder' : '',
+            ]
+              .filter(Boolean)
+              .join(' ')}
             aria-label="Open search"
+            aria-hidden={searchActive || undefined}
+            tabIndex={searchActive ? -1 : undefined}
             onClick={onOpenPalette}
           >
             <IconSearch />
+            <span className="sep-search-trigger-label">Search</span>
           </button>
-          <button
-            type="button"
-            className="sep-icon-btn sep-sidebar-collapse"
-            aria-label="Collapse sidebar"
-            onClick={onToggleCollapsed}
-          >
-            <IconCollapse />
-          </button>
+          <Palette
+            open={paletteOpen}
+            onClose={onClosePalette}
+            anchorRef={searchSlotRef}
+            dark={dark}
+          />
         </div>
 
-        <div className="sep-sidebar-body" role="tabpanel">
-          {tab === 'contents' ? (
-            <ContentsTab items={items} activeIndex={activeIndex} />
-          ) : null}
-          {tab === 'highlights' ? (
-            <div className="sep-stub">Highlights coming soon.</div>
-          ) : null}
-          {tab === 'notes' ? (
-            <div className="sep-stub">Notes coming soon.</div>
-          ) : null}
+        <div className="sep-sidebar-main">
+          <nav className="sep-nav" aria-label="SEP+">
+            <button
+              type="button"
+              className={[
+                'sep-nav-item',
+                surface === 'annotations' ? 'is-active' : '',
+              ]
+                .filter(Boolean)
+                .join(' ')}
+              aria-current={surface === 'annotations' ? 'page' : undefined}
+              onClick={() =>
+                setSurface((current) =>
+                  current === 'annotations' ? 'toc' : 'annotations'
+                )
+              }
+            >
+              <span className="sep-nav-icon">
+                <IconAnnotations />
+              </span>
+              <span className="sep-nav-label">Annotations</span>
+            </button>
+            <button
+              type="button"
+              className={[
+                'sep-nav-item',
+                surface === 'settings' ? 'is-active' : '',
+              ]
+                .filter(Boolean)
+                .join(' ')}
+              aria-current={surface === 'settings' ? 'page' : undefined}
+              onClick={() =>
+                setSurface((current) =>
+                  current === 'settings' ? 'toc' : 'settings'
+                )
+              }
+            >
+              <span className="sep-nav-icon">
+                <IconSettings />
+              </span>
+              <span className="sep-nav-label">Settings</span>
+            </button>
+          </nav>
+
+          <div className="sep-sidebar-body">
+            {surface === 'toc' ? (
+              <ContentsTab items={items} activeIndex={activeIndex} />
+            ) : null}
+            {surface === 'annotations' ? (
+              <div className="sep-stub">Annotations coming soon.</div>
+            ) : null}
+            {surface === 'settings' ? (
+              <div className="sep-stub">Settings coming soon.</div>
+            ) : null}
+          </div>
         </div>
 
         <div className="sep-sidebar-footer">
@@ -174,9 +252,7 @@ export function Sidebar({
             <a href="../../support/">Support</a>
           </div>
           <label className="sep-appearance">
-            <span className="visually-hidden" style={{ display: 'none' }}>
-              Appearance
-            </span>
+            <span className="sep-appearance-label">Appearance</span>
             <select
               aria-label="Appearance"
               value={theme}
@@ -192,24 +268,32 @@ export function Sidebar({
               <option value="dark">Dark</option>
               <option value="auto">System</option>
             </select>
+            <IconChevron />
           </label>
         </div>
       </aside>
 
-      <button
-        type="button"
-        className={[
-          'sep-collapse-fab',
-          collapsed ? 'is-visible' : '',
-          dark ? 'is-dark' : '',
-        ]
-          .filter(Boolean)
-          .join(' ')}
-        aria-label="Expand sidebar"
-        onClick={onToggleCollapsed}
-      >
-        <IconExpand />
-      </button>
+      {createPortal(
+        <div
+          className={[
+            'sep-sidebar-toggle',
+            collapsed ? 'is-collapsed' : '',
+          ]
+            .filter(Boolean)
+            .join(' ')}
+        >
+          <button
+            type="button"
+            className="sep-sidebar-expander"
+            aria-label={collapsed ? 'Show sidebar' : 'Hide sidebar'}
+            onClick={onToggleCollapsed}
+          >
+            <span className="sep-expander top" />
+            <span className="sep-expander bottom" />
+          </button>
+        </div>,
+        document.getElementById('sep-plus-edge-toggle') ?? document.body
+      )}
     </>
   );
 }

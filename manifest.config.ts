@@ -30,6 +30,8 @@ export default defineManifest({
   web_accessible_resources: [
     {
       resources: [
+        'sep-logo.png',
+        'sep-logo-white.png',
         'fonts/PublicSans-Regular.woff2',
         'fonts/PublicSans-Bold.woff2',
         'fonts/LibreBaskerville-Regular.woff2',

@@ -36,6 +36,7 @@ export function ContentsTab({ items, activeIndex }: ContentsTabProps) {
 
   return (
     <div className="sep-toc-scroll" ref={listRef}>
+      <div className="sep-contents-label">Contents</div>
       {items.map((item, index) => (
         <button
           key={`${item.href}-${index}`}
