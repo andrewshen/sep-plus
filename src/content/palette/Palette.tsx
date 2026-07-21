@@ -53,7 +53,7 @@ function prefersReducedMotion(): boolean {
   return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 }
 
-const EXIT_MS = 180;
+const EXIT_MS = 150;
 const PROTRUDE_PX = 60;
 /** Sidebar content padding-right; included so width clears the sidebar edge. */
 const SIDEBAR_PAD_RIGHT = 20;

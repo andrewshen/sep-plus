@@ -1,7 +1,6 @@
 import { flushSync } from 'react-dom';
 import { createRoot } from 'react-dom/client';
 import {
-  addFootnotes,
   applyTheme,
   bootstrapHost,
   injectLocalFonts,
@@ -9,6 +8,7 @@ import {
   preloadLocalFonts,
   reformatPubinfo,
 } from '../host/bootstrap';
+import { initFootnotes } from '../host/footnotes';
 import {
   collectTocItems,
   prepareArticleNav,
@@ -64,14 +64,11 @@ function mountArticleShell(
   initialCollapsed: boolean,
   initialTheme: ThemePreference
 ): void {
-  const sidebarOpen = !initialCollapsed;
+  const sidebarPhase = initialCollapsed ? 'closed' : 'open';
   document.documentElement.classList.add('sep-plus-article');
   document.body.classList.add('sep-plus-article');
-  document.documentElement.classList.toggle(
-    'sep-plus-sidebar-open',
-    sidebarOpen
-  );
-  document.body.classList.toggle('sep-plus-sidebar-open', sidebarOpen);
+  document.documentElement.dataset.sepPlusSidebarPhase = sidebarPhase;
+  document.body.dataset.sepPlusSidebarPhase = sidebarPhase;
 
   const articleSidebar = document.querySelector<HTMLElement>('#article-sidebar');
   if (articleSidebar) {
@@ -136,7 +133,6 @@ async function main(): Promise<void> {
   }
 
   const articleMode = isArticlePage();
-  let shouldLoadFootnotes = false;
 
   if (articleMode) {
     prepareArticleNav();
@@ -146,7 +142,7 @@ async function main(): Promise<void> {
     if (tocItems.length || document.querySelector('#article')) {
       mountArticleShell(tocItems, readSidebarCollapsed(), theme);
     }
-    shouldLoadFootnotes = true;
+    initFootnotes();
   } else {
     bootstrapHost({ articleMode: false, theme });
   }
@@ -158,10 +154,6 @@ async function main(): Promise<void> {
 
   await waitForNextFrame();
   revealPage();
-
-  if (shouldLoadFootnotes) {
-    addFootnotes();
-  }
 }
 
 document.documentElement.classList.remove(READY_CLASS);

@@ -18,6 +18,10 @@ type SidebarProps = {
   initialTheme: ThemePreference;
 };
 
+type TogglePhase = 'idle' | 'area' | 'target' | 'pressed';
+
+const SIDEBAR_TOGGLE_FALLBACK_MS = 250;
+
 function IconAnnotations() {
   return (
     <svg viewBox="0 0 16 16" aria-hidden="true" fill="none">
@@ -123,6 +127,9 @@ export function Sidebar({
   const [surface, setSurface] = useState<SidebarSurface>('toc');
   const [theme, setThemeState] = useState<ThemePreference>(initialTheme);
   const [searchActive, setSearchActive] = useState(paletteOpen);
+  const [togglePhase, setTogglePhase] = useState<TogglePhase>('idle');
+  const [pressedFromCollapsed, setPressedFromCollapsed] = useState(collapsed);
+  const toggleResetTimerRef = useRef<number | null>(null);
   const searchSlotRef = useRef<HTMLDivElement>(null);
   const logoSrc = chrome.runtime.getURL(
     dark ? 'sep-logo-white.png' : 'sep-logo.png'
@@ -133,9 +140,42 @@ export function Sidebar({
       setSearchActive(true);
       return;
     }
-    const timer = window.setTimeout(() => setSearchActive(false), 180);
+    const timer = window.setTimeout(() => setSearchActive(false), 150);
     return () => window.clearTimeout(timer);
   }, [paletteOpen]);
+
+  useEffect(
+    () => () => {
+      if (toggleResetTimerRef.current !== null) {
+        window.clearTimeout(toggleResetTimerRef.current);
+      }
+    },
+    []
+  );
+
+  function finishToggleTransition(): void {
+    if (toggleResetTimerRef.current !== null) {
+      window.clearTimeout(toggleResetTimerRef.current);
+      toggleResetTimerRef.current = null;
+    }
+    setTogglePhase('idle');
+  }
+
+  function handleToggleCollapsed(): void {
+    if (togglePhase === 'pressed') {
+      return;
+    }
+    setPressedFromCollapsed(collapsed);
+    setTogglePhase('pressed');
+    toggleResetTimerRef.current = window.setTimeout(
+      finishToggleTransition,
+      SIDEBAR_TOGGLE_FALLBACK_MS
+    );
+    onToggleCollapsed();
+  }
+
+  const togglePointsRight =
+    togglePhase === 'pressed' ? pressedFromCollapsed : collapsed;
 
   return (
     <>
@@ -177,6 +217,7 @@ export function Sidebar({
           >
             <IconSearch />
             <span className="sep-search-trigger-label">Search</span>
+            <kbd className="sep-search-slash">/</kbd>
           </button>
           <Palette
             open={paletteOpen}
@@ -279,12 +320,53 @@ export function Sidebar({
           ]
             .filter(Boolean)
             .join(' ')}
+          data-phase={togglePhase}
+          data-direction={togglePointsRight ? 'right' : 'left'}
+          onMouseEnter={() => {
+            if (togglePhase !== 'pressed') {
+              setTogglePhase('area');
+            }
+          }}
+          onMouseLeave={() => {
+            if (togglePhase === 'area' || togglePhase === 'target') {
+              setTogglePhase('idle');
+            }
+          }}
+          onTransitionEnd={(event) => {
+            if (
+              togglePhase === 'pressed' &&
+              event.target === event.currentTarget &&
+              event.propertyName === 'transform'
+            ) {
+              finishToggleTransition();
+            }
+          }}
         >
           <button
             type="button"
             className="sep-sidebar-expander"
             aria-label={collapsed ? 'Show sidebar' : 'Hide sidebar'}
-            onClick={onToggleCollapsed}
+            onClick={handleToggleCollapsed}
+            onMouseEnter={() => {
+              if (togglePhase !== 'pressed') {
+                setTogglePhase('target');
+              }
+            }}
+            onMouseLeave={() => {
+              if (togglePhase === 'target') {
+                setTogglePhase('area');
+              }
+            }}
+            onFocus={() => {
+              if (togglePhase !== 'pressed') {
+                setTogglePhase('target');
+              }
+            }}
+            onBlur={() => {
+              if (togglePhase === 'target') {
+                setTogglePhase('idle');
+              }
+            }}
           >
             <span className="sep-expander top" />
             <span className="sep-expander bottom" />

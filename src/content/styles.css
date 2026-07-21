@@ -30,7 +30,7 @@
   --sep-ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
   --sep-ease: cubic-bezier(0.25, 0.1, 0.25, 1);
   --sep-duration-fast: 100ms;
-  --sep-duration-ui: 180ms;
+  --sep-duration-ui: 150ms;
   --sep-duration-drawer: 200ms;
   --sep-font: 'Public Sans', system-ui, -apple-system, BlinkMacSystemFont,
     'Segoe UI', sans-serif;
@@ -99,7 +99,8 @@
   background: var(--sep-bg);
   border-right: none;
   transform: translateX(0);
-  transition: transform var(--sep-duration-drawer) var(--sep-ease-out);
+  /* Match article #container timing so the sheet edge and sidebar move as one. */
+  transition: transform var(--sep-duration-ui) var(--sep-ease-in-out);
   box-sizing: border-box;
 }
 
@@ -169,6 +170,26 @@
   line-height: 20px;
   font-weight: 400;
   color: inherit;
+}
+
+.sep-search-slash {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+  padding: 0;
+  border: 1px solid var(--sep-border);
+  border-radius: 4px;
+  background: transparent;
+  color: var(--sep-muted-soft);
+  font-family: var(--sep-font);
+  font-size: 11px;
+  line-height: 16px;
+  font-weight: 500;
+  pointer-events: none;
 }
 
 .sep-sidebar-main {
@@ -612,12 +633,25 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .sep-sidebar {
+    transition: none;
+  }
+
+  /* Drop size morph; keep short opacity/color fades. */
+  .sep-palette-inline {
+    transition:
+      background-color var(--sep-duration-fast) var(--sep-ease),
+      box-shadow var(--sep-duration-fast) var(--sep-ease);
+  }
+
+  .sep-palette-input-row::after {
+    transition: background-color var(--sep-duration-fast) var(--sep-ease);
+  }
+
   .sep-palette-scrim,
-  .sep-palette-inline,
-  .sep-palette-input-row,
   .sep-palette-esc,
   .sep-palette-results-wrap {
-    transition: none;
+    transition: opacity var(--sep-duration-fast) var(--sep-ease-out);
   }
 }
 

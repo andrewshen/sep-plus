@@ -1,4 +1,10 @@
-import { useCallback, useEffect, useState } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from 'react';
 import { writeSidebarCollapsed } from '../lib/storage';
 import type { ThemePreference, TocItem } from '../lib/types';
 import {
@@ -13,10 +19,23 @@ type AppProps = {
   initialTheme: ThemePreference;
 };
 
-function syncSidebarOpenClass(collapsed: boolean): void {
-  const open = !collapsed;
-  document.documentElement.classList.toggle('sep-plus-sidebar-open', open);
-  document.body.classList.toggle('sep-plus-sidebar-open', open);
+type SidebarPhase =
+  | 'closed'
+  | 'opening'
+  | 'open'
+  | 'closing-ready'
+  | 'closing';
+
+const SIDEBAR_TRANSITION_MS = 150;
+const SIDEBAR_TRANSITION_FALLBACK_MS = SIDEBAR_TRANSITION_MS + 100;
+
+function syncSidebarPhase(phase: SidebarPhase): void {
+  document.documentElement.dataset.sepPlusSidebarPhase = phase;
+  document.body.dataset.sepPlusSidebarPhase = phase;
+}
+
+function prefersReducedMotion(): boolean {
+  return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 }
 
 export function App({
@@ -24,17 +43,66 @@ export function App({
   initialCollapsed,
   initialTheme,
 }: AppProps) {
-  const [collapsed, setCollapsed] = useState(initialCollapsed);
+  const [sidebarPhase, setSidebarPhase] = useState<SidebarPhase>(
+    initialCollapsed ? 'closed' : 'open'
+  );
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
   const [dark, setDark] = useState(() =>
     document.body.classList.contains('dark')
   );
+  const prepareFrameRef = useRef<number | null>(null);
+  const startFrameRef = useRef<number | null>(null);
+
+  useLayoutEffect(() => {
+    syncSidebarPhase(sidebarPhase);
+  }, [sidebarPhase]);
+
+  useEffect(
+    () => () => {
+      if (prepareFrameRef.current !== null) {
+        window.cancelAnimationFrame(prepareFrameRef.current);
+      }
+      if (startFrameRef.current !== null) {
+        window.cancelAnimationFrame(startFrameRef.current);
+      }
+    },
+    []
+  );
 
   useEffect(() => {
-    syncSidebarOpenClass(collapsed);
-    writeSidebarCollapsed(collapsed);
-  }, [collapsed]);
+    if (sidebarPhase !== 'opening' && sidebarPhase !== 'closing') {
+      return;
+    }
+
+    const container = document.getElementById('container');
+    const stablePhase = sidebarPhase === 'opening' ? 'open' : 'closed';
+    let finished = false;
+
+    function finish(): void {
+      if (finished) {
+        return;
+      }
+      finished = true;
+      setSidebarPhase(stablePhase);
+    }
+
+    function onTransitionEnd(event: TransitionEvent): void {
+      if (event.target === container && event.propertyName === 'transform') {
+        finish();
+      }
+    }
+
+    container?.addEventListener('transitionend', onTransitionEnd);
+    const fallback = window.setTimeout(
+      finish,
+      SIDEBAR_TRANSITION_FALLBACK_MS
+    );
+    return () => {
+      container?.removeEventListener('transitionend', onTransitionEnd);
+      window.clearTimeout(fallback);
+    };
+  }, [sidebarPhase]);
 
   useEffect(() => {
     function updateActive() {
@@ -63,6 +131,41 @@ export function App({
 
   const openPalette = useCallback(() => setPaletteOpen(true), []);
   const closePalette = useCallback(() => setPaletteOpen(false), []);
+
+  function toggleSidebar(): void {
+    if (
+      sidebarPhase === 'opening' ||
+      sidebarPhase === 'closing-ready' ||
+      sidebarPhase === 'closing'
+    ) {
+      return;
+    }
+
+    const opening = sidebarPhase === 'closed';
+    writeSidebarCollapsed(!opening);
+
+    if (prefersReducedMotion()) {
+      setSidebarPhase(opening ? 'open' : 'closed');
+      return;
+    }
+
+    if (opening) {
+      setSidebarPhase('opening');
+      return;
+    }
+
+    setSidebarPhase('closing-ready');
+    prepareFrameRef.current = window.requestAnimationFrame(() => {
+      prepareFrameRef.current = null;
+      startFrameRef.current = window.requestAnimationFrame(() => {
+        startFrameRef.current = null;
+        setSidebarPhase('closing');
+      });
+    });
+  }
+
+  const sidebarCollapsed =
+    sidebarPhase === 'closed' || sidebarPhase === 'closing';
 
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
@@ -104,8 +207,8 @@ export function App({
       <Sidebar
         items={items}
         activeIndex={activeIndex}
-        collapsed={collapsed}
-        onToggleCollapsed={() => setCollapsed((value) => !value)}
+        collapsed={sidebarCollapsed}
+        onToggleCollapsed={toggleSidebar}
         paletteOpen={paletteOpen}
         onOpenPalette={openPalette}
         onClosePalette={closePalette}
