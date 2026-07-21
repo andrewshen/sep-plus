@@ -24,8 +24,18 @@ body {
   background: none !important;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  font-family: 'Public Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
-    Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif !important;
+  font-family:
+    'Public Sans',
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    Roboto,
+    Oxygen,
+    Ubuntu,
+    Cantarell,
+    'Open Sans',
+    'Helvetica Neue',
+    sans-serif !important;
 }
 
 blockquote {
@@ -149,7 +159,7 @@ body.sep-plus-article #container {
   width: 100% !important;
   max-width: 100% !important;
   padding: 0 !important;
-  transform: translateX(0);
+  transform: none;
   transition: none;
 }
 
@@ -200,9 +210,16 @@ body.sep-plus-article[data-sep-plus-sidebar-phase='open'] #container {
   max-width: calc(100% - var(--sep-plus-sidebar-width)) !important;
 }
 
+body.sep-plus-article[data-sep-plus-sidebar-phase='opening'] #container,
+body.sep-plus-article[data-sep-plus-sidebar-phase='closing-ready'] #container,
+body.sep-plus-article[data-sep-plus-sidebar-phase='closing'] #container {
+  position: relative;
+  z-index: 2;
+}
+
 body.sep-plus-article[data-sep-plus-sidebar-phase='opening'] #container {
   transform: translateX(var(--sep-plus-sidebar-width));
-  transition: transform var(--sep-duration-ui) var(--sep-ease-in-out);
+  transition: transform var(--sep-duration-drawer) var(--sep-ease-out);
 }
 
 body.sep-plus-article[data-sep-plus-sidebar-phase='closing-ready'] #container {
@@ -211,7 +228,7 @@ body.sep-plus-article[data-sep-plus-sidebar-phase='closing-ready'] #container {
 
 body.sep-plus-article[data-sep-plus-sidebar-phase='closing'] #container {
   transform: translateX(0);
-  transition: transform var(--sep-duration-ui) var(--sep-ease-in-out);
+  transition: transform var(--sep-duration-drawer) var(--sep-ease-out);
 }
 
 body.sep-plus-article[data-sep-plus-sidebar-phase='opening']
@@ -220,10 +237,7 @@ body.sep-plus-article[data-sep-plus-sidebar-phase='closing-ready']
   :is(#article-content, #article-copyright, #footer),
 body.sep-plus-article[data-sep-plus-sidebar-phase='closing']
   :is(#article-content, #article-copyright, #footer) {
-  width: max(
-    0px,
-    calc(100% - var(--sep-plus-sidebar-width))
-  ) !important;
+  width: max(0px, calc(100% - var(--sep-plus-sidebar-width))) !important;
   margin-left: auto !important;
   margin-right: auto !important;
 }
@@ -239,7 +253,7 @@ body.sep-plus-article[data-sep-plus-sidebar-phase='opening']
   :is(#article-content, #article-copyright, #footer),
 body.sep-plus-article[data-sep-plus-sidebar-phase='closing']
   :is(#article-content, #article-copyright, #footer) {
-  transition: transform var(--sep-duration-ui) var(--sep-ease-in-out);
+  transition: transform var(--sep-duration-drawer) var(--sep-ease-out);
 }
 
 #sep-plus-root {
@@ -282,7 +296,7 @@ body.sep-plus-article[data-sep-plus-sidebar-phase='closing']
   opacity: 0;
   transform: translateX(0);
   transition:
-    transform var(--sep-duration-ui) var(--sep-ease-in-out),
+    transform var(--sep-duration-drawer) var(--sep-ease-out),
     opacity var(--sep-duration-ui) var(--sep-ease-out);
 }
 
@@ -293,7 +307,7 @@ body.sep-plus-article[data-sep-plus-sidebar-phase='closing']
 #sep-plus-edge-toggle .sep-sidebar-toggle[data-phase='pressed'] {
   opacity: 0;
   transition:
-    transform var(--sep-duration-ui) var(--sep-ease-in-out),
+    transform var(--sep-duration-drawer) var(--sep-ease-out),
     opacity var(--sep-duration-fast) var(--sep-ease-out);
 }
 
@@ -336,17 +350,14 @@ body.sep-plus-article[data-sep-plus-sidebar-phase='closing']
   margin-top: -2px;
 }
 
-#sep-plus-edge-toggle
-  .sep-sidebar-toggle[data-phase='target']:focus-within {
+#sep-plus-edge-toggle .sep-sidebar-toggle[data-phase='target']:focus-within {
   opacity: 1;
 }
 
 #sep-plus-edge-toggle
   .sep-sidebar-toggle[data-phase='target']:focus-within
   .sep-expander,
-#sep-plus-edge-toggle
-  .sep-sidebar-toggle[data-phase='pressed']
-  .sep-expander {
+#sep-plus-edge-toggle .sep-sidebar-toggle[data-phase='pressed'] .sep-expander {
   background: var(--sand-9);
 }
 
@@ -392,9 +403,7 @@ body.sep-plus-article[data-sep-plus-sidebar-phase='closing']
     opacity: 1;
   }
 
-  #sep-plus-edge-toggle
-    .sep-sidebar-toggle[data-phase='target']
-    .sep-expander {
+  #sep-plus-edge-toggle .sep-sidebar-toggle[data-phase='target'] .sep-expander {
     background: var(--sand-9);
   }
 
@@ -425,8 +434,7 @@ body.sep-plus-article[data-sep-plus-sidebar-phase='closing']
 
 @media (prefers-reduced-motion: reduce) {
   body.sep-plus-article #container,
-  body.sep-plus-article
-    :is(#article-content, #article-copyright, #footer) {
+  body.sep-plus-article :is(#article-content, #article-copyright, #footer) {
     transform: none !important;
     transition: none !important;
   }
@@ -439,7 +447,6 @@ body.sep-plus-article[data-sep-plus-sidebar-phase='closing']
   #sep-plus-edge-toggle .sep-expander {
     transition: background var(--sep-duration-fast) var(--sep-ease);
   }
-
 }
 
 @media print {
@@ -455,8 +462,7 @@ body.sep-plus-article[data-sep-plus-sidebar-phase='closing']
     transform: none !important;
   }
 
-  body.sep-plus-article
-    :is(#article-content, #article-copyright, #footer) {
+  body.sep-plus-article :is(#article-content, #article-copyright, #footer) {
     transform: none !important;
   }
 }
@@ -593,15 +599,26 @@ h4 {
 }
 
 .result_title a {
-  font-family: 'Public Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
-    Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif !important;
+  font-family:
+    'Public Sans',
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    Roboto,
+    Oxygen,
+    Ubuntu,
+    Cantarell,
+    'Open Sans',
+    'Helvetica Neue',
+    sans-serif !important;
 }
 
 .result_snippet,
 #article-content,
 #style_guide_content,
 #style_guide_content_wide {
-  font-family: 'Libre Baskerville', Georgia, 'Times New Roman', serif !important;
+  font-family:
+    'Libre Baskerville', Georgia, 'Times New Roman', serif !important;
   font-size: 15px !important;
   line-height: 25px !important;
   color: var(--sep-text) !important;
@@ -669,8 +686,18 @@ h4 {
 }
 
 #search input[type='search'] {
-  font-family: 'Public Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
-    Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif !important;
+  font-family:
+    'Public Sans',
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    Roboto,
+    Oxygen,
+    Ubuntu,
+    Cantarell,
+    'Open Sans',
+    'Helvetica Neue',
+    sans-serif !important;
   font-size: 13px !important;
   font-weight: 700 !important;
   height: 28px !important;
@@ -700,8 +727,18 @@ h4 {
 }
 
 select {
-  font-family: 'Public Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
-    Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif !important;
+  font-family:
+    'Public Sans',
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    Roboto,
+    Oxygen,
+    Ubuntu,
+    Cantarell,
+    'Open Sans',
+    'Helvetica Neue',
+    sans-serif !important;
   font-size: 13px !important;
   line-height: 16px !important;
   font-weight: 700 !important;
@@ -775,8 +812,18 @@ select {
 
 #search-switch {
   margin-top: 8px;
-  font-family: 'Public Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
-    Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif !important;
+  font-family:
+    'Public Sans',
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    Roboto,
+    Oxygen,
+    Ubuntu,
+    Cantarell,
+    'Open Sans',
+    'Helvetica Neue',
+    sans-serif !important;
   font-size: 13px !important;
 }
 
@@ -846,29 +893,40 @@ select {
   right: 8px;
 }
 
-#footnotes[data-sep-plus-footnotes] {
-  margin-top: 80px;
+#article-content :is(sup, sup a) {
+  font: var(--sep-footnote-label-font) !important;
 }
 
-#footnotes[data-sep-plus-footnotes] > h2 {
+#article-content sup a {
+  color: var(--sand-10) !important;
+}
+
+#article-content sup a:hover {
+  color: var(--sep-text) !important;
+}
+
+.sep-plus-footnotes {
+  margin-top: 80px;
+  color: var(--sep-text) !important;
+}
+
+.sep-plus-footnotes > h2 {
   margin-bottom: 24px;
 }
 
-#footnotes[data-sep-plus-footnotes] .sep-plus-footnote {
+.sep-plus-footnotes .sep-plus-footnote {
   scroll-margin-top: 24px;
 }
 
-#footnotes[data-sep-plus-footnotes]
-  .sep-plus-footnote
-  + .sep-plus-footnote {
+.sep-plus-footnotes .sep-plus-footnote + .sep-plus-footnote {
   margin-top: 16px;
 }
 
-#footnotes[data-sep-plus-footnotes] .sep-plus-footnote > :first-child {
+.sep-plus-footnotes .sep-plus-footnote > :first-child {
   margin-top: 0;
 }
 
-#footnotes[data-sep-plus-footnotes] .sep-plus-footnote > :last-child {
+.sep-plus-footnotes .sep-plus-footnote > :last-child {
   margin-bottom: 0;
 }
 /* Dark Mode — sand scale flips on body.dark; only overrides that need
@@ -1074,6 +1132,6 @@ body.dark blockquote {
 
   sup {
     top: 0 !important;
-    font-size: 12px !important;
+    font: var(--sep-footnote-label-font) !important;
   }
 }

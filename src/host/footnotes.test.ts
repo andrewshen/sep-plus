@@ -10,6 +10,8 @@ import {
   computeFootnotePlacement,
   initFootnotes,
   parseFootnoteDocument,
+  referenceLabel,
+  stripMarkerDecoration,
   type ParsedFootnote,
 } from './footnotes';
 
@@ -154,6 +156,43 @@ describe('footnote discovery and parsing', () => {
     expect(first?.blocks.map((block) => block.textContent).join(' ')).not.toContain(
       'Advice to the reader'
     );
+  });
+});
+
+describe('reference labels', () => {
+  it('strips brackets from inline citation markers', () => {
+    setDocument(`
+      <main id="article-content">
+        <sup><a href="notes.html#note-1">[1]</a></sup>
+        <sup><a href="notes.html#note-2">(2)</a></sup>
+        <sup><a href="notes.html#note-3">3.</a></sup>
+      </main>
+    `);
+    const references = collectFootnoteReferences(document, PAGE_URL);
+
+    expect(referenceLabel(references[0]!)).toBe('1');
+    expect(referenceLabel(references[1]!)).toBe('2');
+    expect(referenceLabel(references[2]!)).toBe('3');
+  });
+
+  it('removes sibling bracket text nodes around the marker link', () => {
+    setDocument(`
+      <main id="article-content">
+        <sup>[<a id="ref-1" href="notes.html#note-1">1</a>]</sup>
+      </main>
+    `);
+    const link = document.querySelector<HTMLAnchorElement>('#ref-1');
+    if (!link) {
+      throw new Error('Missing link fixture');
+    }
+    const sup = link.parentElement;
+
+    stripMarkerDecoration(link);
+
+    expect(sup?.textContent).toBe('1');
+    expect(Array.from(sup?.childNodes || []).map((node) => node.nodeType)).toEqual([
+      Node.ELEMENT_NODE,
+    ]);
   });
 });
 
@@ -305,11 +344,15 @@ describe('controller lifecycle and interactions', () => {
     </div>
   `;
 
-  function articleFixture(): void {
+  function articleFixture(bracketed = false): void {
     setDocument(`
       <article id="article">
         <div id="article-content">
-          <p>Text <sup><a id="ref-1" href="notes.html#note-1">1</a></sup></p>
+          <p>Text <sup>${
+            bracketed
+              ? '[<a id="ref-1" href="notes.html#note-1">1</a>]'
+              : '<a id="ref-1" href="notes.html#note-1">1</a>'
+          }</sup></p>
         </div>
         <div id="bibliography"></div>
       </article>
@@ -317,7 +360,7 @@ describe('controller lifecycle and interactions', () => {
   }
 
   it('loads once, rewrites references, and restores the page on cleanup', async () => {
-    articleFixture();
+    articleFixture(true);
     const fetcher: typeof fetch = async () =>
       new Response(notesHtml, { status: 200 });
 
@@ -328,11 +371,14 @@ describe('controller lifecycle and interactions', () => {
     });
     const section = await waitForFootnotes();
     const link = document.querySelector<HTMLAnchorElement>('#ref-1');
+    const sup = link?.parentElement;
     const localId = section.querySelector<HTMLElement>(
       '.sep-plus-footnote'
     )?.id;
 
     expect(localId).toBeTruthy();
+    expect(link?.textContent).toBe('1');
+    expect(sup?.textContent).toBe('1');
     expect(link?.getAttribute('href')).toBe(`#${localId}`);
     expect(link?.getAttribute('aria-details')).toBe(localId);
     expect(document.querySelectorAll('#sep-plus-footnote-layer')).toHaveLength(
@@ -344,6 +390,8 @@ describe('controller lifecycle and interactions', () => {
     expect(document.querySelector('#footnotes')).toBeNull();
     expect(document.querySelector('#sep-plus-footnote-layer')).toBeNull();
     expect(link?.getAttribute('href')).toBe('notes.html#note-1');
+    expect(link?.textContent).toBe('1');
+    expect(sup?.textContent).toBe('[1]');
     expect(link?.hasAttribute('aria-details')).toBe(false);
   });
 
@@ -371,7 +419,8 @@ describe('controller lifecycle and interactions', () => {
     expect(preview.hidden).toBe(false);
     expect(preview.dataset.motion).toBe('instant');
     expect(preview.dataset.state).toBe('open');
-    expect(preview.textContent).toContain('Preview content');
+    expect(preview.textContent?.trim()).toBe('Preview content');
+    expect(preview.textContent).not.toMatch(/^\s*1\./);
 
     document.dispatchEvent(
       new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })

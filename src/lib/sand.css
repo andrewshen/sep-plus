@@ -96,6 +96,10 @@ body.dark {
   --sep-duration-fast: 100ms;
   --sep-duration-ui: 150ms;
   --sep-duration-drawer: 200ms;
+  --sep-font:
+    'Public Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI',
+    sans-serif;
+  --sep-footnote-label-font: normal 400 12px/1 var(--sep-font);
 }
 
 body.dark {

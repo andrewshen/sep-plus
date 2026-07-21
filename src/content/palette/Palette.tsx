@@ -89,6 +89,7 @@ export function Palette({ open, onClose, anchorRef, dark }: PaletteProps) {
   const [loading, setLoading] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [activeIndex, setActiveIndex] = useState(0);
+  const prevActiveIndexRef = useRef(0);
   const [mounted, setMounted] = useState(open);
   const [expanded, setExpanded] = useState(false);
   const [anchor, setAnchor] = useState<AnchorRect | null>(null);
@@ -116,6 +117,7 @@ export function Palette({ open, onClose, anchorRef, dark }: PaletteProps) {
       setMounted(false);
       setQuery('');
       setActiveIndex(0);
+      prevActiveIndexRef.current = 0;
       setLoadError(null);
       setAnchor(null);
     }, delay);
@@ -217,8 +219,14 @@ export function Palette({ open, onClose, anchorRef, dark }: PaletteProps) {
   }, [query, rows.length]);
 
   useEffect(() => {
-    // Skip index 0 / mount — scrollIntoView during the open morph nudges the list.
-    if (!open || closing || !expanded || activeIndex === 0 || !listRef.current) {
+    if (!open || closing || !expanded || !listRef.current) {
+      return;
+    }
+    const previousIndex = prevActiveIndexRef.current;
+    prevActiveIndexRef.current = activeIndex;
+    // Skip idle/initial index 0 — scrollIntoView during the open morph nudges the
+    // list. Still scroll when wrapping from the last result back to the first.
+    if (activeIndex === 0 && previousIndex === 0) {
       return;
     }
     const active = listRef.current.querySelector<HTMLElement>(

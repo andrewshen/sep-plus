@@ -415,9 +415,50 @@ function sanitizeAndNormalizeBlock(
   return clone;
 }
 
-function referenceLabel(reference: FootnoteReference): string {
+export function referenceLabel(reference: FootnoteReference): string {
   const text = (reference.link.textContent || '').replace(/\s+/g, ' ').trim();
   return text.replace(/[\[\]().]/g, '') || reference.fragment;
+}
+
+/** SEP wraps markers as `<sup>[<a>1</a>]</sup>` — brackets are sibling text nodes. */
+const MARKER_DECORATION = /^[\[\]().\s]+$/;
+
+type RemovedDecoration = {
+  parent: Node;
+  node: Text;
+  nextSibling: ChildNode | null;
+};
+
+export function stripMarkerDecoration(
+  link: HTMLAnchorElement
+): RemovedDecoration[] {
+  const parent = link.parentElement;
+  if (!parent || parent.tagName !== 'SUP') {
+    return [];
+  }
+  const removed: RemovedDecoration[] = [];
+  for (const node of Array.from(parent.childNodes)) {
+    if (node === link || node.nodeType !== Node.TEXT_NODE) {
+      continue;
+    }
+    const text = node.textContent ?? '';
+    if (!text || !MARKER_DECORATION.test(text)) {
+      continue;
+    }
+    removed.push({ parent, node, nextSibling: node.nextSibling });
+    node.parentNode?.removeChild(node);
+  }
+  return removed;
+}
+
+function restoreMarkerDecoration(removed: readonly RemovedDecoration[]): void {
+  for (let index = removed.length - 1; index >= 0; index -= 1) {
+    const item = removed[index];
+    if (!item) {
+      continue;
+    }
+    item.parent.insertBefore(item.node, item.nextSibling);
+  }
 }
 
 function descendantIdMapForNote(
@@ -561,6 +602,33 @@ export function computeFootnotePlacement(
   return { top, left, arrowLeft, placement };
 }
 
+function isFootnoteLabelText(text: string, label: string): boolean {
+  const normalized = text.replace(/\s+/g, ' ').trim().replace(/[\[\]().]/g, '');
+  return normalized === label;
+}
+
+function stripLeadingPreviewLabel(root: ParentNode, label: string): void {
+  const firstLink = root.querySelector('a');
+  if (!(firstLink instanceof HTMLAnchorElement)) {
+    return;
+  }
+  if (!isFootnoteLabelText(firstLink.textContent || '', label)) {
+    return;
+  }
+  const previous = firstLink.previousSibling;
+  if (
+    previous?.nodeType === Node.TEXT_NODE &&
+    /^[\s\u00a0]*$/.test(previous.textContent || '')
+  ) {
+    previous.parentNode?.removeChild(previous);
+  }
+  const next = firstLink.nextSibling;
+  if (next?.nodeType === Node.TEXT_NODE && next.textContent) {
+    next.textContent = next.textContent.replace(/^[\s\u00a0]+/, '');
+  }
+  firstLink.remove();
+}
+
 function cloneNoteForPreview(
   note: RenderedFootnote,
   doc: Document
@@ -579,6 +647,7 @@ function cloneNoteForPreview(
     }
     fragment.appendChild(clone);
   }
+  stripLeadingPreviewLabel(fragment, note.label);
   return fragment;
 }
 
@@ -999,6 +1068,8 @@ export function initFootnotes(
     ariaDetails: string | null;
     key: string | undefined;
     sourceHref: string | undefined;
+    textContent: string | null;
+    decoration: RemovedDecoration[];
   }> = [];
   let section: HTMLElement | null = null;
   let previewCleanup: (() => void) | null = null;
@@ -1053,6 +1124,12 @@ export function initFootnotes(
       } else {
         restore.link.dataset.sepPlusFootnoteSourceHref = restore.sourceHref;
       }
+      if (restore.textContent === null) {
+        restore.link.textContent = '';
+      } else {
+        restore.link.textContent = restore.textContent;
+      }
+      restoreMarkerDecoration(restore.decoration);
     }
     section?.remove();
     section = null;
@@ -1108,6 +1185,8 @@ export function initFootnotes(
         ariaDetails: reference.link.getAttribute('aria-details'),
         key: reference.link.dataset.sepPlusFootnoteKey,
         sourceHref: reference.link.dataset.sepPlusFootnoteSourceHref,
+        textContent: reference.link.textContent,
+        decoration: stripMarkerDecoration(reference.link),
       });
       const sourceHref = reference.link.getAttribute('href');
       if (sourceHref) {
@@ -1116,6 +1195,7 @@ export function initFootnotes(
       reference.link.setAttribute('href', `#${note.localId}`);
       reference.link.setAttribute('aria-details', note.localId);
       reference.link.dataset.sepPlusFootnoteKey = reference.key;
+      reference.link.textContent = note.label;
     }
 
     const article = doc.getElementById('article-content');

@@ -32,8 +32,9 @@
   --sep-duration-fast: 100ms;
   --sep-duration-ui: 150ms;
   --sep-duration-drawer: 200ms;
-  --sep-font: 'Public Sans', system-ui, -apple-system, BlinkMacSystemFont,
-    'Segoe UI', sans-serif;
+  --sep-font:
+    'Public Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI',
+    sans-serif;
 
   font-family: var(--sep-font);
   color: var(--sep-text);
@@ -100,7 +101,7 @@
   border-right: none;
   transform: translateX(0);
   /* Match article #container timing so the sheet edge and sidebar move as one. */
-  transition: transform var(--sep-duration-ui) var(--sep-ease-in-out);
+  transition: transform var(--sep-duration-drawer) var(--sep-ease-out);
   box-sizing: border-box;
 }
 
@@ -595,7 +596,7 @@
   background: transparent;
   color: var(--sep-muted-soft);
   font-family: var(--sep-font);
-  font-size: 11px;
+  font-size: 12px;
   line-height: 16px;
   font-weight: 500;
   pointer-events: none;

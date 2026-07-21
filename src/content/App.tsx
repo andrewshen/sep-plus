@@ -7,10 +7,7 @@ import {
 } from 'react';
 import { writeSidebarCollapsed } from '../lib/storage';
 import type { ThemePreference, TocItem } from '../lib/types';
-import {
-  getActiveTocIndex,
-  identifyPrintBlock,
-} from '../host/toc';
+import { getActiveTocIndex, identifyPrintBlock } from '../host/toc';
 import { Sidebar } from './sidebar/Sidebar';
 
 type AppProps = {
@@ -19,14 +16,9 @@ type AppProps = {
   initialTheme: ThemePreference;
 };
 
-type SidebarPhase =
-  | 'closed'
-  | 'opening'
-  | 'open'
-  | 'closing-ready'
-  | 'closing';
+type SidebarPhase = 'closed' | 'opening' | 'open' | 'closing-ready' | 'closing';
 
-const SIDEBAR_TRANSITION_MS = 150;
+const SIDEBAR_TRANSITION_MS = 200;
 const SIDEBAR_TRANSITION_FALLBACK_MS = SIDEBAR_TRANSITION_MS + 100;
 
 function syncSidebarPhase(phase: SidebarPhase): void {
@@ -38,18 +30,14 @@ function prefersReducedMotion(): boolean {
   return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 }
 
-export function App({
-  items,
-  initialCollapsed,
-  initialTheme,
-}: AppProps) {
+export function App({ items, initialCollapsed, initialTheme }: AppProps) {
   const [sidebarPhase, setSidebarPhase] = useState<SidebarPhase>(
-    initialCollapsed ? 'closed' : 'open'
+    initialCollapsed ? 'closed' : 'open',
   );
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
   const [dark, setDark] = useState(() =>
-    document.body.classList.contains('dark')
+    document.body.classList.contains('dark'),
   );
   const prepareFrameRef = useRef<number | null>(null);
   const startFrameRef = useRef<number | null>(null);
@@ -67,7 +55,7 @@ export function App({
         window.cancelAnimationFrame(startFrameRef.current);
       }
     },
-    []
+    [],
   );
 
   useEffect(() => {
@@ -94,10 +82,7 @@ export function App({
     }
 
     container?.addEventListener('transitionend', onTransitionEnd);
-    const fallback = window.setTimeout(
-      finish,
-      SIDEBAR_TRANSITION_FALLBACK_MS
-    );
+    const fallback = window.setTimeout(finish, SIDEBAR_TRANSITION_FALLBACK_MS);
     return () => {
       container?.removeEventListener('transitionend', onTransitionEnd);
       window.clearTimeout(fallback);
@@ -203,7 +188,11 @@ export function App({
   }, [paletteOpen]);
 
   return (
-    <div className={['sep-plus-app', dark ? 'is-dark' : ''].filter(Boolean).join(' ')}>
+    <div
+      className={['sep-plus-app', dark ? 'is-dark' : '']
+        .filter(Boolean)
+        .join(' ')}
+    >
       <Sidebar
         items={items}
         activeIndex={activeIndex}

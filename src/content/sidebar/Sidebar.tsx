@@ -20,7 +20,8 @@ type SidebarProps = {
 
 type TogglePhase = 'idle' | 'area' | 'target' | 'pressed';
 
-const SIDEBAR_TOGGLE_FALLBACK_MS = 250;
+const SIDEBAR_TOGGLE_TRANSITION_MS = 200;
+const SIDEBAR_TOGGLE_FALLBACK_MS = SIDEBAR_TOGGLE_TRANSITION_MS + 100;
 
 function IconAnnotations() {
   return (
@@ -52,13 +53,7 @@ function IconAnnotations() {
 function IconSettings() {
   return (
     <svg viewBox="0 0 16 16" aria-hidden="true" fill="none">
-      <circle
-        cx="6.5"
-        cy="5"
-        r="1.5"
-        stroke="currentColor"
-        strokeWidth="1.2"
-      />
+      <circle cx="6.5" cy="5" r="1.5" stroke="currentColor" strokeWidth="1.2" />
       <circle
         cx="10.5"
         cy="11"
@@ -132,7 +127,7 @@ export function Sidebar({
   const toggleResetTimerRef = useRef<number | null>(null);
   const searchSlotRef = useRef<HTMLDivElement>(null);
   const logoSrc = chrome.runtime.getURL(
-    dark ? 'sep-logo-white.png' : 'sep-logo.png'
+    dark ? 'sep-logo-white.png' : 'sep-logo.png',
   );
 
   useEffect(() => {
@@ -150,7 +145,7 @@ export function Sidebar({
         window.clearTimeout(toggleResetTimerRef.current);
       }
     },
-    []
+    [],
   );
 
   function finishToggleTransition(): void {
@@ -169,7 +164,7 @@ export function Sidebar({
     setTogglePhase('pressed');
     toggleResetTimerRef.current = window.setTimeout(
       finishToggleTransition,
-      SIDEBAR_TOGGLE_FALLBACK_MS
+      SIDEBAR_TOGGLE_FALLBACK_MS,
     );
     onToggleCollapsed();
   }
@@ -240,7 +235,7 @@ export function Sidebar({
               aria-current={surface === 'annotations' ? 'page' : undefined}
               onClick={() =>
                 setSurface((current) =>
-                  current === 'annotations' ? 'toc' : 'annotations'
+                  current === 'annotations' ? 'toc' : 'annotations',
                 )
               }
             >
@@ -260,7 +255,7 @@ export function Sidebar({
               aria-current={surface === 'settings' ? 'page' : undefined}
               onClick={() =>
                 setSurface((current) =>
-                  current === 'settings' ? 'toc' : 'settings'
+                  current === 'settings' ? 'toc' : 'settings',
                 )
               }
             >
@@ -314,10 +309,7 @@ export function Sidebar({
 
       {createPortal(
         <div
-          className={[
-            'sep-sidebar-toggle',
-            collapsed ? 'is-collapsed' : '',
-          ]
+          className={['sep-sidebar-toggle', collapsed ? 'is-collapsed' : '']
             .filter(Boolean)
             .join(' ')}
           data-phase={togglePhase}
@@ -372,7 +364,7 @@ export function Sidebar({
             <span className="sep-expander bottom" />
           </button>
         </div>,
-        document.getElementById('sep-plus-edge-toggle') ?? document.body
+        document.getElementById('sep-plus-edge-toggle') ?? document.body,
       )}
     </>
   );
