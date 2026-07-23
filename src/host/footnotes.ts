@@ -438,15 +438,15 @@ export function stripMarkerDecoration(
   }
   const removed: RemovedDecoration[] = [];
   for (const node of Array.from(parent.childNodes)) {
-    if (node === link || node.nodeType !== Node.TEXT_NODE) {
+    if (node === link || !(node instanceof Text)) {
       continue;
     }
-    const text = node.textContent ?? '';
+    const text = node.data;
     if (!text || !MARKER_DECORATION.test(text)) {
       continue;
     }
     removed.push({ parent, node, nextSibling: node.nextSibling });
-    node.parentNode?.removeChild(node);
+    node.remove();
   }
   return removed;
 }

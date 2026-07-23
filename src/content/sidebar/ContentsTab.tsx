@@ -1,18 +1,36 @@
 import { useEffect, useRef } from 'react';
-import type { TocItem } from '../../lib/types';
+import type { SiteNavSection, TocItem } from '../../lib/types';
 import { smoothScrollToHref } from '../../host/toc';
 
 type ContentsTabProps = {
   items: TocItem[];
   activeIndex: number;
+  siteNav?: SiteNavSection[];
 };
 
-export function ContentsTab({ items, activeIndex }: ContentsTabProps) {
+function isCurrentPage(href: string): boolean {
+  try {
+    const url = new URL(href, location.href);
+    return (
+      url.origin === location.origin &&
+      url.pathname.replace(/\/+$/, '') ===
+        location.pathname.replace(/\/+$/, '')
+    );
+  } catch {
+    return false;
+  }
+}
+
+export function ContentsTab({
+  items,
+  activeIndex,
+  siteNav,
+}: ContentsTabProps) {
   const listRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const list = listRef.current;
-    if (!list || activeIndex < 0) {
+    if (!list || activeIndex < 0 || siteNav?.length) {
       return;
     }
     const active = list.querySelector<HTMLElement>(
@@ -28,10 +46,36 @@ export function ContentsTab({ items, activeIndex }: ContentsTabProps) {
     } else if (bottom > list.scrollTop + list.clientHeight) {
       list.scrollTop = bottom - list.clientHeight;
     }
-  }, [activeIndex]);
+  }, [activeIndex, siteNav]);
+
+  if (siteNav?.length) {
+    return (
+      <div className="sep-toc-scroll" ref={listRef}>
+        {siteNav.map((section) => (
+          <div key={section.title} className="sep-site-nav-section">
+            <div className="sep-contents-label">{section.title}</div>
+            {section.links.map((link) => (
+              <a
+                key={`${section.title}-${link.href}`}
+                href={link.href}
+                className={[
+                  'sep-toc-link',
+                  isCurrentPage(link.href) ? 'is-active' : '',
+                ]
+                  .filter(Boolean)
+                  .join(' ')}
+              >
+                {link.text}
+              </a>
+            ))}
+          </div>
+        ))}
+      </div>
+    );
+  }
 
   if (!items.length) {
-    return <div className="sep-stub">No contents for this entry.</div>;
+    return <div className="sep-stub">No contents on this page.</div>;
   }
 
   return (

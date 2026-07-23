@@ -23,6 +23,8 @@ export default defineManifest({
         'http://plato.stanford.edu/*',
         'https://plato.stanford.edu/*',
       ],
+      // Declarative CSS is applied before first paint; JS-imported CSS is not.
+      css: ['src/host/boot.css'],
       js: ['src/content/main.tsx'],
       run_at: 'document_start',
     },

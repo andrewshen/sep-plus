@@ -7,8 +7,10 @@ import {
   isArticlePage,
   preloadLocalFonts,
   reformatPubinfo,
+  wrapSiteContentColumn,
 } from '../host/bootstrap';
 import { initFootnotes } from '../host/footnotes';
+import { collectSiteNavSections } from '../host/siteNav';
 import {
   collectTocItems,
   prepareArticleNav,
@@ -17,12 +19,15 @@ import {
   getTheme,
   readSidebarCollapsed,
 } from '../lib/storage';
-import type { ThemePreference } from '../lib/types';
+import type {
+  SiteNavSection,
+  ThemePreference,
+  TocItem,
+} from '../lib/types';
 import { App } from './App';
 import uiStyles from './styles.css?inline';
 import '../host/styles.css';
 
-const BOOT_CLASS = 'sep-plus-booting';
 const READY_CLASS = 'sep-plus-ready';
 const BOOT_TIMEOUT_MS = 8000;
 
@@ -37,7 +42,7 @@ function revealPage(): void {
   document
     .getElementById('sep-plus-root')
     ?.removeAttribute('data-sep-plus-booting');
-  document.documentElement.classList.remove(BOOT_CLASS);
+  // boot.css hides via html:not(.sep-plus-ready) until this class is set.
   document.documentElement.classList.add(READY_CLASS);
 }
 
@@ -59,14 +64,15 @@ function waitForNextFrame(): Promise<void> {
   });
 }
 
-function mountArticleShell(
-  items: ReturnType<typeof collectTocItems>,
+function mountShell(
+  items: TocItem[],
+  siteNav: SiteNavSection[] | undefined,
   initialCollapsed: boolean,
   initialTheme: ThemePreference
 ): void {
   const sidebarPhase = initialCollapsed ? 'closed' : 'open';
-  document.documentElement.classList.add('sep-plus-article');
-  document.body.classList.add('sep-plus-article');
+  document.documentElement.classList.add('sep-plus');
+  document.body.classList.add('sep-plus');
   document.documentElement.dataset.sepPlusSidebarPhase = sidebarPhase;
   document.body.dataset.sepPlusSidebarPhase = sidebarPhase;
 
@@ -114,6 +120,7 @@ function mountArticleShell(
     root.render(
       <App
         items={items}
+        siteNav={siteNav}
         initialCollapsed={initialCollapsed}
         initialTheme={initialTheme}
       />
@@ -133,18 +140,23 @@ async function main(): Promise<void> {
   }
 
   const articleMode = isArticlePage();
+  let tocItems: TocItem[] = [];
+  let siteNav: SiteNavSection[] | undefined;
 
   if (articleMode) {
     prepareArticleNav();
-    const tocItems = collectTocItems();
+    tocItems = collectTocItems();
     reformatPubinfo();
-    bootstrapHost({ articleMode: true, theme });
-    if (tocItems.length || document.querySelector('#article')) {
-      mountArticleShell(tocItems, readSidebarCollapsed(), theme);
-    }
-    initFootnotes();
   } else {
-    bootstrapHost({ articleMode: false, theme });
+    siteNav = collectSiteNavSections();
+    wrapSiteContentColumn();
+  }
+
+  bootstrapHost(theme);
+  mountShell(tocItems, siteNav, readSidebarCollapsed(), theme);
+
+  if (articleMode) {
+    initFootnotes();
   }
 
   await fontsReadyPromise;
@@ -156,8 +168,8 @@ async function main(): Promise<void> {
   revealPage();
 }
 
+// Ensure a prior ready state (e.g. bfcache) cannot skip the boot hide.
 document.documentElement.classList.remove(READY_CLASS);
-document.documentElement.classList.add(BOOT_CLASS);
 
 injectLocalFonts();
 const fontsReadyPromise = preloadLocalFonts();

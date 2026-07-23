@@ -1,0 +1,30 @@
+/*
+ * Critical anti-FOUC sheet. Injected via content_scripts.css at document_start
+ * so Chrome applies it before first paint — unlike JS-imported CSS.
+ * Keep this file dependency-free (no @import).
+ */
+
+html:not(.sep-plus-ready) {
+  min-height: 100%;
+  /* sand-2 light — theme tokens may not be available yet */
+  background: #f9f9f8 !important;
+}
+
+@media (prefers-color-scheme: dark) {
+  html:not(.sep-plus-ready) {
+    /* sand-2 dark */
+    background: #191918 !important;
+  }
+}
+
+html:not(.sep-plus-ready) > body,
+html:not(.sep-plus-ready) > #sep-plus-root,
+html:not(.sep-plus-ready) > #sep-plus-edge-toggle,
+html:not(.sep-plus-ready) > #sep-plus-palette-layer {
+  visibility: hidden !important;
+}
+
+html:not(.sep-plus-ready) body *,
+html:not(.sep-plus-ready) #sep-plus-edge-toggle * {
+  transition: none !important;
+}

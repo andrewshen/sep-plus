@@ -45,7 +45,8 @@ function navigateTo(
     onClose();
     return;
   }
-  onClose();
+  // Skip the close morph — starting it then navigating freezes mid-transition
+  // while the document unloads.
   window.location.assign(url);
 }
 
@@ -53,11 +54,73 @@ function prefersReducedMotion(): boolean {
   return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 }
 
+function rowHref(row: PaletteRow): string {
+  return row.kind === 'entry' ? row.entry.href : searchResultsUrl(row.query);
+}
+
+/** Absolute same-origin URL suitable for document prefetch, or null to skip. */
+function prefetchableUrl(href: string): string | null {
+  try {
+    const url = new URL(href, location.href);
+    if (url.origin !== location.origin) {
+      return null;
+    }
+    url.hash = '';
+    const current = new URL(location.href);
+    current.hash = '';
+    if (url.href === current.href) {
+      return null;
+    }
+    return url.href;
+  } catch {
+    return null;
+  }
+}
+
+const PREFETCH_ATTR = 'data-sep-plus-prefetch';
+
+function supportsSpeculationRules(): boolean {
+  return (
+    typeof HTMLScriptElement !== 'undefined' &&
+    typeof HTMLScriptElement.supports === 'function' &&
+    HTMLScriptElement.supports('speculationrules')
+  );
+}
+
+function installDocumentPrefetch(url: string): void {
+  if (supportsSpeculationRules()) {
+    const script = document.createElement('script');
+    script.type = 'speculationrules';
+    script.setAttribute(PREFETCH_ATTR, url);
+    script.textContent = JSON.stringify({
+      prefetch: [{ urls: [url] }],
+    });
+    document.head.appendChild(script);
+    return;
+  }
+
+  const link = document.createElement('link');
+  link.rel = 'prefetch';
+  link.href = url;
+  link.setAttribute(PREFETCH_ATTR, url);
+  document.head.appendChild(link);
+}
+
+function clearDocumentPrefetches(): void {
+  for (const el of Array.from(
+    document.querySelectorAll(`[${PREFETCH_ATTR}]`)
+  )) {
+    el.remove();
+  }
+}
+
 const EXIT_MS = 150;
 const PROTRUDE_PX = 60;
 /** Sidebar content padding-right; included so width clears the sidebar edge. */
 const SIDEBAR_PAD_RIGHT = 20;
 const CLOSED_HEIGHT = 40;
+/** Wait out rapid ↑/↓ before kicking off a prefetch. */
+const PREFETCH_DEBOUNCE_MS = 75;
 
 function getPaletteMount(): HTMLElement | null {
   const layer = document.getElementById('sep-plus-palette-layer');
@@ -90,6 +153,7 @@ export function Palette({ open, onClose, anchorRef, dark }: PaletteProps) {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [activeIndex, setActiveIndex] = useState(0);
   const prevActiveIndexRef = useRef(0);
+  const prefetchedUrlsRef = useRef(new Set<string>());
   const [mounted, setMounted] = useState(open);
   const [expanded, setExpanded] = useState(false);
   const [anchor, setAnchor] = useState<AnchorRect | null>(null);
@@ -217,6 +281,38 @@ export function Palette({ open, onClose, anchorRef, dark }: PaletteProps) {
   useEffect(() => {
     setActiveIndex(0);
   }, [query, rows.length]);
+
+  useEffect(() => {
+    if (!open || closing) {
+      return;
+    }
+    const row = rows[activeIndex];
+    if (!row) {
+      return;
+    }
+    const url = prefetchableUrl(rowHref(row));
+    if (!url || prefetchedUrlsRef.current.has(url)) {
+      return;
+    }
+
+    const timer = window.setTimeout(() => {
+      if (prefetchedUrlsRef.current.has(url)) {
+        return;
+      }
+      prefetchedUrlsRef.current.add(url);
+      installDocumentPrefetch(url);
+    }, PREFETCH_DEBOUNCE_MS);
+
+    return () => window.clearTimeout(timer);
+  }, [open, closing, rows, activeIndex]);
+
+  useEffect(() => {
+    if (open) {
+      return;
+    }
+    prefetchedUrlsRef.current.clear();
+    clearDocumentPrefetches();
+  }, [open]);
 
   useEffect(() => {
     if (!open || closing || !expanded || !listRef.current) {

@@ -6,12 +6,17 @@ import {
   useState,
 } from 'react';
 import { writeSidebarCollapsed } from '../lib/storage';
-import type { ThemePreference, TocItem } from '../lib/types';
+import type {
+  SiteNavSection,
+  ThemePreference,
+  TocItem,
+} from '../lib/types';
 import { getActiveTocIndex, identifyPrintBlock } from '../host/toc';
 import { Sidebar } from './sidebar/Sidebar';
 
 type AppProps = {
   items: TocItem[];
+  siteNav?: SiteNavSection[];
   initialCollapsed: boolean;
   initialTheme: ThemePreference;
 };
@@ -30,7 +35,12 @@ function prefersReducedMotion(): boolean {
   return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 }
 
-export function App({ items, initialCollapsed, initialTheme }: AppProps) {
+export function App({
+  items,
+  siteNav,
+  initialCollapsed,
+  initialTheme,
+}: AppProps) {
   const [sidebarPhase, setSidebarPhase] = useState<SidebarPhase>(
     initialCollapsed ? 'closed' : 'open',
   );
@@ -195,6 +205,7 @@ export function App({ items, initialCollapsed, initialTheme }: AppProps) {
     >
       <Sidebar
         items={items}
+        siteNav={siteNav}
         activeIndex={activeIndex}
         collapsed={sidebarCollapsed}
         onToggleCollapsed={toggleSidebar}

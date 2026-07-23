@@ -1,4 +1,4 @@
-import { getTheme, onThemeChanged, setTheme } from '../lib/storage';
+import { getTheme, onThemeChanged } from '../lib/storage';
 import type { ThemePreference } from '../lib/types';
 
 function fontFace(
@@ -68,20 +68,9 @@ export async function preloadLocalFonts(): Promise<void> {
   await Promise.race([fontsReady, timeout]);
 }
 
-function swapLogo(dark: boolean): void {
-  const img = document.querySelector<HTMLImageElement>('#site-logo img');
-  if (!img) {
-    return;
-  }
-  img.src = dark
-    ? 'https://i.imgur.com/eRpN6wC.png'
-    : '../../symbols/sep-man-red.png';
-}
-
 export function setDarkMode(dark: boolean): void {
   document.documentElement.classList.toggle('dark', dark);
   document.body?.classList.toggle('dark', dark);
-  swapLogo(dark);
 }
 
 export function applyTheme(theme: ThemePreference): void {
@@ -257,103 +246,6 @@ export function reformatPubinfo(): void {
   pubinfo.dataset.sepPlusPubinfo = '1';
 }
 
-function themeIconSrc(theme: ThemePreference): string {
-  switch (theme) {
-    case 'auto':
-      return 'https://i.imgur.com/e1Zorrs.png';
-    case 'dark':
-      return 'https://i.imgur.com/TyBZlqK.png';
-    case 'light':
-    default:
-      return 'https://i.imgur.com/UUO3OBn.png';
-  }
-}
-
-/** Theme picker in the SEP header — used on non-article pages only. */
-export function mountHeaderThemeSelector(theme: ThemePreference): void {
-  if (document.querySelector('.select-container')) {
-    return;
-  }
-
-  const selectContainer = document.createElement('div');
-  selectContainer.className = 'select-container';
-
-  const themeSelector = document.createElement('select');
-  themeSelector.id = 'theme-selector';
-
-  for (const [value, label] of [
-    ['light', 'Light'],
-    ['dark', 'Dark'],
-    ['auto', 'System'],
-  ] as const) {
-    const option = document.createElement('option');
-    option.value = value;
-    option.textContent = label;
-    themeSelector.appendChild(option);
-  }
-  themeSelector.value = theme;
-
-  const themeIcon = document.createElement('img');
-  themeIcon.id = 'theme-icon';
-  themeIcon.src = themeIconSrc(theme);
-  themeIcon.alt = 'Theme Icon';
-  themeIcon.width = 12;
-  themeIcon.height = 12;
-
-  const chevronIcon = document.createElement('img');
-  chevronIcon.id = 'chevron-icon';
-  chevronIcon.src = 'https://i.imgur.com/H0Ih6cL.png';
-  chevronIcon.alt = 'Chevron';
-  chevronIcon.width = 12;
-  chevronIcon.height = 12;
-
-  selectContainer.append(themeSelector, themeIcon, chevronIcon);
-
-  const searchpageSearch = document.querySelector('.searchpage #search');
-  const contentSearch = document.querySelector('#content #search');
-  if (searchpageSearch || contentSearch) {
-    const searchContainer = document.createElement('div');
-    searchContainer.id = 'search';
-    searchContainer.append(selectContainer);
-    document.querySelector('#header')?.append(searchContainer);
-    selectContainer.style.marginTop = '-15px';
-  } else {
-    document.querySelector('#search')?.append(selectContainer);
-  }
-
-  themeSelector.addEventListener('change', () => {
-    const value = themeSelector.value;
-    if (value === 'light' || value === 'dark' || value === 'auto') {
-      void setTheme(value).then(() => applyTheme(value));
-      themeIcon.src = themeIconSrc(value);
-    }
-  });
-}
-
-export function bindSearchKeyboard(): void {
-  document.addEventListener('keyup', (event) => {
-    const input = document.querySelector<HTMLInputElement>(
-      'input[type=search]'
-    );
-    if (!input) {
-      return;
-    }
-    if (event.key === '/') {
-      const target = event.target;
-      if (
-        target instanceof HTMLInputElement ||
-        target instanceof HTMLTextAreaElement ||
-        (target instanceof HTMLElement && target.isContentEditable)
-      ) {
-        return;
-      }
-      input.focus();
-    } else if (event.key === 'Escape') {
-      input.blur();
-    }
-  });
-}
-
 export function isArticlePage(): boolean {
   return Boolean(
     document.querySelector('#article-nav li') &&
@@ -361,48 +253,56 @@ export function isArticlePage(): boolean {
   );
 }
 
-export function bootstrapHost(options: {
-  articleMode: boolean;
-  theme: ThemePreference;
-}): void {
-  injectLocalFonts();
+/**
+ * Non-entry pages lack #article-content. Wrap #content’s main body in a
+ * single column so max-width centering matches entry pages.
+ */
+export function wrapSiteContentColumn(): void {
+  const content = document.querySelector<HTMLElement>('#content');
+  if (
+    !content ||
+    content.querySelector('#article') ||
+    content.dataset.sepPlusContentColumn === '1'
+  ) {
+    return;
+  }
 
-  const searchInput = document.querySelector<HTMLInputElement>(
-    'input[type=search]'
+  const column = document.createElement('div');
+  column.className = 'sep-plus-content-column';
+
+  const nodes = Array.from(content.childNodes).filter(
+    (node) =>
+      !(node.nodeType === Node.ELEMENT_NODE && (node as HTMLElement).id === 'footer')
   );
-  if (searchInput) {
-    searchInput.placeholder = 'Type / to search SEP';
+  for (const node of nodes) {
+    column.appendChild(node);
   }
 
-  applyTheme(options.theme);
-
-  if (!options.articleMode) {
-    mountHeaderThemeSelector(options.theme);
+  const footer = content.querySelector('#footer');
+  if (footer) {
+    content.insertBefore(column, footer);
+  } else {
+    content.appendChild(column);
   }
 
-  bindSearchKeyboard();
+  content.dataset.sepPlusContentColumn = '1';
+}
+
+export function bootstrapHost(theme: ThemePreference): void {
+  injectLocalFonts();
+  applyTheme(theme);
 
   window
     .matchMedia('(prefers-color-scheme: dark)')
     .addEventListener('change', () => {
-      void getTheme().then((theme) => {
-        if (theme === 'auto') {
+      void getTheme().then((current) => {
+        if (current === 'auto') {
           applyTheme('auto');
         }
       });
     });
 
-  onThemeChanged((theme) => {
-    applyTheme(theme);
-    const selector = document.querySelector<HTMLSelectElement>(
-      '#theme-selector'
-    );
-    const icon = document.querySelector<HTMLImageElement>('#theme-icon');
-    if (selector) {
-      selector.value = theme;
-    }
-    if (icon) {
-      icon.src = themeIconSrc(theme);
-    }
+  onThemeChanged((next) => {
+    applyTheme(next);
   });
 }

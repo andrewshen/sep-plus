@@ -1,6 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import type { SidebarSurface, ThemePreference, TocItem } from '../../lib/types';
+import type {
+  SidebarSurface,
+  SiteNavSection,
+  ThemePreference,
+  TocItem,
+} from '../../lib/types';
 import { setTheme } from '../../lib/storage';
 import { IconSearch } from '../icons';
 import { Palette } from '../palette/Palette';
@@ -8,6 +13,7 @@ import { ContentsTab } from './ContentsTab';
 
 type SidebarProps = {
   items: TocItem[];
+  siteNav?: SiteNavSection[];
   activeIndex: number;
   collapsed: boolean;
   onToggleCollapsed: () => void;
@@ -110,6 +116,7 @@ function IconChevron() {
 
 export function Sidebar({
   items,
+  siteNav,
   activeIndex,
   collapsed,
   onToggleCollapsed,
@@ -186,13 +193,19 @@ export function Sidebar({
       >
         <div className="sep-logo-row">
           <div className="sep-logo-mark">
-            <img
-              className="sep-logo"
-              src={logoSrc}
-              alt="SEP+"
-              width={18}
-              height={28}
-            />
+            <a
+              href="https://plato.stanford.edu/"
+              className="sep-logo-link"
+              aria-label="Stanford Encyclopedia of Philosophy home"
+            >
+              <img
+                className="sep-logo"
+                src={logoSrc}
+                alt="SEP+"
+                width={18}
+                height={28}
+              />
+            </a>
           </div>
         </div>
 
@@ -268,7 +281,11 @@ export function Sidebar({
 
           <div className="sep-sidebar-body">
             {surface === 'toc' ? (
-              <ContentsTab items={items} activeIndex={activeIndex} />
+              <ContentsTab
+                items={items}
+                siteNav={siteNav}
+                activeIndex={activeIndex}
+              />
             ) : null}
             {surface === 'annotations' ? (
               <div className="sep-stub">Annotations coming soon.</div>
@@ -281,9 +298,9 @@ export function Sidebar({
 
         <div className="sep-sidebar-footer">
           <div className="sep-footer-links">
-            <a href="../../contents.html">Browse</a>
-            <a href="../../about.html">About</a>
-            <a href="../../support/">Support</a>
+            <a href="/contents.html">Browse</a>
+            <a href="/about.html">About</a>
+            <a href="/support/">Support</a>
           </div>
           <label className="sep-appearance">
             <span className="sep-appearance-label">Appearance</span>
