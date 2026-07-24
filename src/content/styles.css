@@ -44,6 +44,14 @@
   box-sizing: border-box;
 }
 
+/* Shadow DOM doesn’t inherit document focus resets. */
+:host :focus,
+:host :focus-visible,
+.sep-plus-app :focus,
+.sep-plus-app :focus-visible {
+  outline: none;
+}
+
 @supports (color: color(display-p3 1 1 1)) {
   @media (color-gamut: p3) {
     :host,
@@ -187,7 +195,7 @@
   background: transparent;
   color: var(--sep-muted-soft);
   font-family: var(--sep-font);
-  font-size: 11px;
+  font-size: 12px;
   line-height: 16px;
   font-weight: 500;
   pointer-events: none;

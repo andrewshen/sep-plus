@@ -33,6 +33,11 @@ export function ContentsTab({
     if (!list || activeIndex < 0 || siteNav?.length) {
       return;
     }
+    // First section: pin to the top so the "Contents" label stays visible.
+    if (activeIndex === 0) {
+      list.scrollTop = 0;
+      return;
+    }
     const active = list.querySelector<HTMLElement>(
       `[data-index="${activeIndex}"]`
     );

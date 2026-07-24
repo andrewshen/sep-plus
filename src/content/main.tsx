@@ -7,6 +7,8 @@ import {
   isArticlePage,
   preloadLocalFonts,
   reformatPubinfo,
+  relocateArticleEndMatter,
+  styleRelatedEntries,
   wrapSiteContentColumn,
 } from '../host/bootstrap';
 import { initFootnotes } from '../host/footnotes';
@@ -147,7 +149,10 @@ async function main(): Promise<void> {
     prepareArticleNav();
     tocItems = collectTocItems();
     reformatPubinfo();
+    styleRelatedEntries();
+    relocateArticleEndMatter();
   } else {
+    // Scrape footer nav before body.sep-plus hides #footer.
     siteNav = collectSiteNavSections();
     wrapSiteContentColumn();
   }

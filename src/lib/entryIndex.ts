@@ -51,7 +51,13 @@ export function collectRelatedEntries(): EntryIndexItem[] {
       link.getAttribute('href') || '',
       window.location.href
     );
-    const title = (link.textContent || '').replace(/\s+/g, ' ').trim();
+    const title = (
+      link.dataset.sepPlusRawTitle ||
+      link.textContent ||
+      ''
+    )
+      .replace(/\s+/g, ' ')
+      .trim();
     if (!href || !title || seen.has(href)) {
       continue;
     }

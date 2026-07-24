@@ -1,3 +1,4 @@
+import { formatEntryTitle } from '../lib/formatEntryTitle';
 import { getTheme, onThemeChanged } from '../lib/storage';
 import type { ThemePreference } from '../lib/types';
 
@@ -267,25 +268,93 @@ export function wrapSiteContentColumn(): void {
     return;
   }
 
+  // contents.html keeps #toc-wrapper as a sibling of #content (outside the
+  // sheet). Pull it in so the title + A–Z nav sit in the reading column.
+  const tocWrapper = document.querySelector<HTMLElement>('#toc-wrapper');
+  if (tocWrapper && tocWrapper.parentElement !== content) {
+    content.insertBefore(tocWrapper, content.firstChild);
+  }
+
   const column = document.createElement('div');
   column.className = 'sep-plus-content-column';
 
-  const nodes = Array.from(content.childNodes).filter(
-    (node) =>
-      !(node.nodeType === Node.ELEMENT_NODE && (node as HTMLElement).id === 'footer')
-  );
-  for (const node of nodes) {
-    column.appendChild(node);
+  while (content.firstChild) {
+    column.appendChild(content.firstChild);
   }
-
-  const footer = content.querySelector('#footer');
-  if (footer) {
-    content.insertBefore(column, footer);
-  } else {
-    content.appendChild(column);
-  }
-
+  content.appendChild(column);
   content.dataset.sepPlusContentColumn = '1';
+}
+
+/**
+ * Turn pipe-separated Related Entries links into a wrap of pill chips.
+ */
+export function styleRelatedEntries(): void {
+  const section = document.querySelector<HTMLElement>('#related-entries');
+  if (!section || section.dataset.sepPlusRelated === '1') {
+    return;
+  }
+
+  const paragraph = section.querySelector('p');
+  if (!paragraph) {
+    return;
+  }
+
+  const links = Array.from(
+    paragraph.querySelectorAll<HTMLAnchorElement>('a[href]')
+  );
+  if (!links.length) {
+    return;
+  }
+
+  const list = document.createElement('div');
+  list.className = 'sep-plus-related-entries';
+  for (const link of links) {
+    const rawTitle = (link.textContent || '').replace(/\s+/g, ' ').trim();
+    if (rawTitle) {
+      // Keep raw title for palette matching; formatEntryTitle is display-only.
+      link.dataset.sepPlusRawTitle = rawTitle;
+      link.textContent = formatEntryTitle(rawTitle, link.href);
+    }
+    list.appendChild(link);
+  }
+  paragraph.replaceWith(list);
+  section.dataset.sepPlusRelated = '1';
+}
+
+/**
+ * Pull entry end-matter into #article so it lives in the reading column:
+ * author copyright → fundraising banner → institutional credits.
+ */
+export function relocateArticleEndMatter(): void {
+  const article = document.querySelector<HTMLElement>('#article');
+  if (!article || article.dataset.sepPlusEndMatter === '1') {
+    return;
+  }
+
+  const copyright = article.querySelector('#article-copyright');
+
+  const banner = document.querySelector<HTMLElement>('#article-banner');
+  if (banner) {
+    if (copyright) {
+      copyright.after(banner);
+    } else {
+      article.appendChild(banner);
+    }
+  }
+
+  const credits = document.querySelector<HTMLElement>('#site-credits');
+  if (credits) {
+    const bannerInArticle = article.querySelector('#article-banner');
+    if (bannerInArticle) {
+      bannerInArticle.after(credits);
+    } else if (copyright) {
+      copyright.after(credits);
+    } else {
+      article.appendChild(credits);
+    }
+  }
+
+  article.dataset.sepPlusEndMatter = '1';
 }
 
 export function bootstrapHost(theme: ThemePreference): void {
