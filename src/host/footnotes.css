@@ -1,3 +1,5 @@
+@import '../lib/marginNote.css';
+
 :host {
   all: initial;
   position: fixed;
@@ -12,27 +14,9 @@
 
 .sep-footnote-preview {
   position: fixed;
-  box-sizing: border-box;
-  width: min(400px, calc(100vw - 24px));
-  overflow: visible;
-  border: 1px solid var(--sep-border);
-  border-radius: 6px;
-  background: var(--sep-panel-bg);
-  box-shadow: 0 10px 30px
-    color-mix(in srgb, var(--sand-12) 14%, transparent);
-  color: var(--sep-text);
-  font-size: 14px;
-  font-weight: 400;
-  line-height: 20px;
   opacity: 0;
   visibility: hidden;
   pointer-events: none;
-}
-
-/* sand-12 is light in dark mode — use sand-1 like the article sheet shadow. */
-:host-context(body.dark) .sep-footnote-preview {
-  box-shadow: 0 10px 30px
-    color-mix(in srgb, var(--sand-1) 45%, transparent);
 }
 
 .sep-footnote-preview[hidden] {
@@ -40,7 +24,7 @@
 }
 
 .sep-footnote-preview[data-state='measuring'] {
-  display: block;
+  display: flex;
   visibility: hidden;
 }
 
@@ -61,65 +45,9 @@
   transform: none;
 }
 
-.sep-footnote-preview-content {
-  position: relative;
-  z-index: 1;
-  box-sizing: border-box;
-  max-height: min(420px, calc(100vh - 24px));
-  overflow: auto;
-  overscroll-behavior: contain;
-  padding: 12px 20px;
-}
-
-.sep-footnote-preview p,
-.sep-footnote-preview blockquote,
-.sep-footnote-preview ul,
-.sep-footnote-preview ol {
-  margin: 0;
-}
-
-.sep-footnote-preview
-  :is(p, blockquote, ul, ol)
-  + :is(p, blockquote, ul, ol) {
-  margin-top: 8px;
-}
-
-.sep-footnote-preview :is(ul, ol) {
-  padding-left: 20px;
-}
-
-.sep-footnote-preview a {
-  color: var(--sep-text);
-  font-weight: 600;
-  text-decoration-color: var(--sep-border);
-  text-underline-offset: 2px;
-}
-
-.sep-footnote-preview a:hover {
-  text-decoration-color: currentColor;
-}
-
-.sep-footnote-preview-arrow {
-  position: absolute;
-  box-sizing: border-box;
-  width: 12px;
-  height: 12px;
-  border-right: 1px solid var(--sep-border);
-  border-bottom: 1px solid var(--sep-border);
-  background: var(--sep-panel-bg);
-  transform: translateX(-50%) rotate(45deg);
-  pointer-events: none;
-}
-
-.sep-footnote-preview[data-placement='above']
-  .sep-footnote-preview-arrow {
-  bottom: -7px;
-}
-
-.sep-footnote-preview[data-placement='below']
-  .sep-footnote-preview-arrow {
-  top: -7px;
-  transform: translateX(-50%) rotate(225deg);
+.sep-footnote-preview .sep-margin-note-body {
+  /* Footnote HTML should wrap like article prose, not preserve source newlines. */
+  white-space: normal;
 }
 
 @media (hover: hover) and (pointer: fine) {

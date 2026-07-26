@@ -20,7 +20,8 @@ html:not(.sep-plus-ready) {
 html:not(.sep-plus-ready) > body,
 html:not(.sep-plus-ready) > #sep-plus-root,
 html:not(.sep-plus-ready) > #sep-plus-edge-toggle,
-html:not(.sep-plus-ready) > #sep-plus-palette-layer {
+html:not(.sep-plus-ready) > #sep-plus-palette-layer,
+html:not(.sep-plus-ready) > #sep-plus-annotation-layer {
   visibility: hidden !important;
 }
 

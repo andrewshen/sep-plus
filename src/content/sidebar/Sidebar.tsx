@@ -7,8 +7,14 @@ import type {
   TocItem,
 } from '../../lib/types';
 import { setTheme } from '../../lib/storage';
+import type {
+  AnnotationExportFormat,
+  AnnotationExportScope,
+  AnnotationListItem,
+} from '../annotations/useAnnotations';
 import { IconSearch } from '../icons';
 import { Palette } from '../palette/Palette';
+import { AnnotationsTab } from './AnnotationsTab';
 import { ContentsTab } from './ContentsTab';
 
 type SidebarProps = {
@@ -22,6 +28,20 @@ type SidebarProps = {
   onClosePalette: () => void;
   dark: boolean;
   initialTheme: ThemePreference;
+  annotations: AnnotationListItem[];
+  annotationsLoading: boolean;
+  annotationsError: string | null;
+  highlightSupported: boolean;
+  onScrollToAnnotation: (annotationId: string) => boolean;
+  onUpdateAnnotation: (
+    annotationId: string,
+    update: { note?: string },
+  ) => Promise<void>;
+  onDeleteAnnotation: (annotationId: string) => Promise<void>;
+  onExportAnnotations: (
+    format: AnnotationExportFormat,
+    scope: AnnotationExportScope,
+  ) => Promise<void>;
 };
 
 type TogglePhase = 'idle' | 'area' | 'target' | 'pressed';
@@ -114,6 +134,25 @@ function IconChevron() {
   );
 }
 
+function IconBack() {
+  return (
+    <svg viewBox="0 0 16 16" aria-hidden="true" fill="none">
+      <path
+        d="M10 13 5 8l5-5"
+        stroke="currentColor"
+        strokeWidth="1.2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+const PANEL_TITLES: Record<Exclude<SidebarSurface, 'toc'>, string> = {
+  annotations: 'Annotations',
+  settings: 'Settings',
+};
+
 export function Sidebar({
   items,
   siteNav,
@@ -125,6 +164,14 @@ export function Sidebar({
   onClosePalette,
   dark,
   initialTheme,
+  annotations,
+  annotationsLoading,
+  annotationsError,
+  highlightSupported,
+  onScrollToAnnotation,
+  onUpdateAnnotation,
+  onDeleteAnnotation,
+  onExportAnnotations,
 }: SidebarProps) {
   const [surface, setSurface] = useState<SidebarSurface>('toc');
   const [theme, setThemeState] = useState<ThemePreference>(initialTheme);
@@ -140,11 +187,14 @@ export function Sidebar({
   useEffect(() => {
     if (paletteOpen) {
       setSearchActive(true);
+      if (surface !== 'toc') {
+        setSurface('toc');
+      }
       return;
     }
     const timer = window.setTimeout(() => setSearchActive(false), 150);
     return () => window.clearTimeout(timer);
-  }, [paletteOpen]);
+  }, [paletteOpen, surface]);
 
   useEffect(
     () => () => {
@@ -154,6 +204,31 @@ export function Sidebar({
     },
     [],
   );
+
+  useEffect(() => {
+    if (surface === 'toc') {
+      return;
+    }
+    function onKeyDown(event: KeyboardEvent): void {
+      if (event.key !== 'Escape' || event.defaultPrevented) {
+        return;
+      }
+      const target = event.target;
+      if (
+        target instanceof HTMLElement &&
+        (target.isContentEditable ||
+          target.tagName === 'INPUT' ||
+          target.tagName === 'TEXTAREA' ||
+          target.tagName === 'SELECT')
+      ) {
+        return;
+      }
+      event.preventDefault();
+      setSurface('toc');
+    }
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [surface]);
 
   function finishToggleTransition(): void {
     if (toggleResetTimerRef.current !== null) {
@@ -178,6 +253,13 @@ export function Sidebar({
 
   const togglePointsRight =
     togglePhase === 'pressed' ? pressedFromCollapsed : collapsed;
+  const isRoot = surface === 'toc';
+  const panelTitle = isRoot ? null : PANEL_TITLES[surface];
+
+  function openPanel(next: Exclude<SidebarSurface, 'toc'>): void {
+    onClosePalette();
+    setSurface(next);
+  }
 
   return (
     <>
@@ -186,143 +268,160 @@ export function Sidebar({
           'sep-sidebar',
           collapsed ? 'is-collapsed' : '',
           searchActive ? 'is-searching' : '',
+          isRoot ? '' : 'is-panel',
         ]
           .filter(Boolean)
           .join(' ')}
         aria-label="SEP+ sidebar"
       >
-        <div className="sep-logo-row">
-          <div className="sep-logo-mark">
-            <a
-              href="https://plato.stanford.edu/"
-              className="sep-logo-link"
-              aria-label="Stanford Encyclopedia of Philosophy home"
-            >
-              <img
-                className="sep-logo"
-                src={logoSrc}
-                alt="SEP+"
-                width={18}
-                height={28}
+        {isRoot ? (
+          <>
+            <div className="sep-logo-row">
+              <div className="sep-logo-mark">
+                <a
+                  href="https://plato.stanford.edu/"
+                  className="sep-logo-link"
+                  aria-label="Stanford Encyclopedia of Philosophy home"
+                >
+                  <img
+                    className="sep-logo"
+                    src={logoSrc}
+                    alt="SEP+"
+                    width={18}
+                    height={28}
+                  />
+                </a>
+              </div>
+            </div>
+
+            <div className="sep-search-slot" ref={searchSlotRef}>
+              <button
+                type="button"
+                className={[
+                  'sep-search-trigger',
+                  searchActive ? 'is-placeholder' : '',
+                ]
+                  .filter(Boolean)
+                  .join(' ')}
+                aria-label="Open search"
+                aria-hidden={searchActive || undefined}
+                tabIndex={searchActive ? -1 : undefined}
+                onClick={onOpenPalette}
+              >
+                <IconSearch />
+                <span className="sep-search-trigger-label">Search</span>
+                <kbd className="sep-search-slash">/</kbd>
+              </button>
+              <Palette
+                open={paletteOpen}
+                onClose={onClosePalette}
+                anchorRef={searchSlotRef}
+                collapsed={collapsed}
+                dark={dark}
               />
-            </a>
-          </div>
-        </div>
+            </div>
 
-        <div className="sep-search-slot" ref={searchSlotRef}>
-          <button
-            type="button"
-            className={[
-              'sep-search-trigger',
-              searchActive ? 'is-placeholder' : '',
-            ]
-              .filter(Boolean)
-              .join(' ')}
-            aria-label="Open search"
-            aria-hidden={searchActive || undefined}
-            tabIndex={searchActive ? -1 : undefined}
-            onClick={onOpenPalette}
-          >
-            <IconSearch />
-            <span className="sep-search-trigger-label">Search</span>
-            <kbd className="sep-search-slash">/</kbd>
-          </button>
-          <Palette
-            open={paletteOpen}
-            onClose={onClosePalette}
-            anchorRef={searchSlotRef}
-            collapsed={collapsed}
-            dark={dark}
-          />
-        </div>
+            <div className="sep-sidebar-main">
+              <nav className="sep-nav" aria-label="SEP+">
+                <button
+                  type="button"
+                  className="sep-nav-item"
+                  onClick={() => openPanel('annotations')}
+                >
+                  <span className="sep-nav-icon">
+                    <IconAnnotations />
+                  </span>
+                  <span className="sep-nav-label">Annotations</span>
+                </button>
+                <button
+                  type="button"
+                  className="sep-nav-item"
+                  onClick={() => openPanel('settings')}
+                >
+                  <span className="sep-nav-icon">
+                    <IconSettings />
+                  </span>
+                  <span className="sep-nav-label">Settings</span>
+                </button>
+              </nav>
 
-        <div className="sep-sidebar-main">
-          <nav className="sep-nav" aria-label="SEP+">
-            <button
-              type="button"
-              className={[
-                'sep-nav-item',
-                surface === 'annotations' ? 'is-active' : '',
-              ]
-                .filter(Boolean)
-                .join(' ')}
-              aria-current={surface === 'annotations' ? 'page' : undefined}
-              onClick={() =>
-                setSurface((current) =>
-                  current === 'annotations' ? 'toc' : 'annotations',
-                )
-              }
-            >
-              <span className="sep-nav-icon">
-                <IconAnnotations />
-              </span>
-              <span className="sep-nav-label">Annotations</span>
-            </button>
-            <button
-              type="button"
-              className={[
-                'sep-nav-item',
-                surface === 'settings' ? 'is-active' : '',
-              ]
-                .filter(Boolean)
-                .join(' ')}
-              aria-current={surface === 'settings' ? 'page' : undefined}
-              onClick={() =>
-                setSurface((current) =>
-                  current === 'settings' ? 'toc' : 'settings',
-                )
-              }
-            >
-              <span className="sep-nav-icon">
-                <IconSettings />
-              </span>
-              <span className="sep-nav-label">Settings</span>
-            </button>
-          </nav>
+              <div className="sep-sidebar-body">
+                <ContentsTab
+                  items={items}
+                  siteNav={siteNav}
+                  activeIndex={activeIndex}
+                />
+              </div>
+            </div>
 
-          <div className="sep-sidebar-body">
-            {surface === 'toc' ? (
-              <ContentsTab
-                items={items}
-                siteNav={siteNav}
-                activeIndex={activeIndex}
-              />
-            ) : null}
-            {surface === 'annotations' ? (
-              <div className="sep-stub">Annotations coming soon.</div>
-            ) : null}
-            {surface === 'settings' ? (
-              <div className="sep-stub">Settings coming soon.</div>
-            ) : null}
-          </div>
-        </div>
+            <div className="sep-sidebar-footer">
+              <div className="sep-footer-links">
+                <a href="/contents.html">Browse</a>
+                <a href="/about.html">About</a>
+                <a href="/support/">Support</a>
+              </div>
+              <label className="sep-appearance">
+                <span className="sep-appearance-label">Appearance</span>
+                <select
+                  aria-label="Appearance"
+                  value={theme}
+                  onChange={(event) => {
+                    const value = event.target.value;
+                    if (
+                      value === 'light' ||
+                      value === 'dark' ||
+                      value === 'auto'
+                    ) {
+                      setThemeState(value);
+                      void setTheme(value);
+                    }
+                  }}
+                >
+                  <option value="light">Light</option>
+                  <option value="dark">Dark</option>
+                  <option value="auto">System</option>
+                </select>
+                <IconChevron />
+              </label>
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="sep-panel-chrome">
+              <button
+                type="button"
+                className="sep-panel-back"
+                onClick={() => setSurface('toc')}
+              >
+                <span className="sep-panel-back-icon">
+                  <IconBack />
+                </span>
+                <span>Back</span>
+              </button>
+              <h2 className="sep-panel-title">{panelTitle}</h2>
+            </div>
 
-        <div className="sep-sidebar-footer">
-          <div className="sep-footer-links">
-            <a href="/contents.html">Browse</a>
-            <a href="/about.html">About</a>
-            <a href="/support/">Support</a>
-          </div>
-          <label className="sep-appearance">
-            <span className="sep-appearance-label">Appearance</span>
-            <select
-              aria-label="Appearance"
-              value={theme}
-              onChange={(event) => {
-                const value = event.target.value;
-                if (value === 'light' || value === 'dark' || value === 'auto') {
-                  setThemeState(value);
-                  void setTheme(value);
-                }
-              }}
-            >
-              <option value="light">Light</option>
-              <option value="dark">Dark</option>
-              <option value="auto">System</option>
-            </select>
-            <IconChevron />
-          </label>
-        </div>
+            <div className="sep-sidebar-main">
+              <div className="sep-sidebar-body">
+                {surface === 'annotations' ? (
+                  <AnnotationsTab
+                    annotations={annotations}
+                    loading={annotationsLoading}
+                    error={annotationsError}
+                    highlightSupported={highlightSupported}
+                    onScrollTo={onScrollToAnnotation}
+                    onUpdate={onUpdateAnnotation}
+                    onDelete={onDeleteAnnotation}
+                    onExport={onExportAnnotations}
+                  />
+                ) : null}
+                {surface === 'settings' ? (
+                  <div className="sep-stub">Settings coming soon.</div>
+                ) : null}
+              </div>
+            </div>
+          </>
+        )}
       </aside>
 
       {createPortal(

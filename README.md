@@ -10,6 +10,7 @@ Install the extension on the [Chrome Web Store](https://chrome.google.com/websto
 - Collapsible sidebar with the entry's table of contents and site navigation
 - `⌘K` / `Ctrl K` command palette to search and jump to any SEP entry (`/` also focuses search)
 - Footnotes shown as hover/tap previews instead of jumping down the page
+- Local text highlights and notes with JSON or Markdown export
 - Print-optimized styles (inlines footnotes, removes irrelevant sections)
 
 ## Development
@@ -44,6 +45,8 @@ CI runs `typecheck` and `test` on every push and pull request (see `.github/work
 ## Notes
 
 - Sidebar / command palette UI mounts in a Shadow DOM tree under `#sep-plus-root`.
-- Theme and sidebar-collapsed preferences are stored in `chrome.storage.local`.
+- Theme and annotations are stored locally in the current Chrome profile.
+- Annotation exports are plaintext. Export a JSON backup before uninstalling the
+  extension, because Chrome removes extension-local annotation data on uninstall.
 
 SEP+ only has access to [plato.stanford.edu](https://plato.stanford.edu) and will never serve ads or collect user data.

@@ -11,6 +11,9 @@ export default defineConfig({
     },
   },
   build: {
+    // Vite 8 defaults to lightningcss, which drops ::highlight() and
+    // :host-context() (warns then strips). esbuild preserves both.
+    cssMinify: 'esbuild',
     rollupOptions: {
       preserveEntrySignatures: 'exports-only',
     },

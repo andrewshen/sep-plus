@@ -1,3 +1,4 @@
+import { computeMarginNotePlacement } from '../lib/marginNotePlacement';
 import footnoteStyles from './footnotes.css?inline';
 
 const FOOTNOTE_LAYER_ID = 'sep-plus-footnote-layer';
@@ -8,7 +9,7 @@ const FOOTNOTE_REFERENCE_SELECTOR =
 const POINTER_CLOSE_DELAY_MS = 80;
 const POINTER_TRANSITION_MS = 100;
 const VIEWPORT_MARGIN_PX = 12;
-const PREVIEW_GAP_PX = 10;
+const PREVIEW_GAP_PX = 12;
 
 const BLOCKED_CONTENT_SELECTOR = [
   'script',
@@ -68,7 +69,6 @@ export type FootnoteControllerOptions = {
 export type FootnotePlacement = {
   top: number;
   left: number;
-  arrowLeft: number;
   placement: 'above' | 'below';
 };
 
@@ -561,10 +561,6 @@ export function buildFootnoteSection(
   return { section, notesByKey };
 }
 
-function clamp(value: number, minimum: number, maximum: number): number {
-  return Math.min(Math.max(value, minimum), Math.max(minimum, maximum));
-}
-
 export function computeFootnotePlacement(
   trigger: RectLike,
   preview: Size,
@@ -572,34 +568,18 @@ export function computeFootnotePlacement(
   margin = VIEWPORT_MARGIN_PX,
   gap = PREVIEW_GAP_PX
 ): FootnotePlacement {
-  const availableAbove = trigger.top - margin - gap;
-  const availableBelow = viewport.height - trigger.bottom - margin - gap;
-  const placement =
-    availableAbove >= preview.height || availableAbove >= availableBelow
-      ? 'above'
-      : 'below';
-  const idealTop =
-    placement === 'above'
-      ? trigger.top - preview.height - gap
-      : trigger.bottom + gap;
-  const top = clamp(
-    idealTop,
+  return computeMarginNotePlacement(
+    trigger,
+    preview,
+    {
+      top: 0,
+      left: 0,
+      width: viewport.width,
+      height: viewport.height,
+    },
     margin,
-    viewport.height - preview.height - margin
+    gap
   );
-  const idealLeft = trigger.left + trigger.width / 2 - preview.width / 2;
-  const left = clamp(
-    idealLeft,
-    margin,
-    viewport.width - preview.width - margin
-  );
-  const arrowLeft = clamp(
-    trigger.left + trigger.width / 2 - left,
-    16,
-    preview.width - 16
-  );
-
-  return { top, left, arrowLeft, placement };
 }
 
 function isFootnoteLabelText(text: string, label: string): boolean {
@@ -659,7 +639,6 @@ function createPreviewController(options: {
   shadow: ShadowRoot;
   preview: HTMLElement;
   content: HTMLElement;
-  arrow: HTMLElement;
   notesByKey: ReadonlyMap<string, RenderedFootnote>;
   signal: AbortSignal;
 }): () => void {
@@ -671,7 +650,6 @@ function createPreviewController(options: {
     shadow,
     preview,
     content,
-    arrow,
     notesByKey,
     signal,
   } = options;
@@ -736,7 +714,6 @@ function createPreviewController(options: {
     preview.style.top = `${placement.top}px`;
     preview.style.left = `${placement.left}px`;
     preview.dataset.placement = placement.placement;
-    arrow.style.left = `${placement.arrowLeft}px`;
   }
 
   function schedulePosition(): void {
@@ -763,7 +740,7 @@ function createPreviewController(options: {
     activeLink = link;
     activeMotion = motion;
     content.replaceChildren(cloneNoteForPreview(note, doc));
-    preview.setAttribute('aria-label', `Footnote ${note.label}`);
+    preview.setAttribute('aria-label', 'Footnote');
     preview.dataset.motion = motion;
     preview.dataset.state = wasOpen ? 'open' : 'measuring';
     preview.hidden = false;
@@ -1081,17 +1058,20 @@ export function initFootnotes(
   const style = doc.createElement('style');
   style.textContent = footnoteStyles;
   const preview = doc.createElement('aside');
-  preview.className = 'sep-footnote-preview';
+  preview.className = 'sep-footnote-preview sep-margin-note';
   preview.hidden = true;
   preview.dataset.state = 'measuring';
   preview.dataset.motion = 'instant';
   preview.setAttribute('role', 'note');
+  const header = doc.createElement('div');
+  header.className = 'sep-margin-note-header';
+  const label = doc.createElement('div');
+  label.className = 'sep-margin-note-label';
+  label.textContent = 'Footnote';
+  header.append(label);
   const content = doc.createElement('div');
-  content.className = 'sep-footnote-preview-content';
-  const arrow = doc.createElement('span');
-  arrow.className = 'sep-footnote-preview-arrow';
-  arrow.setAttribute('aria-hidden', 'true');
-  preview.append(content, arrow);
+  content.className = 'sep-margin-note-body';
+  preview.append(header, content);
   shadow.append(style, preview);
   doc.body.appendChild(layer);
 
@@ -1210,7 +1190,6 @@ export function initFootnotes(
       shadow,
       preview,
       content,
-      arrow,
       notesByKey: built.notesByKey,
       signal: lifecycle.signal,
     });

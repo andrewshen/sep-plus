@@ -21,6 +21,7 @@ import {
   getTheme,
   readSidebarCollapsed,
 } from '../lib/storage';
+import { normalizeEntryUrl } from '../lib/annotations';
 import type {
   SiteNavSection,
   ThemePreference,
@@ -70,7 +71,10 @@ function mountShell(
   items: TocItem[],
   siteNav: SiteNavSection[] | undefined,
   initialCollapsed: boolean,
-  initialTheme: ThemePreference
+  initialTheme: ThemePreference,
+  articleMode: boolean,
+  articleSource?: string,
+  articleTitle = '',
 ): void {
   const sidebarPhase = initialCollapsed ? 'closed' : 'open';
   document.documentElement.classList.add('sep-plus');
@@ -83,11 +87,18 @@ function mountShell(
     articleSidebar.style.display = 'none';
   }
 
-  document.getElementById('sep-plus-root')?.remove();
+  const existingHost = document.getElementById('sep-plus-root') as
+    | (HTMLElement & { sepPlusUnmount?: () => void })
+    | null;
+  existingHost?.sepPlusUnmount?.();
+  existingHost?.remove();
   document.getElementById('sep-plus-edge-toggle')?.remove();
   document.getElementById('sep-plus-palette-layer')?.remove();
+  document.getElementById('sep-plus-annotation-layer')?.remove();
 
-  const host = document.createElement('div');
+  const host = document.createElement('div') as HTMLDivElement & {
+    sepPlusUnmount?: () => void;
+  };
   host.id = 'sep-plus-root';
   host.setAttribute('data-sep-plus-booting', '');
   document.documentElement.appendChild(host);
@@ -99,6 +110,10 @@ function mountShell(
   const paletteLayer = document.createElement('div');
   paletteLayer.id = 'sep-plus-palette-layer';
   document.documentElement.appendChild(paletteLayer);
+
+  const annotationLayer = document.createElement('div');
+  annotationLayer.id = 'sep-plus-annotation-layer';
+  document.documentElement.appendChild(annotationLayer);
 
   const shadow = host.attachShadow({ mode: 'open' });
   const style = document.createElement('style');
@@ -117,7 +132,16 @@ function mountShell(
   paletteMount.id = 'sep-plus-palette-mount';
   paletteShadow.appendChild(paletteMount);
 
+  const annotationShadow = annotationLayer.attachShadow({ mode: 'open' });
+  const annotationStyle = document.createElement('style');
+  annotationStyle.textContent = uiStyles;
+  annotationShadow.appendChild(annotationStyle);
+  const annotationMount = document.createElement('div');
+  annotationMount.id = 'sep-plus-annotation-mount';
+  annotationShadow.appendChild(annotationMount);
+
   const root = createRoot(mount);
+  host.sepPlusUnmount = () => root.unmount();
   flushSync(() => {
     root.render(
       <App
@@ -125,6 +149,9 @@ function mountShell(
         siteNav={siteNav}
         initialCollapsed={initialCollapsed}
         initialTheme={initialTheme}
+        articleMode={articleMode}
+        articleSource={articleSource}
+        articleTitle={articleTitle}
       />
     );
   });
@@ -142,6 +169,17 @@ async function main(): Promise<void> {
   }
 
   const articleMode = isArticlePage();
+  const articleSource = articleMode
+    ? normalizeEntryUrl(window.location.href) ?? undefined
+    : undefined;
+  const articleTitle = articleMode
+    ? (
+        document.querySelector<HTMLElement>('#article-content h1')
+          ?.textContent ?? document.title
+      )
+        .replace(/\s+/g, ' ')
+        .trim()
+    : '';
   let tocItems: TocItem[] = [];
   let siteNav: SiteNavSection[] | undefined;
 
@@ -158,7 +196,15 @@ async function main(): Promise<void> {
   }
 
   bootstrapHost(theme);
-  mountShell(tocItems, siteNav, readSidebarCollapsed(), theme);
+  mountShell(
+    tocItems,
+    siteNav,
+    readSidebarCollapsed(),
+    theme,
+    articleMode,
+    articleSource,
+    articleTitle,
+  );
 
   if (articleMode) {
     initFootnotes();

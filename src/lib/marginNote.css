@@ -1,0 +1,113 @@
+/* Shared margin-note shell for private notes and footnote previews. */
+.sep-margin-note {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 12px;
+  width: min(400px, calc(100vw - 24px));
+  padding: 16px 20px;
+  overflow: clip;
+  border: 1px solid var(--sep-border);
+  border-radius: 6px;
+  background: var(--sep-panel-bg);
+  box-shadow: 0 2px 4px rgb(0 0 0 / 4%);
+  color: var(--sep-text);
+  font-family: var(--sep-font);
+  font-synthesis: none;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  pointer-events: auto;
+}
+
+:host-context(body.dark) .sep-margin-note,
+.sep-plus-app.is-dark .sep-margin-note {
+  box-shadow: 0 2px 4px rgb(0 0 0 / 18%);
+}
+
+.sep-margin-note-header {
+  display: flex;
+  align-items: flex-start;
+  align-self: stretch;
+  gap: 8px;
+}
+
+.sep-margin-note-label {
+  flex: 1;
+  min-width: 0;
+  color: var(--sep-muted);
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 16px;
+  white-space: pre-wrap;
+}
+
+.sep-margin-note-action,
+.sep-plus-app button.sep-margin-note-action {
+  flex-shrink: 0;
+  width: fit-content;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--sep-muted);
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 16px;
+  white-space: pre;
+}
+
+.sep-margin-note-action:hover,
+.sep-plus-app button.sep-margin-note-action:hover {
+  color: var(--sep-text);
+}
+
+.sep-margin-note-action:disabled,
+.sep-plus-app button.sep-margin-note-action:disabled {
+  cursor: default;
+  opacity: 0.55;
+}
+
+.sep-margin-note-body {
+  align-self: stretch;
+  max-height: min(420px, calc(100vh - 24px));
+  overflow: auto;
+  overscroll-behavior: contain;
+  color: var(--sep-text);
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 22px;
+  white-space: pre-wrap;
+}
+
+.sep-margin-note-body:empty {
+  display: none;
+}
+
+.sep-margin-note-body p,
+.sep-margin-note-body blockquote,
+.sep-margin-note-body ul,
+.sep-margin-note-body ol {
+  margin: 0;
+}
+
+.sep-margin-note-body :is(p, blockquote, ul, ol) + :is(p, blockquote, ul, ol) {
+  margin-top: 8px;
+}
+
+.sep-margin-note-body :is(ul, ol) {
+  padding-left: 20px;
+}
+
+.sep-margin-note-body a {
+  color: var(--sep-text);
+  font-weight: 600;
+  text-decoration-color: var(--sep-border);
+  text-underline-offset: 2px;
+}
+
+.sep-margin-note-body a:hover {
+  text-decoration-color: currentColor;
+}

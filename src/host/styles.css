@@ -12,7 +12,8 @@ html:not(.sep-plus-ready) {
 html:not(.sep-plus-ready) > body,
 html:not(.sep-plus-ready) > #sep-plus-root,
 html:not(.sep-plus-ready) > #sep-plus-edge-toggle,
-html:not(.sep-plus-ready) > #sep-plus-palette-layer {
+html:not(.sep-plus-ready) > #sep-plus-palette-layer,
+html:not(.sep-plus-ready) > #sep-plus-annotation-layer {
   visibility: hidden !important;
 }
 
@@ -309,6 +310,13 @@ body.sep-plus[data-sep-plus-sidebar-phase='closing']
   pointer-events: none;
 }
 
+#sep-plus-annotation-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 90;
+  pointer-events: none;
+}
+
 /* Edge expander lives outside the shadow root so it can sit above the
    article while the sidebar stays below the content shadow. */
 #sep-plus-edge-toggle {
@@ -492,7 +500,9 @@ body.sep-plus[data-sep-plus-sidebar-phase='closing']
 
 @media print {
   #sep-plus-root,
-  #sep-plus-edge-toggle {
+  #sep-plus-edge-toggle,
+  #sep-plus-palette-layer,
+  #sep-plus-annotation-layer {
     display: none !important;
   }
 
@@ -893,6 +903,58 @@ body.sep-plus .sep-plus-related-entries a:hover {
   color: var(--sep-text) !important;
 }
 
+::highlight(sep-plus-annotation) {
+  background-color: #fefbe9;
+}
+
+::highlight(sep-plus-annotation-hover) {
+  background-color: #fff7c2;
+}
+
+body.dark ::highlight(sep-plus-annotation),
+body.dark ::highlight(sep-plus-annotation-hover) {
+  color: #21201c;
+}
+
+#article-content.sep-plus-annotation-hovering,
+#article-content.sep-plus-annotation-hovering * {
+  cursor: pointer !important;
+}
+
+[data-sep-plus-bibliography-citation] {
+  border-radius: 2px;
+  color: inherit;
+  text-decoration: none;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+}
+
+body.sep-plus [data-sep-plus-bibliography-citation]:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--sep-text) 32%, transparent) !important;
+  outline-offset: 2px !important;
+  background: color-mix(in srgb, var(--sand-6) 32%, transparent);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  [data-sep-plus-bibliography-citation] {
+    cursor: help;
+    text-decoration-line: underline;
+    text-decoration-style: dotted;
+    text-decoration-color: var(--sep-border);
+    text-decoration-thickness: 1px;
+    text-underline-offset: 0.16em;
+  }
+
+  [data-sep-plus-bibliography-citation]:hover {
+    background: color-mix(in srgb, var(--sand-5) 24%, transparent);
+    text-decoration-color: var(--sep-muted-soft);
+  }
+}
+
+[data-sep-plus-bibliography-entry-id] {
+  scroll-margin-top: 24px;
+}
+
 .sep-plus-footnotes {
   margin-top: 80px;
   color: var(--sep-text) !important;
@@ -1118,6 +1180,16 @@ body.dark blockquote {
   body.dark h4,
   body.dark h5 {
     color: #21201c !important; /* sand-12 light */
+  }
+
+  ::highlight(sep-plus-annotation),
+  ::highlight(sep-plus-annotation-hover) {
+    background-color: transparent;
+  }
+
+  [data-sep-plus-bibliography-citation] {
+    background: transparent !important;
+    text-decoration: none !important;
   }
 
   sup {

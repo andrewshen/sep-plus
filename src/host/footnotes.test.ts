@@ -307,9 +307,8 @@ describe('preview placement', () => {
         { width: 800, height: 600 }
       )
     ).toEqual({
-      top: 190,
+      top: 188,
       left: 110,
-      arrowLeft: 100,
       placement: 'above',
     });
   });
@@ -330,8 +329,7 @@ describe('preview placement', () => {
 
     expect(placement.placement).toBe('below');
     expect(placement.left).toBe(12);
-    expect(placement.top).toBe(50);
-    expect(placement.arrowLeft).toBe(16);
+    expect(placement.top).toBe(52);
   });
 });
 
@@ -419,7 +417,12 @@ describe('controller lifecycle and interactions', () => {
     expect(preview.hidden).toBe(false);
     expect(preview.dataset.motion).toBe('instant');
     expect(preview.dataset.state).toBe('open');
-    expect(preview.textContent?.trim()).toBe('Preview content');
+    expect(
+      preview.querySelector('.sep-margin-note-label')?.textContent
+    ).toBe('Footnote');
+    expect(
+      preview.querySelector('.sep-margin-note-body')?.textContent?.trim()
+    ).toBe('Preview content');
     expect(preview.textContent).not.toMatch(/^\s*1\./);
 
     document.dispatchEvent(
