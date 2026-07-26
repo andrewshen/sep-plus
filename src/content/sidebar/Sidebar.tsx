@@ -231,6 +231,7 @@ export function Sidebar({
             open={paletteOpen}
             onClose={onClosePalette}
             anchorRef={searchSlotRef}
+            collapsed={collapsed}
             dark={dark}
           />
         </div>

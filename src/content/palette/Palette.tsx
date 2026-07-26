@@ -21,6 +21,8 @@ type PaletteProps = {
   open: boolean;
   onClose: () => void;
   anchorRef: RefObject<HTMLElement | null>;
+  /** Collapsed sidebar: center the palette instead of morphing from the slot. */
+  collapsed: boolean;
   dark: boolean;
 };
 
@@ -118,9 +120,35 @@ const EXIT_MS = 150;
 const PROTRUDE_PX = 60;
 /** Sidebar content padding-right; included so width clears the sidebar edge. */
 const SIDEBAR_PAD_RIGHT = 20;
+/** Centered (collapsed-sidebar) palette width and viewport insets. */
+const CENTERED_WIDTH = 560;
+const CENTERED_MARGIN = 16;
+/** Vertical placement as a fraction of viewport height (upper-center). */
+const CENTERED_TOP_RATIO = 0.22;
 const CLOSED_HEIGHT = 40;
 /** Wait out rapid ↑/↓ before kicking off a prefetch. */
 const PREFETCH_DEBOUNCE_MS = 75;
+
+type PaletteLayout = {
+  top: number;
+  left: number;
+  width: number;
+};
+
+function getCenteredLayout(
+  viewportWidth = window.innerWidth,
+  viewportHeight = window.innerHeight
+): PaletteLayout {
+  const width = Math.min(
+    CENTERED_WIDTH,
+    Math.max(0, viewportWidth - CENTERED_MARGIN * 2)
+  );
+  return {
+    width,
+    left: Math.max(CENTERED_MARGIN, Math.round((viewportWidth - width) / 2)),
+    top: Math.round(viewportHeight * CENTERED_TOP_RATIO),
+  };
+}
 
 function getPaletteMount(): HTMLElement | null {
   const layer = document.getElementById('sep-plus-palette-layer');
@@ -143,7 +171,13 @@ function measureAnchor(
   };
 }
 
-export function Palette({ open, onClose, anchorRef, dark }: PaletteProps) {
+export function Palette({
+  open,
+  onClose,
+  anchorRef,
+  collapsed,
+  dark,
+}: PaletteProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLUListElement>(null);
   const [query, setQuery] = useState('');
@@ -157,14 +191,25 @@ export function Palette({ open, onClose, anchorRef, dark }: PaletteProps) {
   const [mounted, setMounted] = useState(open);
   const [expanded, setExpanded] = useState(false);
   const [anchor, setAnchor] = useState<AnchorRect | null>(null);
+  const [viewport, setViewport] = useState(() => ({
+    width: window.innerWidth,
+    height: window.innerHeight,
+  }));
 
   const closing = mounted && !open;
+  // Layout mode is captured when opening so a sidebar toggle mid-session
+  // (or during close) doesn't jump between centered and anchored geometry.
+  const collapsedRef = useRef(collapsed);
+  collapsedRef.current = collapsed;
+  const [centered, setCentered] = useState(collapsed);
 
   useEffect(() => {
     if (!open) {
       return;
     }
+    setCentered(collapsedRef.current);
     setRelated(collectRelatedEntries());
+    setViewport({ width: window.innerWidth, height: window.innerHeight });
     const next = measureAnchor(anchorRef);
     setAnchor(next);
     setMounted(true);
@@ -208,6 +253,7 @@ export function Palette({ open, onClose, anchorRef, dark }: PaletteProps) {
     }
 
     function onResize(): void {
+      setViewport({ width: window.innerWidth, height: window.innerHeight });
       const next = measureAnchor(anchorRef);
       if (next) {
         setAnchor(next);
@@ -393,9 +439,15 @@ export function Palette({ open, onClose, anchorRef, dark }: PaletteProps) {
     return null;
   }
 
-  const width = expanded
-    ? anchor.width + SIDEBAR_PAD_RIGHT + PROTRUDE_PX
-    : anchor.width;
+  const layout: PaletteLayout = centered
+    ? getCenteredLayout(viewport.width, viewport.height)
+    : {
+        top: anchor.top,
+        left: anchor.left,
+        width: expanded
+          ? anchor.width + SIDEBAR_PAD_RIGHT + PROTRUDE_PX
+          : anchor.width,
+      };
 
   return createPortal(
     <div
@@ -423,6 +475,7 @@ export function Palette({ open, onClose, anchorRef, dark }: PaletteProps) {
       <div
         className={[
           'sep-palette-inline',
+          centered ? 'is-centered' : '',
           expanded ? 'is-open' : '',
           closing ? 'is-closing' : '',
         ]
@@ -432,9 +485,9 @@ export function Palette({ open, onClose, anchorRef, dark }: PaletteProps) {
         aria-modal={expanded ? true : undefined}
         aria-label="Search"
         style={{
-          top: anchor.top,
-          left: anchor.left,
-          width,
+          top: layout.top,
+          left: layout.left,
+          width: layout.width,
         }}
       >
         <div className="sep-palette-input-row">

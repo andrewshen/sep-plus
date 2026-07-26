@@ -12,11 +12,25 @@ export default defineManifest({
     '48': 'icons/icon48.png',
     '128': 'icons/icon128.png',
   },
-  permissions: ['storage'],
+  // WithHostAccess (not declarativeNetRequest) so install only shows Plato
+  // host access — no "Block content on any page you visit" warning.
+  permissions: ['storage', 'declarativeNetRequestWithHostAccess'],
   host_permissions: [
     'http://plato.stanford.edu/*',
     'https://plato.stanford.edu/*',
   ],
+  // Drop unused Font Awesome CSS (native chrome that used it is hidden).
+  // Network-layer block beats the preload scanner; same-origin only so we
+  // don't need Google Fonts host permissions or the broader DNR warning.
+  declarative_net_request: {
+    rule_resources: [
+      {
+        id: 'block-unused-fonts',
+        enabled: true,
+        path: 'src/rules/block-unused-fonts.json',
+      },
+    ],
+  },
   content_scripts: [
     {
       matches: [

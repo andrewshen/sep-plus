@@ -526,6 +526,52 @@
   pointer-events: none;
 }
 
+/*
+ * Collapsed sidebar: full-size shell immediately; only scale + opacity.
+ * (Sidebar-open mode keeps the width/height morph above.)
+ */
+.sep-palette-inline.is-centered,
+.sep-palette-inline.is-centered.is-open,
+.sep-palette-inline.is-centered.is-closing {
+  /* Same open height as .is-open — no expand/collapse morph */
+  max-height: min(298px, calc(100vh - 96px));
+  background: var(--sep-surface);
+  box-shadow:
+    0 0 0 1px var(--sep-border-subtle),
+    0 8px 28px color-mix(in srgb, var(--sand-12) 12%, transparent);
+  transform-origin: center center;
+  transition:
+    opacity var(--sep-duration-ui) var(--sep-ease-out),
+    transform var(--sep-duration-ui) var(--sep-ease-out);
+}
+
+.sep-palette-inline.is-centered {
+  opacity: 0;
+  transform: scale(0.95);
+}
+
+.sep-palette-inline.is-centered.is-open {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.sep-palette-inline.is-centered.is-closing {
+  opacity: 0;
+  transform: scale(0.95);
+}
+
+/* Parent opacity handles the fade; skip nested reveal fades. */
+.sep-palette-inline.is-centered .sep-palette-esc,
+.sep-palette-inline.is-centered .sep-palette-results-wrap {
+  opacity: 1;
+  transition: none;
+}
+
+.sep-palette-inline.is-centered .sep-palette-input-row::after {
+  background: var(--sep-border-subtle);
+  transition: none;
+}
+
 .sep-palette-input-row {
   position: relative;
   z-index: 1;
@@ -665,6 +711,13 @@
       box-shadow var(--sep-duration-fast) var(--sep-ease);
   }
 
+  .sep-palette-inline.is-centered,
+  .sep-palette-inline.is-centered.is-open,
+  .sep-palette-inline.is-centered.is-closing {
+    transform: none;
+    transition: opacity var(--sep-duration-fast) var(--sep-ease-out);
+  }
+
   .sep-palette-input-row::after {
     transition: background-color var(--sep-duration-fast) var(--sep-ease);
   }
@@ -792,7 +845,8 @@
   }
 }
 
-.sep-plus-app.is-dark .sep-palette-inline.is-open {
+.sep-plus-app.is-dark .sep-palette-inline.is-open,
+.sep-plus-app.is-dark .sep-palette-inline.is-centered {
   background: var(--sep-surface);
   box-shadow:
     0 0 0 1px var(--sep-border-subtle),
@@ -801,4 +855,10 @@
 
 .sep-plus-app.is-dark .sep-palette-input {
   color: var(--sep-text);
+}
+
+/* Surface and elevated share sand-4 in dark; lift the row highlight. */
+.sep-plus-app.is-dark button.sep-palette-result:hover,
+.sep-plus-app.is-dark button.sep-palette-result.is-active {
+  background: var(--sep-panel-bg);
 }

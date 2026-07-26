@@ -917,6 +917,13 @@ body.sep-plus .sep-plus-related-entries a:hover {
 .sep-plus-footnotes .sep-plus-footnote > :last-child {
   margin-bottom: 0;
 }
+
+/* Leading "1." backrefs — match body text, not brand link pink/red. */
+body.sep-plus .sep-plus-footnotes .sep-plus-footnote > :first-child a:first-of-type:link,
+body.sep-plus .sep-plus-footnotes .sep-plus-footnote > :first-child a:first-of-type:visited,
+body.sep-plus .sep-plus-footnotes .sep-plus-footnote > :first-child a:first-of-type:hover {
+  color: var(--sep-text) !important;
+}
 /* Dark Mode — sand scale flips on body.dark; only overrides that need
    different semantic roles or non-sand brand colors live here. */
 
@@ -1002,6 +1009,16 @@ body.dark a:visited {
 
 body.dark a:hover {
   color: #ffcbcb !important;
+}
+
+/* Related-entry pills stay sand (beat the pink link accent above). */
+body.dark.sep-plus .sep-plus-related-entries a:link,
+body.dark.sep-plus .sep-plus-related-entries a:visited {
+  color: var(--sep-muted) !important;
+}
+
+body.dark.sep-plus .sep-plus-related-entries a:hover {
+  color: var(--sep-text) !important;
 }
 
 body.dark .btn:hover i {

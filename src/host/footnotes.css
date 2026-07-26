@@ -29,6 +29,12 @@
   pointer-events: none;
 }
 
+/* sand-12 is light in dark mode — use sand-1 like the article sheet shadow. */
+:host-context(body.dark) .sep-footnote-preview {
+  box-shadow: 0 10px 30px
+    color-mix(in srgb, var(--sand-1) 45%, transparent);
+}
+
 .sep-footnote-preview[hidden] {
   display: none;
 }
