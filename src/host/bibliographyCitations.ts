@@ -25,6 +25,7 @@ const EXCLUDED_PROSE_SELECTOR = [
   '[hidden]',
   '[aria-hidden="true"]',
   '[data-sep-plus-annotation-ui]',
+  '[data-highlighters-overlay]',
   CITATION_SELECTOR,
 ].join(',');
 

@@ -14,6 +14,7 @@ import type {
 } from '../lib/types';
 import { getActiveTocIndex, identifyPrintBlock } from '../host/toc';
 import { formatRelativeAnnotationTime } from '../lib/marginNotePlacement';
+import { AnnotationMarks } from './annotations/AnnotationMarks';
 import { MarginNotePopover } from './annotations/MarginNotePopover';
 import { SelectionToolbar } from './annotations/SelectionToolbar';
 import { useAnnotations } from './annotations/useAnnotations';
@@ -280,11 +281,15 @@ export function App({
         annotations={annotationState.annotations}
         annotationsLoading={annotationState.loading}
         annotationsError={annotationState.error}
-        highlightSupported={annotationState.highlightSupported}
         onScrollToAnnotation={annotationState.scrollToAnnotation}
         onUpdateAnnotation={annotationState.updateAnnotation}
         onDeleteAnnotation={annotationState.deleteAnnotation}
         onExportAnnotations={annotationState.exportAnnotations}
+      />
+      <AnnotationMarks
+        ranges={annotationState.markedRanges}
+        emphasizedIds={annotationState.emphasizedIds}
+        host={annotationState.articleRoot}
       />
       <SelectionToolbar
         selection={annotationState.pendingSelection}
@@ -292,11 +297,27 @@ export function App({
         onSave={annotationState.saveSelection}
         onDismiss={annotationState.dismissSelection}
       />
-      {annotationState.activeAnnotation && activeNote ? (
+      {annotationState.activeAnnotation &&
+      activeNote &&
+      !activeNote.note.trim() ? (
+        <SelectionToolbar
+          selection={annotationState.activeAnnotation}
+          dark={dark}
+          onSave={async (note) => {
+            await annotationState.updateAnnotation(activeNote.id, { note });
+            annotationState.dismissSelection();
+          }}
+          onRemove={() => annotationState.deleteAnnotation(activeNote.id)}
+          onDismiss={annotationState.dismissSelection}
+        />
+      ) : null}
+      {annotationState.activeAnnotation &&
+      activeNote &&
+      activeNote.note.trim() ? (
         <MarginNotePopover
           anchorRect={annotationState.activeAnnotation.rect}
           label={`Private note · ${formatRelativeAnnotationTime(activeNote.updatedAt)}`}
-          body={activeNote.note.trim() ? activeNote.note : undefined}
+          body={activeNote.note}
           actionLabel={deletingAnnotation ? 'Deleting…' : 'Delete'}
           actionDisabled={deletingAnnotation}
           dark={dark}

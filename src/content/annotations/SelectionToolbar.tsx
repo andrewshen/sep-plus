@@ -5,14 +5,17 @@ import {
   type PointerEvent as ReactPointerEvent,
 } from 'react';
 import { createPortal } from 'react-dom';
-import { IconAddNote, IconHighlight } from '../icons';
-import type { PendingAnnotationSelection } from './useAnnotations';
+import { IconAddNote, IconHighlight, IconRemove } from '../icons';
+import type { SelectionToolbarAnchor } from './useAnnotations';
 
 type SelectionToolbarProps = {
-  selection: PendingAnnotationSelection | null;
+  selection: { rect: SelectionToolbarAnchor; key: string } | null;
   dark: boolean;
   onSave: (note: string) => Promise<void>;
   onDismiss: () => void;
+  /** When set, the toolbar targets an existing highlight and offers removal
+   * instead of creating a highlight. */
+  onRemove?: () => Promise<void>;
 };
 
 function getAnnotationMount(): HTMLElement | null {
@@ -29,6 +32,7 @@ export function SelectionToolbar({
   dark,
   onSave,
   onDismiss,
+  onRemove,
 }: SelectionToolbarProps) {
   const [composing, setComposing] = useState(false);
   const [note, setNote] = useState('');
@@ -78,6 +82,20 @@ export function SelectionToolbar({
     }
   }
 
+  async function remove(remover: () => Promise<void>) {
+    if (saving) {
+      return;
+    }
+    setSaving(true);
+    try {
+      await remover();
+    } catch {
+      // The shared annotation state exposes the actionable error in the sidebar.
+    } finally {
+      setSaving(false);
+    }
+  }
+
   return createPortal(
     <div
       className={[
@@ -98,7 +116,13 @@ export function SelectionToolbar({
         style={style}
         data-sep-plus-annotation-ui=""
         role="dialog"
-        aria-label={composing ? 'Add annotation note' : 'Highlight selection'}
+        aria-label={
+          composing
+            ? 'Add annotation note'
+            : onRemove
+              ? 'Highlight actions'
+              : 'Highlight selection'
+        }
         onKeyDown={(event) => {
           if (event.key === 'Escape') {
             event.stopPropagation();
@@ -143,16 +167,29 @@ export function SelectionToolbar({
           </>
         ) : (
           <>
-            <button
-              type="button"
-              className="sep-annotation-highlight-trigger"
-              disabled={saving}
-              onPointerDown={keepSelection}
-              onClick={() => void save('')}
-            >
-              <IconHighlight />
-              Highlight
-            </button>
+            {onRemove ? (
+              <button
+                type="button"
+                className="sep-annotation-highlight-trigger"
+                disabled={saving}
+                onPointerDown={keepSelection}
+                onClick={() => void remove(onRemove)}
+              >
+                <IconRemove />
+                {saving ? 'Removing…' : 'Remove'}
+              </button>
+            ) : (
+              <button
+                type="button"
+                className="sep-annotation-highlight-trigger"
+                disabled={saving}
+                onPointerDown={keepSelection}
+                onClick={() => void save('')}
+              >
+                <IconHighlight />
+                Highlight
+              </button>
+            )}
             <button
               type="button"
               className="sep-annotation-note-trigger"

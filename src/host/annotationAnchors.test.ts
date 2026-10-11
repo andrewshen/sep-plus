@@ -196,7 +196,7 @@ describe('annotation text anchors', () => {
 });
 
 describe('annotation highlight renderer', () => {
-  it('renders, hit-tests, and leaves unrelated highlights alone', () => {
+  it('tracks ranges, hit-tests, and scrolls without touching the DOM', () => {
     const root = setArticle('<p>One two three.</p>');
     const node = textNode('p');
     const first = document.createRange();
@@ -220,50 +220,29 @@ describe('annotation highlight renderer', () => {
     const scrollTo = vi
       .spyOn(window, 'scrollTo')
       .mockImplementation(() => undefined);
-    const values = new Map<string, Highlight>();
-    values.set('unrelated-highlight', {} as Highlight);
-    const registry = {
-      set: vi.fn((name: string, value: Highlight) => {
-        values.set(name, value);
-      }),
-      delete: vi.fn((name: string) => values.delete(name)),
-    } as unknown as Pick<HighlightRegistry, 'delete' | 'set'>;
-    const factory = vi.fn(
-      (ranges: Range[]) => ({ ranges }) as unknown as Highlight,
-    );
-    const renderer = new AnnotationHighlightRenderer(registry, factory);
+    const renderer = new AnnotationHighlightRenderer();
     const resolved: ResolvedAnnotationRange[] = [
       { id: 'one', range: first },
       { id: 'two', range: second },
     ];
 
     renderer.redraw(resolved);
-    expect(factory).toHaveBeenCalledTimes(1);
-    expect(values.has('sep-plus-annotation')).toBe(true);
     expect(renderer.getRange('one')).toBe(first);
     expect(renderer.annotationAtPoint(10, 10)).toBe('one');
+    expect(renderer.annotationAtPoint(50, 10)).toBe('two');
     expect(renderer.annotationAtPoint(35, 10)).toBeNull();
-    renderer.setHovered('one');
-    expect(values.has('sep-plus-annotation')).toBe(true);
-    expect(values.has('sep-plus-annotation-hover')).toBe(true);
-    expect(factory).toHaveBeenCalledTimes(3);
-    renderer.setHovered(null);
-    expect(values.has('sep-plus-annotation-hover')).toBe(false);
-    renderer.setSelected('two');
-    expect(values.has('sep-plus-annotation-hover')).toBe(true);
-    renderer.setHovered(null);
-    expect(values.has('sep-plus-annotation-hover')).toBe(true);
-    renderer.setSelected(null);
-    expect(values.has('sep-plus-annotation-hover')).toBe(false);
     expect(renderer.scrollTo('one')).toBe(true);
     expect(scrollTo).toHaveBeenCalledWith({
       top: 144,
       behavior: 'smooth',
     });
 
-    renderer.clear();
-    expect(values.has('unrelated-highlight')).toBe(true);
+    renderer.redraw([{ id: 'two', range: second }]);
     expect(renderer.getRange('one')).toBeNull();
+    expect(renderer.scrollTo('one')).toBe(false);
+
+    renderer.clear();
+    expect(renderer.getRange('two')).toBeNull();
     expect(root.textContent).toBe('One two three.');
   });
 });

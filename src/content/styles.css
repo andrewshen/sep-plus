@@ -127,8 +127,15 @@
   white-space: normal;
 }
 
+/* Bleed the scroll body to the popover edges so entry dividers run full
+   width; entries restore the popover's 20px inline padding. */
+.sep-bibliography-popover .sep-margin-note-body {
+  margin-inline: -20px;
+}
+
 .sep-bibliography-preview-entry {
   min-width: 0;
+  padding-inline: 20px;
   color: var(--sep-text);
   overflow-wrap: anywhere;
 }

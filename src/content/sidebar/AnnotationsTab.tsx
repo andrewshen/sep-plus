@@ -9,7 +9,6 @@ type AnnotationsTabProps = {
   annotations: AnnotationListItem[];
   loading: boolean;
   error: string | null;
-  highlightSupported: boolean;
   onScrollTo: (annotationId: string) => boolean;
   onUpdate: (
     annotationId: string,
@@ -26,7 +25,6 @@ export function AnnotationsTab({
   annotations,
   loading,
   error,
-  highlightSupported,
   onScrollTo,
   onUpdate,
   onDelete,
@@ -115,12 +113,6 @@ export function AnnotationsTab({
           {error}
         </div>
       ) : null}
-      {!highlightSupported ? (
-        <div className="sep-annotation-message">
-          This browser can save notes, but it cannot display custom highlights.
-        </div>
-      ) : null}
-
       {loading ? <div className="sep-stub">Loading annotations…</div> : null}
       {!loading && annotations.length === 0 ? (
         <div className="sep-annotations-empty">

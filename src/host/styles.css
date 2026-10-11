@@ -903,19 +903,6 @@ body.sep-plus .sep-plus-related-entries a:hover {
   color: var(--sep-text) !important;
 }
 
-::highlight(sep-plus-annotation) {
-  background-color: #fefbe9;
-}
-
-::highlight(sep-plus-annotation-hover) {
-  background-color: #fff7c2;
-}
-
-body.dark ::highlight(sep-plus-annotation),
-body.dark ::highlight(sep-plus-annotation-hover) {
-  color: #21201c;
-}
-
 #article-content.sep-plus-annotation-hovering,
 #article-content.sep-plus-annotation-hovering * {
   cursor: pointer !important;
@@ -1182,9 +1169,9 @@ body.dark blockquote {
     color: #21201c !important; /* sand-12 light */
   }
 
-  ::highlight(sep-plus-annotation),
-  ::highlight(sep-plus-annotation-hover) {
-    background-color: transparent;
+  [data-highlighters-overlay],
+  #article-content > div[aria-hidden='true'][style*='mix-blend-mode'] {
+    display: none !important;
   }
 
   [data-sep-plus-bibliography-citation] {

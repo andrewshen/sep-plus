@@ -54,6 +54,21 @@ export function IconHighlight() {
   );
 }
 
+/** Remove (trash) icon, 16×16, matching the annotation bar strokes. */
+export function IconRemove() {
+  return (
+    <svg viewBox="0 0 16 16" aria-hidden="true" fill="none">
+      <path
+        d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.6 8.1c.04.5.45.9.95.9h3.9c.5 0 .91-.4.95-.9l.6-8.1"
+        stroke="currentColor"
+        strokeWidth="1.2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
 /** Add-note icon from Paper annotation bar LTO-0 (16×16). */
 export function IconAddNote() {
   return (

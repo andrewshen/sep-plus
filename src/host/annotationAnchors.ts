@@ -14,6 +14,7 @@ const EXCLUDED_SELECTOR = [
   '[aria-hidden="true"]',
   '.sep-plus-footnotes',
   '[data-sep-plus-annotation-ui]',
+  '[data-highlighters-overlay]',
 ].join(',');
 const BLOCK_SELECTOR = [
   'address',

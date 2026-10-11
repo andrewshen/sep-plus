@@ -31,7 +31,6 @@ type SidebarProps = {
   annotations: AnnotationListItem[];
   annotationsLoading: boolean;
   annotationsError: string | null;
-  highlightSupported: boolean;
   onScrollToAnnotation: (annotationId: string) => boolean;
   onUpdateAnnotation: (
     annotationId: string,
@@ -167,7 +166,6 @@ export function Sidebar({
   annotations,
   annotationsLoading,
   annotationsError,
-  highlightSupported,
   onScrollToAnnotation,
   onUpdateAnnotation,
   onDeleteAnnotation,
@@ -408,7 +406,6 @@ export function Sidebar({
                     annotations={annotations}
                     loading={annotationsLoading}
                     error={annotationsError}
-                    highlightSupported={highlightSupported}
                     onScrollTo={onScrollToAnnotation}
                     onUpdate={onUpdateAnnotation}
                     onDelete={onDeleteAnnotation}

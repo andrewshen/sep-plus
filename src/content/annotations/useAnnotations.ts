@@ -88,6 +88,15 @@ function isSepPlusUiEvent(event: Event): boolean {
   );
 }
 
+function sameBoundaries(left: Range, right: Range): boolean {
+  return (
+    left.startContainer === right.startContainer &&
+    left.startOffset === right.startOffset &&
+    left.endContainer === right.endContainer &&
+    left.endOffset === right.endOffset
+  );
+}
+
 function documentRect(rect: DOMRect): SelectionToolbarAnchor {
   return {
     top: rect.top + window.scrollY,
@@ -110,6 +119,10 @@ export function useAnnotations({
   const [resolvedIds, setResolvedIds] = useState<ReadonlySet<string>>(
     () => new Set(),
   );
+  const [markedRanges, setMarkedRanges] = useState<
+    readonly ResolvedAnnotationRange[]
+  >([]);
+  const [hoveredId, setHoveredId] = useState<string | null>(null);
   const [pendingSelection, setPendingSelection] =
     useState<PendingAnnotationSelection | null>(null);
   const [activeAnnotation, setActiveAnnotation] =
@@ -121,6 +134,7 @@ export function useAnnotations({
     rendererRef.current = new AnnotationHighlightRenderer();
   }
   const renderer = rendererRef.current;
+  const stableRangesRef = useRef(new Map<string, Range>());
   const articleRoot = enabled
     ? document.querySelector<HTMLElement>('#article-content')
     : null;
@@ -170,30 +184,42 @@ export function useAnnotations({
   useEffect(() => {
     if (!articleRoot || !entry) {
       renderer.clear();
+      stableRangesRef.current = new Map();
       setResolvedIds(new Set());
+      setMarkedRanges([]);
       setActiveAnnotation(null);
       return;
     }
     const projection = buildTextProjection(articleRoot);
     const resolved: ResolvedAnnotationRange[] = [];
     const nextIds = new Set<string>();
+    const previousRanges = stableRangesRef.current;
+    const nextRanges = new Map<string, Range>();
     for (const annotation of entry.annotations) {
-      const range = resolveAnnotationRange(
+      const fresh = resolveAnnotationRange(
         articleRoot,
         annotation,
         projection,
       );
-      if (!range) {
+      if (!fresh) {
         continue;
       }
+      // Marks remount (and replay their draw-on animation) whenever their
+      // Range object changes, so keep the old one if it still matches.
+      const previous = previousRanges.get(annotation.id);
+      const range =
+        previous && sameBoundaries(previous, fresh) ? previous : fresh;
+      nextRanges.set(annotation.id, range);
       nextIds.add(annotation.id);
       resolved.push({
         id: annotation.id,
         range,
       });
     }
+    stableRangesRef.current = nextRanges;
     renderer.redraw(resolved);
     setResolvedIds(nextIds);
+    setMarkedRanges(resolved);
     setActiveAnnotation((current) => {
       if (!current) {
         return null;
@@ -304,7 +330,7 @@ export function useAnnotations({
       const annotationId = point
         ? renderer.annotationAtPoint(point.clientX, point.clientY)
         : null;
-      renderer.setHovered(annotationId);
+      setHoveredId(annotationId);
       root.classList.toggle(
         'sep-plus-annotation-hovering',
         annotationId !== null,
@@ -331,13 +357,21 @@ export function useAnnotations({
       window.removeEventListener('scroll', updateHover);
       window.removeEventListener('blur', clearHover);
       root.classList.remove('sep-plus-annotation-hovering');
-      renderer.setHovered(null);
+      setHoveredId(null);
     };
   }, [articleRoot, renderer]);
 
-  useEffect(() => {
-    renderer.setSelected(activeAnnotation?.annotationId ?? null);
-  }, [activeAnnotation?.annotationId, renderer]);
+  const activeAnnotationId = activeAnnotation?.annotationId ?? null;
+  const emphasizedIds = useMemo<ReadonlySet<string>>(() => {
+    const ids = new Set<string>();
+    if (hoveredId) {
+      ids.add(hoveredId);
+    }
+    if (activeAnnotationId) {
+      ids.add(activeAnnotationId);
+    }
+    return ids;
+  }, [activeAnnotationId, hoveredId]);
 
   useEffect(() => {
     setPendingSelection(null);
@@ -538,7 +572,9 @@ export function useAnnotations({
     activeAnnotation,
     loading,
     error,
-    highlightSupported: renderer.supported,
+    markedRanges,
+    emphasizedIds,
+    articleRoot,
     dismissSelection: () => {
       setPendingSelection(null);
       setActiveAnnotation(null);
