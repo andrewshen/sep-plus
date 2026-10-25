@@ -46,6 +46,20 @@ describe('computeMarginNotePlacement', () => {
       placement: 'below',
     });
   });
+
+  it('clamps to the viewport edge with a custom gap', () => {
+    const placement = computeMarginNotePlacement(
+      { top: 20, right: 18, bottom: 40, left: 2, width: 16, height: 20 },
+      { width: 300, height: 120 },
+      { top: 0, left: 0, width: 320, height: 600 },
+      12,
+      12,
+    );
+
+    expect(placement.placement).toBe('below');
+    expect(placement.left).toBe(12);
+    expect(placement.top).toBe(52);
+  });
 });
 
 describe('formatRelativeAnnotationTime', () => {

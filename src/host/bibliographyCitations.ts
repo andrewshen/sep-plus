@@ -90,6 +90,8 @@ export type BibliographyCitationTarget = {
   trigger: HTMLElement;
   entries: readonly BibliographyEntry[];
   rect: MarginNoteRect;
+  /** `pointer` for hover, `instant` for keyboard focus. */
+  motion: 'pointer' | 'instant';
 };
 
 export type BibliographyCitationController = {
@@ -898,6 +900,7 @@ export function initBibliographyCitations(
       trigger: activeTarget.trigger,
       entries: activeTarget.entries,
       rect: triggerRect(activeTarget.trigger),
+      motion: activeMode === 'pointer' ? 'pointer' : 'instant',
     });
   }
 

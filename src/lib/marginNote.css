@@ -8,7 +8,7 @@
   width: min(400px, calc(100vw - 24px));
   padding: 16px 20px;
   overflow: clip;
-  border: 1px solid var(--sep-border);
+  border: 1px solid var(--sand-5);
   border-radius: 6px;
   background: var(--sep-panel-bg);
   box-shadow: 0 2px 4px rgb(0 0 0 / 4%);
@@ -22,6 +22,7 @@
 
 :host-context(body.dark) .sep-margin-note,
 .sep-plus-app.is-dark .sep-margin-note {
+  border-color: var(--sand-6);
   box-shadow: 0 2px 4px rgb(0 0 0 / 18%);
 }
 
@@ -40,34 +41,6 @@
   font-weight: 400;
   line-height: 16px;
   white-space: pre-wrap;
-}
-
-.sep-margin-note-action,
-.sep-plus-app button.sep-margin-note-action {
-  flex-shrink: 0;
-  width: fit-content;
-  margin: 0;
-  padding: 0;
-  border: 0;
-  background: transparent;
-  color: var(--sep-muted);
-  cursor: pointer;
-  font-family: inherit;
-  font-size: 12px;
-  font-weight: 400;
-  line-height: 16px;
-  white-space: pre;
-}
-
-.sep-margin-note-action:hover,
-.sep-plus-app button.sep-margin-note-action:hover {
-  color: var(--sep-text);
-}
-
-.sep-margin-note-action:disabled,
-.sep-plus-app button.sep-margin-note-action:disabled {
-  cursor: default;
-  opacity: 0.55;
 }
 
 .sep-margin-note-body {

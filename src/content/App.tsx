@@ -13,13 +13,15 @@ import type {
   TocItem,
 } from '../lib/types';
 import { getActiveTocIndex, identifyPrintBlock } from '../host/toc';
-import { formatRelativeAnnotationTime } from '../lib/marginNotePlacement';
 import { AnnotationMarks } from './annotations/AnnotationMarks';
+import { HighlightMenu } from './annotations/HighlightMenu';
 import { MarginNotePopover } from './annotations/MarginNotePopover';
 import { SelectionToolbar } from './annotations/SelectionToolbar';
 import { useAnnotations } from './annotations/useAnnotations';
 import { BibliographyPreview } from './citations/BibliographyPreview';
 import { useBibliographyCitations } from './citations/useBibliographyCitations';
+import { FootnotePreviewBody } from './footnotes/FootnotePreviewBody';
+import { useFootnotePreview } from './footnotes/useFootnotePreview';
 import { Sidebar } from './sidebar/Sidebar';
 
 type AppProps = {
@@ -36,17 +38,7 @@ type SidebarPhase = 'closed' | 'opening' | 'open' | 'closing-ready' | 'closing';
 
 const SIDEBAR_TRANSITION_MS = 200;
 const SIDEBAR_TRANSITION_FALLBACK_MS = SIDEBAR_TRANSITION_MS + 100;
-
-function bibliographyPreviewLabel(sections: readonly string[]): string {
-  const unique = new Set(sections);
-  if (unique.size !== 1) {
-    return 'Bibliography';
-  }
-  const section = sections[0]?.trim();
-  return section && section.toLocaleLowerCase() !== 'bibliography'
-    ? `Bibliography · ${section}`
-    : 'Bibliography';
-}
+const FOOTNOTE_PREVIEW_GAP_PX = 12;
 
 function syncSidebarPhase(phase: SidebarPhase): void {
   document.documentElement.dataset.sepPlusSidebarPhase = phase;
@@ -87,9 +79,20 @@ export function App({
     enabled: articleMode,
     paletteOpen,
     sidebarPhase,
-    onPreviewOpen: annotationState.dismissSelection,
+    onPreviewOpen: () => {
+      annotationState.dismissSelection();
+      footnoteState.dismiss();
+    },
   });
-  const [deletingAnnotation, setDeletingAnnotation] = useState(false);
+  const footnoteState = useFootnotePreview({
+    enabled: articleMode,
+    paletteOpen,
+    sidebarPhase,
+    onPreviewOpen: () => {
+      annotationState.dismissSelection();
+      citationState.dismiss();
+    },
+  });
   const activeNote = useMemo(() => {
     const activeId = annotationState.activeAnnotation?.annotationId;
     if (!activeId) {
@@ -101,23 +104,20 @@ export function App({
       ) ?? null
     );
   }, [annotationState.activeAnnotation?.annotationId, annotationState.annotations]);
-
   useLayoutEffect(() => {
     syncSidebarPhase(sidebarPhase);
   }, [sidebarPhase]);
 
   useEffect(() => {
-    setDeletingAnnotation(false);
-  }, [annotationState.activeAnnotation?.key]);
-
-  useEffect(() => {
     if (annotationState.pendingSelection || annotationState.activeAnnotation) {
       citationState.dismiss();
+      footnoteState.dismiss();
     }
   }, [
     annotationState.activeAnnotation,
     annotationState.pendingSelection,
     citationState.dismiss,
+    footnoteState.dismiss,
   ]);
 
   useEffect(
@@ -294,76 +294,79 @@ export function App({
       <SelectionToolbar
         selection={annotationState.pendingSelection}
         dark={dark}
-        onSave={annotationState.saveSelection}
+        onHighlight={annotationState.createHighlight}
         onDismiss={annotationState.dismissSelection}
       />
-      {annotationState.activeAnnotation &&
-      activeNote &&
-      !activeNote.note.trim() ? (
-        <SelectionToolbar
-          selection={annotationState.activeAnnotation}
-          dark={dark}
-          onSave={async (note) => {
-            await annotationState.updateAnnotation(activeNote.id, { note });
-            annotationState.dismissSelection();
-          }}
-          onRemove={() => annotationState.deleteAnnotation(activeNote.id)}
-          onDismiss={annotationState.dismissSelection}
-        />
-      ) : null}
-      {annotationState.activeAnnotation &&
-      activeNote &&
-      activeNote.note.trim() ? (
-        <MarginNotePopover
-          anchorRect={annotationState.activeAnnotation.rect}
-          label={`Private note · ${formatRelativeAnnotationTime(activeNote.updatedAt)}`}
-          body={activeNote.note}
-          actionLabel={deletingAnnotation ? 'Deleting…' : 'Delete'}
-          actionDisabled={deletingAnnotation}
-          dark={dark}
-          ariaLabel="Private note"
-          onDismiss={annotationState.dismissSelection}
-          onAction={() => {
-            if (deletingAnnotation) {
-              return;
-            }
-            setDeletingAnnotation(true);
-            void annotationState
-              .deleteAnnotation(activeNote.id)
-              .catch(() => {
-                setDeletingAnnotation(false);
-              });
-          }}
-        />
-      ) : null}
-      {citationState.active ? (
-        <MarginNotePopover
-          key={citationState.active.key}
-          anchorRect={citationState.active.rect}
-          label={bibliographyPreviewLabel(
-            citationState.active.entries.map((entry) => entry.section),
-          )}
-          body={
+      <HighlightMenu
+        highlight={
+          activeNote && annotationState.activeAnnotation
+            ? {
+                id: activeNote.id,
+                note: activeNote.note,
+                rect: annotationState.activeAnnotation.rect,
+              }
+            : null
+        }
+        dark={dark}
+        onSaveNote={(id, note) => annotationState.updateAnnotation(id, { note })}
+        onRemove={annotationState.deleteAnnotation}
+        onDismiss={annotationState.dismissSelection}
+      />
+      <MarginNotePopover
+        open={citationState.active !== null}
+        anchorRect={citationState.active?.rect ?? null}
+        motion={citationState.active?.motion}
+        body={
+          citationState.active ? (
             <BibliographyPreview entries={citationState.active.entries} />
+          ) : null
+        }
+        dark={dark}
+        ariaLabel="Bibliography citation preview"
+        role="note"
+        bibliographyPreview
+        className="sep-bibliography-popover"
+        onDismiss={citationState.dismiss}
+        onPointerEnter={citationState.previewPointerEnter}
+        onPointerLeave={citationState.previewPointerLeave}
+        onFocusCapture={citationState.previewFocusEnter}
+        onBlurCapture={(event) => {
+          const next = event.relatedTarget;
+          if (!(next instanceof Node) || !event.currentTarget.contains(next)) {
+            citationState.previewFocusLeave();
           }
-          dark={dark}
-          ariaLabel="Bibliography citation preview"
-          role="note"
-          motion="pointer"
-          bibliographyPreview
-          className="sep-bibliography-popover"
-          onDismiss={citationState.dismiss}
-          onPointerEnter={citationState.previewPointerEnter}
-          onPointerLeave={citationState.previewPointerLeave}
-          onFocusCapture={citationState.previewFocusEnter}
-          onBlurCapture={(event) => {
-            const next = event.relatedTarget;
-            if (!(next instanceof Node) || !event.currentTarget.contains(next)) {
-              citationState.previewFocusLeave();
-            }
-          }}
-        />
-      ) : null}
+        }}
+      />
+      <MarginNotePopover
+        open={footnoteState.active !== null}
+        anchorRect={footnoteState.active?.rect ?? null}
+        motion={footnoteState.active?.motion}
+        gap={FOOTNOTE_PREVIEW_GAP_PX}
+        label="Footnote"
+        body={
+          footnoteState.active ? (
+            <FootnotePreviewBody
+              noteKey={footnoteState.active.key}
+              render={footnoteState.active.render}
+            />
+          ) : null
+        }
+        dark={dark}
+        ariaLabel="Footnote"
+        role="note"
+        footnotePreview
+        className="sep-footnote-preview"
+        onDismiss={footnoteState.dismiss}
+        onPointerEnter={footnoteState.previewPointerEnter}
+        onPointerLeave={footnoteState.previewPointerLeave}
+        onFocusCapture={footnoteState.previewFocusEnter}
+        onBlurCapture={(event) => {
+          const next = event.relatedTarget;
+          if (!(next instanceof Node) || !event.currentTarget.contains(next)) {
+            footnoteState.previewFocusLeave();
+          }
+        }}
+      />
     </div>
   );
 }

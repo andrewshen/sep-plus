@@ -1,27 +1,14 @@
-import {
-  useEffect,
-  useState,
-  type CSSProperties,
-  type PointerEvent as ReactPointerEvent,
-} from 'react';
-import { createPortal } from 'react-dom';
-import { IconAddNote, IconHighlight, IconRemove } from '../icons';
+import { useEffect, useState, type PointerEvent as ReactPointerEvent } from 'react';
+import { IconHighlight } from '../icons';
+import { Popover } from '../popover/Popover';
 import type { SelectionToolbarAnchor } from './useAnnotations';
 
 type SelectionToolbarProps = {
   selection: { rect: SelectionToolbarAnchor; key: string } | null;
   dark: boolean;
-  onSave: (note: string) => Promise<void>;
+  onHighlight: () => Promise<void>;
   onDismiss: () => void;
-  /** When set, the toolbar targets an existing highlight and offers removal
-   * instead of creating a highlight. */
-  onRemove?: () => Promise<void>;
 };
-
-function getAnnotationMount(): HTMLElement | null {
-  const layer = document.getElementById('sep-plus-annotation-layer');
-  return layer?.shadowRoot?.getElementById('sep-plus-annotation-mount') ?? null;
-}
 
 function keepSelection(event: ReactPointerEvent<HTMLButtonElement>): void {
   event.preventDefault();
@@ -30,51 +17,25 @@ function keepSelection(event: ReactPointerEvent<HTMLButtonElement>): void {
 export function SelectionToolbar({
   selection,
   dark,
-  onSave,
+  onHighlight,
   onDismiss,
-  onRemove,
 }: SelectionToolbarProps) {
-  const [composing, setComposing] = useState(false);
-  const [note, setNote] = useState('');
   const [saving, setSaving] = useState(false);
+  const selectionKey = selection?.key ?? null;
 
   useEffect(() => {
-    setComposing(false);
-    setNote('');
-    setSaving(false);
-  }, [selection?.key]);
+    if (selectionKey !== null) {
+      setSaving(false);
+    }
+  }, [selectionKey]);
 
-  if (!selection) {
-    return null;
-  }
-  const mount = getAnnotationMount();
-  if (!mount) {
-    return null;
-  }
-
-  const estimatedWidth = composing ? 304 : 207;
-  const halfWidth = estimatedWidth / 2;
-  const left = Math.min(
-    window.scrollX + window.innerWidth - halfWidth - 12,
-    Math.max(
-      window.scrollX + halfWidth + 12,
-      selection.rect.left + selection.rect.width / 2,
-    ),
-  );
-  const style: CSSProperties = {
-    left,
-    top: selection.rect.top - 8,
-    ...(composing ? { width: 304 } : {}),
-    transform: 'translate(-50%, -100%)',
-  };
-
-  async function save(nextNote: string) {
+  async function highlight() {
     if (saving) {
       return;
     }
     setSaving(true);
     try {
-      await onSave(nextNote);
+      await onHighlight();
     } catch {
       // The shared annotation state exposes the actionable error in the sidebar.
     } finally {
@@ -82,127 +43,31 @@ export function SelectionToolbar({
     }
   }
 
-  async function remove(remover: () => Promise<void>) {
-    if (saving) {
-      return;
-    }
-    setSaving(true);
-    try {
-      await remover();
-    } catch {
-      // The shared annotation state exposes the actionable error in the sidebar.
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  return createPortal(
-    <div
-      className={[
-        'sep-plus-app',
-        'sep-annotation-overlay',
-        dark ? 'is-dark' : '',
-      ]
-        .filter(Boolean)
-        .join(' ')}
-    >
-      <div
-        className={[
-          'sep-annotation-toolbar',
-          composing ? 'is-composing' : '',
-        ]
-          .filter(Boolean)
-          .join(' ')}
-        style={style}
-        data-sep-plus-annotation-ui=""
-        role="dialog"
-        aria-label={
-          composing
-            ? 'Add annotation note'
-            : onRemove
-              ? 'Highlight actions'
-              : 'Highlight selection'
+  return (
+    <Popover
+      open={selection !== null}
+      anchorRect={selection?.rect ?? null}
+      dark={dark}
+      className="sep-annotation-toolbar"
+      role="dialog"
+      aria-label="Highlight selection"
+      onKeyDown={(event) => {
+        if (event.key === 'Escape') {
+          event.stopPropagation();
+          onDismiss();
         }
-        onKeyDown={(event) => {
-          if (event.key === 'Escape') {
-            event.stopPropagation();
-            onDismiss();
-          }
-          if ((event.metaKey || event.ctrlKey) && event.key === 'Enter') {
-            event.preventDefault();
-            void save(note);
-          }
-        }}
+      }}
+    >
+      <button
+        type="button"
+        className="sep-annotation-highlight-trigger"
+        disabled={saving}
+        onPointerDown={keepSelection}
+        onClick={() => void highlight()}
       >
-        {composing ? (
-          <>
-            <textarea
-              className="sep-annotation-note-input"
-              value={note}
-              autoFocus
-              maxLength={100_000}
-              placeholder="Add a note…"
-              aria-label="Annotation note"
-              onChange={(event) => setNote(event.target.value)}
-            />
-            <div className="sep-annotation-composer-footer">
-              <div className="sep-annotation-composer-actions">
-                <button
-                  type="button"
-                  className="sep-annotation-button is-quiet"
-                  onClick={onDismiss}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  className="sep-annotation-button is-primary"
-                  disabled={saving}
-                  onClick={() => void save(note)}
-                >
-                  {saving ? 'Saving…' : 'Save'}
-                </button>
-              </div>
-            </div>
-          </>
-        ) : (
-          <>
-            {onRemove ? (
-              <button
-                type="button"
-                className="sep-annotation-highlight-trigger"
-                disabled={saving}
-                onPointerDown={keepSelection}
-                onClick={() => void remove(onRemove)}
-              >
-                <IconRemove />
-                {saving ? 'Removing…' : 'Remove'}
-              </button>
-            ) : (
-              <button
-                type="button"
-                className="sep-annotation-highlight-trigger"
-                disabled={saving}
-                onPointerDown={keepSelection}
-                onClick={() => void save('')}
-              >
-                <IconHighlight />
-                Highlight
-              </button>
-            )}
-            <button
-              type="button"
-              className="sep-annotation-note-trigger"
-              onPointerDown={keepSelection}
-              onClick={() => setComposing(true)}
-            >
-              <IconAddNote />
-              Add note
-            </button>
-          </>
-        )}
-      </div>
-    </div>,
-    mount,
+        <IconHighlight />
+        Highlight
+      </button>
+    </Popover>
   );
 }

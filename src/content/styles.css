@@ -92,32 +92,56 @@
   position: absolute;
 }
 
-.sep-bibliography-popover {
-  transform-origin: center;
+/* Shared motion for every anchored menu (see Popover.tsx). */
+.sep-popover {
+  position: absolute;
+  opacity: 0;
+  visibility: hidden;
 }
 
-.sep-bibliography-popover[data-motion='pointer'][data-placement='above'] {
-  animation: sep-bibliography-pop-above var(--sep-duration-fast)
-    var(--sep-ease-out);
+.sep-popover:not([data-state='open']) {
+  pointer-events: none;
 }
 
-.sep-bibliography-popover[data-motion='pointer'][data-placement='below'] {
-  animation: sep-bibliography-pop-below var(--sep-duration-fast)
-    var(--sep-ease-out);
+.sep-popover[data-state='open'] {
+  opacity: 1;
+  visibility: visible;
 }
 
-@keyframes sep-bibliography-pop-above {
-  from {
-    opacity: 0;
+.sep-popover[data-state='closing'] {
+  visibility: visible;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .sep-popover[data-motion='pointer'] {
+    transition:
+      opacity var(--sep-duration-fast) var(--sep-ease-out),
+      transform var(--sep-duration-fast) var(--sep-ease-out);
+  }
+
+  .sep-popover[data-motion='pointer'][data-placement='above']:not(
+      [data-state='open']
+    ) {
     transform: translateY(4px);
   }
-}
 
-@keyframes sep-bibliography-pop-below {
-  from {
-    opacity: 0;
+  .sep-popover[data-motion='pointer'][data-placement='below']:not(
+      [data-state='open']
+    ) {
     transform: translateY(-4px);
   }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sep-popover[data-motion='pointer'] {
+    transform: none;
+    transition: opacity var(--sep-duration-fast) var(--sep-ease-out);
+  }
+}
+
+.sep-footnote-preview .sep-margin-note-body {
+  /* Footnote HTML should wrap like article prose, not preserve source newlines. */
+  white-space: normal;
 }
 
 .sep-bibliography-preview {
@@ -165,7 +189,7 @@
   gap: 4px;
   width: fit-content;
   margin-top: 8px;
-  color: var(--sep-muted-soft);
+  color: var(--sand-10);
   font-size: 12px;
   font-weight: 400;
   line-height: 16px;
@@ -175,6 +199,12 @@
 .sep-margin-note-body a.sep-bibliography-preview-search:hover {
   color: var(--sep-text);
   text-decoration: none;
+}
+
+.sep-plus-app.is-dark
+  .sep-margin-note-body
+  a.sep-bibliography-preview-search:not(:hover) {
+  color: var(--sand-8);
 }
 
 .sep-bibliography-preview-entry a:focus-visible {
@@ -754,8 +784,7 @@
   margin-top: 8px;
 }
 
-.sep-annotation-editor textarea,
-.sep-annotation-note-input {
+.sep-annotation-editor textarea {
   display: block;
   box-sizing: border-box;
   width: 100%;
@@ -773,18 +802,15 @@
   padding: 7px 8px;
 }
 
-.sep-annotation-editor textarea::placeholder,
-.sep-annotation-note-input::placeholder {
+.sep-annotation-editor textarea::placeholder {
   color: var(--sep-muted-soft);
 }
 
-.sep-annotation-editor textarea:focus,
-.sep-annotation-note-input:focus {
+.sep-annotation-editor textarea:focus {
   border-color: var(--sep-muted-soft);
 }
 
-.sep-annotation-editor-footer,
-.sep-annotation-composer-footer {
+.sep-annotation-editor-footer {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -813,13 +839,7 @@
   box-shadow: 0 2px 4px rgb(0 0 0 / 18%);
 }
 
-.sep-annotation-toolbar.is-composing {
-  display: block;
-  padding: 10px;
-}
-
-.sep-plus-app button.sep-annotation-highlight-trigger,
-.sep-plus-app button.sep-annotation-note-trigger {
+.sep-plus-app button.sep-annotation-highlight-trigger {
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -833,15 +853,13 @@
   line-height: 20px;
 }
 
-.sep-plus-app button.sep-annotation-highlight-trigger svg,
-.sep-plus-app button.sep-annotation-note-trigger svg {
+.sep-plus-app button.sep-annotation-highlight-trigger svg {
   width: 16px;
   height: 16px;
   flex: 0 0 16px;
 }
 
-.sep-plus-app button.sep-annotation-highlight-trigger:hover,
-.sep-plus-app button.sep-annotation-note-trigger:hover {
+.sep-plus-app button.sep-annotation-highlight-trigger:hover {
   background: var(--sep-bg-elevated);
   color: var(--sep-text);
 }
@@ -851,39 +869,91 @@
   opacity: 0.55;
 }
 
-.sep-annotation-note-input {
-  min-height: 92px;
-  padding: 8px 9px;
+.sep-highlight-menu {
+  pointer-events: auto;
+  width: min(320px, calc(100vw - 24px));
+  overflow: clip;
+  border: 1px solid var(--sep-border);
+  border-radius: 6px;
+  background: var(--sep-panel-bg);
+  box-shadow: 0 2px 4px rgb(0 0 0 / 4%);
+  color: var(--sep-text);
 }
 
-.sep-annotation-composer-actions {
+.sep-plus-app.is-dark .sep-highlight-menu {
+  box-shadow: 0 2px 4px rgb(0 0 0 / 18%);
+}
+
+.sep-highlight-menu-input {
+  display: block;
+  width: 100%;
+  min-height: 84px;
+  max-height: 240px;
+  field-sizing: content;
+  padding: 12px 14px;
+  border: 0;
+  outline: none;
+  background: transparent;
+  color: var(--sep-text);
+  font: 14px/20px var(--sep-font);
+  resize: none;
+}
+
+.sep-highlight-menu-input::placeholder {
+  color: var(--sep-muted-soft);
+}
+
+.sep-highlight-menu-footer {
   display: flex;
-  gap: 4px;
-  margin-left: auto;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px;
+  border-top: 1px solid var(--sep-border-subtle);
 }
 
-.sep-plus-app button.sep-annotation-button {
-  padding: 4px 8px;
+.sep-plus-app button.sep-highlight-menu-remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
   border: 0;
   border-radius: 4px;
-  cursor: pointer;
-  font-size: 12px;
-  line-height: 16px;
-}
-
-.sep-plus-app button.sep-annotation-button.is-quiet {
   background: transparent;
   color: var(--sep-muted);
+  cursor: pointer;
 }
 
-.sep-plus-app button.sep-annotation-button.is-primary {
-  background: var(--sep-text);
-  color: var(--sep-surface);
+.sep-plus-app button.sep-highlight-menu-remove svg {
+  width: 16px;
+  height: 16px;
 }
 
-.sep-plus-app button.sep-annotation-button:disabled {
+.sep-plus-app button.sep-highlight-menu-remove:hover {
+  background: var(--sep-bg-elevated);
+  color: var(--sep-text);
+}
+
+.sep-plus-app button.sep-highlight-menu-remove:disabled {
   cursor: default;
   opacity: 0.55;
+}
+
+.sep-plus-app button.sep-highlight-menu-done {
+  padding: 3px 10px;
+  border: 1px solid var(--sep-border);
+  border-radius: 4px;
+  background: var(--sep-surface);
+  color: var(--sep-text);
+  cursor: pointer;
+  font-size: 13px;
+  line-height: 20px;
+}
+
+.sep-plus-app button.sep-highlight-menu-done:hover {
+  background: var(--sep-bg-elevated);
 }
 
 .sep-sidebar-footer {
@@ -1194,10 +1264,6 @@
 @media (prefers-reduced-motion: reduce) {
   .sep-sidebar {
     transition: none;
-  }
-
-  .sep-bibliography-popover[data-motion='pointer'] {
-    animation: none;
   }
 
   /* Drop size morph; keep short opacity/color fades. */

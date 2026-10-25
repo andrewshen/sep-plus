@@ -68,31 +68,3 @@ export function IconRemove() {
     </svg>
   );
 }
-
-/** Add-note icon from Paper annotation bar LTO-0 (16×16). */
-export function IconAddNote() {
-  return (
-    <svg viewBox="0 0 16 16" aria-hidden="true" fill="none">
-      <path
-        transform="translate(2.5 4.38)"
-        d="M0.322 10.005C0.249 10.067 0.16 10.106 0.066 10.119-0.029 10.131-0.124 10.117-0.21 10.077-0.297 10.037-0.37 9.973-0.421 9.893-0.473 9.812-0.5 9.719-0.5 9.624-0.5 9.624-0.5-0.376-0.5-0.376-0.5-0.509-0.447-0.636-0.353-0.73-0.26-0.823-0.133-0.876 0-0.876 0-0.876 11-0.876 11-0.876 11.133-0.876 11.26-0.823 11.354-0.73 11.447-0.636 11.5-0.509 11.5-0.376 11.5-0.376 11.5 7.624 11.5 7.624 11.5 7.757 11.447 7.884 11.354 7.977 11.26 8.071 11.133 8.124 11 8.124 11 8.124 2.5 8.124 2.5 8.124 2.5 8.124 0.322 10.005 0.322 10.005Z"
-        stroke="currentColor"
-        strokeWidth="1.2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M6 7h4"
-        stroke="currentColor"
-        strokeWidth="1.2"
-        strokeLinecap="round"
-      />
-      <path
-        d="M6 9h4"
-        stroke="currentColor"
-        strokeWidth="1.2"
-        strokeLinecap="round"
-      />
-    </svg>
-  );
-}

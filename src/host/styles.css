@@ -1129,8 +1129,7 @@ body.dark blockquote {
   #article-banner,
   #footer,
   #search,
-  #search-form,
-  #sep-plus-footnote-layer {
+  #search-form {
     display: none !important;
   }
 

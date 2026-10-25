@@ -433,8 +433,8 @@ export function useAnnotations({
     [entry, resolvedIds],
   );
 
-  const saveSelection = useCallback(
-    async (note: string): Promise<void> => {
+  const createHighlight = useCallback(
+    async (): Promise<void> => {
       if (!source || !pendingSelection) {
         return;
       }
@@ -442,7 +442,7 @@ export function useAnnotations({
       const annotation: Annotation = {
         id: crypto.randomUUID(),
         selector: pendingSelection.anchor.selector,
-        note: note.trim(),
+        note: '',
         ...(pendingSelection.anchor.section
           ? { section: pendingSelection.anchor.section }
           : {}),
@@ -457,7 +457,11 @@ export function useAnnotations({
         );
         setEntry(next);
         setPendingSelection(null);
-        setActiveAnnotation(null);
+        setActiveAnnotation({
+          annotationId: annotation.id,
+          rect: pendingSelection.rect,
+          key: `existing:${annotation.id}`,
+        });
         setError(null);
         document.getSelection()?.removeAllRanges();
       } catch (saveError: unknown) {
@@ -579,7 +583,7 @@ export function useAnnotations({
       setPendingSelection(null);
       setActiveAnnotation(null);
     },
-    saveSelection,
+    createHighlight,
     updateAnnotation,
     deleteAnnotation,
     scrollToAnnotation,

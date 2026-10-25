@@ -11,7 +11,6 @@ import {
   styleRelatedEntries,
   wrapSiteContentColumn,
 } from '../host/bootstrap';
-import { initFootnotes } from '../host/footnotes';
 import { collectSiteNavSections } from '../host/siteNav';
 import {
   collectTocItems,
@@ -205,10 +204,6 @@ async function main(): Promise<void> {
     articleSource,
     articleTitle,
   );
-
-  if (articleMode) {
-    initFootnotes();
-  }
 
   await fontsReadyPromise;
   if (bootTimedOut) {

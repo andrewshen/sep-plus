@@ -7,13 +7,29 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   buildFootnoteSection,
   collectFootnoteReferences,
-  computeFootnotePlacement,
-  initFootnotes,
+  initFootnotes as startFootnotes,
   parseFootnoteDocument,
   referenceLabel,
   stripMarkerDecoration,
+  type FootnoteController,
+  type FootnoteControllerOptions,
+  type FootnotePreviewTarget,
   type ParsedFootnote,
 } from './footnotes';
+
+const controllers: FootnoteController[] = [];
+
+function initFootnotes(options: FootnoteControllerOptions): FootnoteController {
+  const controller = startFootnotes(options);
+  controllers.push(controller);
+  return controller;
+}
+
+function lastPreview(
+  onPreviewChange: ReturnType<typeof vi.fn>
+): FootnotePreviewTarget | null | undefined {
+  return onPreviewChange.mock.calls.at(-1)?.[0];
+}
 
 const PAGE_URL = 'https://plato.stanford.edu/entries/example/index.html';
 const NOTES_URL = 'https://plato.stanford.edu/entries/example/notes.html';
@@ -78,10 +94,9 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-  const layer = document.querySelector('#sep-plus-footnote-layer') as
-    | (HTMLElement & { sepPlusCleanup?: () => void })
-    | null;
-  layer?.sepPlusCleanup?.();
+  for (const controller of controllers.splice(0)) {
+    controller.cleanup();
+  }
   document.documentElement.innerHTML = '<head></head><body></body>';
   vi.restoreAllMocks();
 });
@@ -291,48 +306,6 @@ describe('footnote section construction', () => {
   });
 });
 
-describe('preview placement', () => {
-  it('prefers above and centers on the trigger when space permits', () => {
-    expect(
-      computeFootnotePlacement(
-        {
-          top: 300,
-          right: 220,
-          bottom: 320,
-          left: 200,
-          width: 20,
-          height: 20,
-        },
-        { width: 200, height: 100 },
-        { width: 800, height: 600 }
-      )
-    ).toEqual({
-      top: 188,
-      left: 110,
-      placement: 'above',
-    });
-  });
-
-  it('falls below and clamps to the viewport edge', () => {
-    const placement = computeFootnotePlacement(
-      {
-        top: 20,
-        right: 18,
-        bottom: 40,
-        left: 2,
-        width: 16,
-        height: 20,
-      },
-      { width: 300, height: 120 },
-      { width: 320, height: 600 }
-    );
-
-    expect(placement.placement).toBe('below');
-    expect(placement.left).toBe(12);
-    expect(placement.top).toBe(52);
-  });
-});
-
 describe('controller lifecycle and interactions', () => {
   const notesHtml = `
     <div id="aueditable">
@@ -362,7 +335,7 @@ describe('controller lifecycle and interactions', () => {
     const fetcher: typeof fetch = async () =>
       new Response(notesHtml, { status: 200 });
 
-    const cleanup = initFootnotes({
+    const controller = initFootnotes({
       document,
       window,
       fetch: fetcher,
@@ -379,73 +352,60 @@ describe('controller lifecycle and interactions', () => {
     expect(sup?.textContent).toBe('1');
     expect(link?.getAttribute('href')).toBe(`#${localId}`);
     expect(link?.getAttribute('aria-details')).toBe(localId);
-    expect(document.querySelectorAll('#sep-plus-footnote-layer')).toHaveLength(
-      1
-    );
 
-    cleanup();
+    controller.cleanup();
 
     expect(document.querySelector('#footnotes')).toBeNull();
-    expect(document.querySelector('#sep-plus-footnote-layer')).toBeNull();
     expect(link?.getAttribute('href')).toBe('notes.html#note-1');
     expect(link?.textContent).toBe('1');
     expect(sup?.textContent).toBe('[1]');
     expect(link?.hasAttribute('aria-details')).toBe(false);
   });
 
-  it('shows instantly on keyboard focus and closes with Escape', async () => {
+  it('reports keyboard focus previews as instant and closes with Escape', async () => {
     articleFixture();
-    const cleanup = initFootnotes({
+    const onPreviewChange = vi.fn();
+    initFootnotes({
       document,
       window,
       fetch: async () => new Response(notesHtml, { status: 200 }),
+      onPreviewChange,
     });
     await waitForFootnotes();
     const link = document.querySelector<HTMLAnchorElement>('#ref-1');
-    const layer = document.querySelector<HTMLElement>(
-      '#sep-plus-footnote-layer'
-    );
-    const preview = layer?.shadowRoot?.querySelector<HTMLElement>(
-      '.sep-footnote-preview'
-    );
-    if (!link || !preview) {
+    if (!link) {
       throw new Error('Missing preview fixture');
     }
 
     link.dispatchEvent(new FocusEvent('focusin', { bubbles: true }));
 
-    expect(preview.hidden).toBe(false);
-    expect(preview.dataset.motion).toBe('instant');
-    expect(preview.dataset.state).toBe('open');
-    expect(
-      preview.querySelector('.sep-margin-note-label')?.textContent
-    ).toBe('Footnote');
-    expect(
-      preview.querySelector('.sep-margin-note-body')?.textContent?.trim()
-    ).toBe('Preview content');
-    expect(preview.textContent).not.toMatch(/^\s*1\./);
+    const preview = lastPreview(onPreviewChange);
+    expect(preview?.trigger).toBe(link);
+    expect(preview?.motion).toBe('instant');
+    const body = document.createElement('div');
+    body.append(preview?.render() ?? '');
+    expect(body.textContent?.trim()).toBe('Preview content');
+    expect(body.querySelector('[id]')).toBeNull();
 
     document.dispatchEvent(
       new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })
     );
-    expect(preview.hidden).toBe(true);
-    cleanup();
+    expect(lastPreview(onPreviewChange)).toBeNull();
   });
 
   it('opens pointer previews only when fine hover is available', async () => {
     mockMatchMedia({ hover: true });
     articleFixture();
-    const cleanup = initFootnotes({
+    const onPreviewChange = vi.fn();
+    initFootnotes({
       document,
       window,
       fetch: async () => new Response(notesHtml, { status: 200 }),
+      onPreviewChange,
     });
     await waitForFootnotes();
     const link = document.querySelector<HTMLAnchorElement>('#ref-1');
-    const preview = document
-      .querySelector<HTMLElement>('#sep-plus-footnote-layer')
-      ?.shadowRoot?.querySelector<HTMLElement>('.sep-footnote-preview');
-    if (!link || !preview) {
+    if (!link) {
       throw new Error('Missing pointer preview fixture');
     }
 
@@ -456,24 +416,21 @@ describe('controller lifecycle and interactions', () => {
       })
     );
 
-    expect(preview.hidden).toBe(false);
-    expect(preview.dataset.motion).toBe('pointer');
-    cleanup();
+    expect(lastPreview(onPreviewChange)?.motion).toBe('pointer');
   });
 
   it('does not open a hover preview on coarse pointers', async () => {
     articleFixture();
-    const cleanup = initFootnotes({
+    const onPreviewChange = vi.fn();
+    initFootnotes({
       document,
       window,
       fetch: async () => new Response(notesHtml, { status: 200 }),
+      onPreviewChange,
     });
     await waitForFootnotes();
     const link = document.querySelector<HTMLAnchorElement>('#ref-1');
-    const preview = document
-      .querySelector<HTMLElement>('#sep-plus-footnote-layer')
-      ?.shadowRoot?.querySelector<HTMLElement>('.sep-footnote-preview');
-    if (!link || !preview) {
+    if (!link) {
       throw new Error('Missing coarse pointer fixture');
     }
 
@@ -484,25 +441,23 @@ describe('controller lifecycle and interactions', () => {
       })
     );
 
-    expect(preview.hidden).toBe(true);
-    cleanup();
+    expect(onPreviewChange).not.toHaveBeenCalled();
   });
 
-  it('closes pointer previews without movement timing for reduced motion', async () => {
-    mockMatchMedia({ hover: true, reducedMotion: true });
+  it('closes pointer previews shortly after the pointer leaves', async () => {
+    mockMatchMedia({ hover: true });
     articleFixture();
-    const cleanup = initFootnotes({
+    const onPreviewChange = vi.fn();
+    initFootnotes({
       document,
       window,
       fetch: async () => new Response(notesHtml, { status: 200 }),
+      onPreviewChange,
     });
     await waitForFootnotes();
     const link = document.querySelector<HTMLAnchorElement>('#ref-1');
-    const preview = document
-      .querySelector<HTMLElement>('#sep-plus-footnote-layer')
-      ?.shadowRoot?.querySelector<HTMLElement>('.sep-footnote-preview');
-    if (!link || !preview) {
-      throw new Error('Missing reduced motion fixture');
+    if (!link) {
+      throw new Error('Missing pointer close fixture');
     }
 
     link.dispatchEvent(
@@ -518,28 +473,68 @@ describe('controller lifecycle and interactions', () => {
         pointerType: 'mouse',
       })
     );
-    vi.advanceTimersByTime(80);
+    vi.advanceTimersByTime(79);
+    expect(lastPreview(onPreviewChange)).not.toBeNull();
+    vi.advanceTimersByTime(1);
 
-    expect(preview.hidden).toBe(true);
+    expect(lastPreview(onPreviewChange)).toBeNull();
     vi.useRealTimers();
-    cleanup();
   });
 
-  it('reinitializes without duplicating sections or overlay layers', async () => {
+  it('keeps the preview open while the pointer is inside it', async () => {
+    mockMatchMedia({ hover: true });
+    articleFixture();
+    const onPreviewChange = vi.fn();
+    const controller = initFootnotes({
+      document,
+      window,
+      fetch: async () => new Response(notesHtml, { status: 200 }),
+      onPreviewChange,
+    });
+    await waitForFootnotes();
+    const link = document.querySelector<HTMLAnchorElement>('#ref-1');
+    if (!link) {
+      throw new Error('Missing preview hover fixture');
+    }
+
+    link.dispatchEvent(
+      new PointerEvent('pointerover', {
+        bubbles: true,
+        pointerType: 'mouse',
+      })
+    );
+    vi.useFakeTimers();
+    link.dispatchEvent(
+      new PointerEvent('pointerout', {
+        bubbles: true,
+        pointerType: 'mouse',
+      })
+    );
+    controller.previewPointerEnter();
+    vi.advanceTimersByTime(200);
+    expect(lastPreview(onPreviewChange)).not.toBeNull();
+
+    controller.previewPointerLeave();
+    vi.advanceTimersByTime(80);
+    expect(lastPreview(onPreviewChange)).toBeNull();
+    vi.useRealTimers();
+  });
+
+  it('reinitializes without duplicating sections', async () => {
     articleFixture();
     let fetchCount = 0;
     const fetcher: typeof fetch = async () => {
       fetchCount += 1;
       return new Response(notesHtml, { status: 200 });
     };
-    const firstCleanup = initFootnotes({
+    initFootnotes({
       document,
       window,
       fetch: fetcher,
     });
     await waitForFootnotes();
 
-    const secondCleanup = initFootnotes({
+    initFootnotes({
       document,
       window,
       fetch: fetcher,
@@ -549,19 +544,13 @@ describe('controller lifecycle and interactions', () => {
     expect(
       document.querySelectorAll('#footnotes[data-sep-plus-footnotes]')
     ).toHaveLength(1);
-    expect(document.querySelectorAll('#sep-plus-footnote-layer')).toHaveLength(
-      1
-    );
     expect(fetchCount).toBe(2);
-
-    firstCleanup();
-    secondCleanup();
   });
 
   it('leaves remote links intact when loading fails', async () => {
     articleFixture();
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
-    const cleanup = initFootnotes({
+    initFootnotes({
       document,
       window,
       fetch: async () => new Response('', { status: 503 }),
@@ -575,6 +564,5 @@ describe('controller lifecycle and interactions', () => {
         .querySelector<HTMLAnchorElement>('#ref-1')
         ?.getAttribute('href')
     ).toBe('notes.html#note-1');
-    cleanup();
   });
 });

@@ -1,15 +1,11 @@
-import { computeMarginNotePlacement } from '../lib/marginNotePlacement';
-import footnoteStyles from './footnotes.css?inline';
+import type { MarginNoteRect } from '../lib/marginNotePlacement';
 
-const FOOTNOTE_LAYER_ID = 'sep-plus-footnote-layer';
 const FOOTNOTE_SECTION_ID = 'footnotes';
 const FOOTNOTE_HEADING_ID = 'sep-plus-footnotes-heading';
 const FOOTNOTE_REFERENCE_SELECTOR =
   '#article-content sup a[data-sep-plus-footnote-key]';
+const FOOTNOTE_PREVIEW_ATTRIBUTE = 'data-sep-plus-footnote-preview';
 const POINTER_CLOSE_DELAY_MS = 80;
-const POINTER_TRANSITION_MS = 100;
-const VIEWPORT_MARGIN_PX = 12;
-const PREVIEW_GAP_PX = 12;
 
 const BLOCKED_CONTENT_SELECTOR = [
   'script',
@@ -56,36 +52,34 @@ type BuiltFootnotes = {
   notesByKey: Map<string, RenderedFootnote>;
 };
 
-type FootnoteLayerElement = HTMLElement & {
-  sepPlusCleanup?: () => void;
+export type FootnotePreviewTarget = {
+  key: string;
+  trigger: HTMLAnchorElement;
+  /** Trigger rect in viewport coordinates. */
+  rect: MarginNoteRect;
+  /** `pointer` for hover, `instant` for keyboard focus. */
+  motion: 'pointer' | 'instant';
+  /** Builds a fresh, id-free copy of the note body. */
+  render: () => DocumentFragment;
+};
+
+export type FootnoteController = {
+  cleanup: () => void;
+  dismiss: () => void;
+  previewPointerEnter: () => void;
+  previewPointerLeave: () => void;
+  previewFocusEnter: () => void;
+  previewFocusLeave: () => void;
 };
 
 export type FootnoteControllerOptions = {
   document?: Document;
   window?: Window;
   fetch?: typeof fetch;
+  onPreviewChange?: (target: FootnotePreviewTarget | null) => void;
 };
 
-export type FootnotePlacement = {
-  top: number;
-  left: number;
-  placement: 'above' | 'below';
-};
-
-type RectLike = Pick<
-  DOMRectReadOnly,
-  'top' | 'right' | 'bottom' | 'left' | 'width' | 'height'
->;
-
-type Size = {
-  width: number;
-  height: number;
-};
-
-type ViewportSize = {
-  width: number;
-  height: number;
-};
+const activeCleanups = new WeakMap<Document, () => void>();
 
 function decodeFragment(hash: string): string {
   const fragment = hash.startsWith('#') ? hash.slice(1) : hash;
@@ -561,27 +555,6 @@ export function buildFootnoteSection(
   return { section, notesByKey };
 }
 
-export function computeFootnotePlacement(
-  trigger: RectLike,
-  preview: Size,
-  viewport: ViewportSize,
-  margin = VIEWPORT_MARGIN_PX,
-  gap = PREVIEW_GAP_PX
-): FootnotePlacement {
-  return computeMarginNotePlacement(
-    trigger,
-    preview,
-    {
-      top: 0,
-      left: 0,
-      width: viewport.width,
-      height: viewport.height,
-    },
-    margin,
-    gap
-  );
-}
-
 function isFootnoteLabelText(text: string, label: string): boolean {
   const normalized = text.replace(/\s+/g, ' ').trim().replace(/[\[\]().]/g, '');
   return normalized === label;
@@ -635,51 +608,23 @@ function createPreviewController(options: {
   doc: Document;
   win: Window;
   article: Element;
-  layer: HTMLElement;
-  shadow: ShadowRoot;
-  preview: HTMLElement;
-  content: HTMLElement;
   notesByKey: ReadonlyMap<string, RenderedFootnote>;
   signal: AbortSignal;
-}): () => void {
-  const {
-    doc,
-    win,
-    article,
-    layer,
-    shadow,
-    preview,
-    content,
-    notesByKey,
-    signal,
-  } = options;
+  onPreviewChange?: (target: FootnotePreviewTarget | null) => void;
+}): FootnoteController {
+  const { doc, win, article, notesByKey, signal, onPreviewChange } = options;
   const hoverMedia = win.matchMedia('(hover: hover) and (pointer: fine)');
-  const reduceMedia = win.matchMedia('(prefers-reduced-motion: reduce)');
   let activeLink: HTMLAnchorElement | null = null;
-  let showFrame: number | null = null;
-  let positionFrame: number | null = null;
-  let closeTimer: number | null = null;
-  let hideTimer: number | null = null;
   let activeMotion: 'pointer' | 'instant' = 'instant';
+  let closeTimer: number | null = null;
+  let positionFrame: number | null = null;
+  let previewPointerInside = false;
+  let previewFocusInside = false;
 
   function clearCloseTimer(): void {
     if (closeTimer !== null) {
       win.clearTimeout(closeTimer);
       closeTimer = null;
-    }
-  }
-
-  function clearHideTimer(): void {
-    if (hideTimer !== null) {
-      win.clearTimeout(hideTimer);
-      hideTimer = null;
-    }
-  }
-
-  function clearShowFrame(): void {
-    if (showFrame !== null) {
-      win.cancelAnimationFrame(showFrame);
-      showFrame = null;
     }
   }
 
@@ -693,115 +638,81 @@ function createPreviewController(options: {
     return link && article.contains(link) ? link : null;
   }
 
-  function updatePosition(): void {
-    positionFrame = null;
-    if (!activeLink || preview.hidden || !activeLink.isConnected) {
+  function noteFor(link: HTMLAnchorElement): RenderedFootnote | undefined {
+    const key = link.dataset.sepPlusFootnoteKey;
+    return key ? notesByKey.get(key) : undefined;
+  }
+
+  function emit(): void {
+    const note = activeLink?.isConnected ? noteFor(activeLink) : undefined;
+    if (!activeLink || !note) {
+      onPreviewChange?.(null);
       return;
     }
-    const triggerRect = activeLink.getBoundingClientRect();
-    const previewRect = preview.getBoundingClientRect();
-    const placement = computeFootnotePlacement(
-      triggerRect,
-      {
-        width: previewRect.width,
-        height: previewRect.height,
-      },
-      {
-        width: win.innerWidth,
-        height: win.innerHeight,
+    onPreviewChange?.({
+      key: note.key,
+      trigger: activeLink,
+      rect: activeLink.getBoundingClientRect(),
+      motion: activeMotion,
+      render: () => cloneNoteForPreview(note, doc),
+    });
+  }
+
+  function show(link: HTMLAnchorElement, motion: 'pointer' | 'instant'): void {
+    if (!noteFor(link)) {
+      return;
+    }
+    clearCloseTimer();
+    activeLink = link;
+    activeMotion = motion;
+    emit();
+  }
+
+  function dismiss(): void {
+    clearCloseTimer();
+    if (!activeLink) {
+      return;
+    }
+    activeLink = null;
+    previewPointerInside = false;
+    previewFocusInside = false;
+    onPreviewChange?.(null);
+  }
+
+  function linkHasFocus(): boolean {
+    return activeLink !== null && doc.activeElement === activeLink;
+  }
+
+  function shouldRemainOpen(): boolean {
+    return previewPointerInside || previewFocusInside || linkHasFocus();
+  }
+
+  function scheduleClose(): void {
+    clearCloseTimer();
+    closeTimer = win.setTimeout(() => {
+      closeTimer = null;
+      if (!shouldRemainOpen()) {
+        dismiss();
       }
-    );
-    preview.style.top = `${placement.top}px`;
-    preview.style.left = `${placement.left}px`;
-    preview.dataset.placement = placement.placement;
+    }, POINTER_CLOSE_DELAY_MS);
+  }
+
+  function closeUnlessFocusRemains(): void {
+    win.requestAnimationFrame(() => {
+      if (!linkHasFocus() && !previewFocusInside) {
+        dismiss();
+      }
+    });
   }
 
   function schedulePosition(): void {
     if (!activeLink || positionFrame !== null) {
       return;
     }
-    positionFrame = win.requestAnimationFrame(updatePosition);
-  }
-
-  function showPreview(
-    link: HTMLAnchorElement,
-    motion: 'pointer' | 'instant'
-  ): void {
-    const key = link.dataset.sepPlusFootnoteKey;
-    const note = key ? notesByKey.get(key) : undefined;
-    if (!note) {
-      return;
-    }
-
-    clearCloseTimer();
-    clearHideTimer();
-    clearShowFrame();
-    const wasOpen = !preview.hidden && preview.dataset.state === 'open';
-    activeLink = link;
-    activeMotion = motion;
-    content.replaceChildren(cloneNoteForPreview(note, doc));
-    preview.setAttribute('aria-label', 'Footnote');
-    preview.dataset.motion = motion;
-    preview.dataset.state = wasOpen ? 'open' : 'measuring';
-    preview.hidden = false;
-    updatePosition();
-
-    if (wasOpen || motion === 'instant') {
-      preview.dataset.state = 'open';
-      return;
-    }
-
-    showFrame = win.requestAnimationFrame(() => {
-      showFrame = null;
-      if (activeLink === link) {
-        preview.dataset.state = 'open';
-      }
+    positionFrame = win.requestAnimationFrame(() => {
+      positionFrame = null;
+      emit();
     });
-  }
-
-  function finishHide(): void {
-    hideTimer = null;
-    preview.hidden = true;
-    preview.dataset.state = 'measuring';
-    content.replaceChildren();
-  }
-
-  function hidePreview(animate: boolean): void {
-    clearCloseTimer();
-    clearShowFrame();
-    if (!activeLink && preview.hidden) {
-      return;
-    }
-    activeLink = null;
-    const shouldAnimate =
-      animate &&
-      activeMotion === 'pointer' &&
-      hoverMedia.matches &&
-      !reduceMedia.matches;
-    if (!shouldAnimate) {
-      clearHideTimer();
-      finishHide();
-      return;
-    }
-    preview.dataset.state = 'closing';
-    clearHideTimer();
-    hideTimer = win.setTimeout(finishHide, POINTER_TRANSITION_MS);
-  }
-
-  function focusIsWithinPreview(): boolean {
-    const shadowActive = shadow.activeElement;
-    return Boolean(shadowActive && preview.contains(shadowActive));
-  }
-
-  function schedulePointerClose(): void {
-    clearCloseTimer();
-    closeTimer = win.setTimeout(() => {
-      closeTimer = null;
-      if (activeLink && doc.activeElement === activeLink) {
-        return;
-      }
-      hidePreview(true);
-    }, POINTER_CLOSE_DELAY_MS);
   }
 
   article.addEventListener(
@@ -812,8 +723,10 @@ function createPreviewController(options: {
         return;
       }
       const link = findReference(pointerEvent.target);
-      if (link) {
-        showPreview(link, 'pointer');
+      if (link && link !== activeLink) {
+        show(link, 'pointer');
+      } else if (link) {
+        clearCloseTimer();
       }
     },
     { signal }
@@ -833,7 +746,7 @@ function createPreviewController(options: {
       ) {
         return;
       }
-      schedulePointerClose();
+      scheduleClose();
     },
     { signal }
   );
@@ -843,45 +756,13 @@ function createPreviewController(options: {
     (event) => {
       const link = findReference(event.target);
       if (link) {
-        showPreview(link, 'instant');
+        show(link, 'instant');
       }
     },
     { signal }
   );
 
-  article.addEventListener(
-    'focusout',
-    () => {
-      win.requestAnimationFrame(() => {
-        if (
-          (activeLink && doc.activeElement === activeLink) ||
-          focusIsWithinPreview()
-        ) {
-          return;
-        }
-        hidePreview(false);
-      });
-    },
-    { signal }
-  );
-
-  preview.addEventListener('pointerenter', clearCloseTimer, { signal });
-  preview.addEventListener('pointerleave', schedulePointerClose, { signal });
-  preview.addEventListener(
-    'focusout',
-    () => {
-      win.requestAnimationFrame(() => {
-        if (
-          (activeLink && doc.activeElement === activeLink) ||
-          focusIsWithinPreview()
-        ) {
-          return;
-        }
-        hidePreview(false);
-      });
-    },
-    { signal }
-  );
+  article.addEventListener('focusout', closeUnlessFocusRemains, { signal });
 
   doc.addEventListener(
     'pointerdown',
@@ -890,10 +771,14 @@ function createPreviewController(options: {
         return;
       }
       const path = event.composedPath();
-      if (path.includes(activeLink) || path.includes(preview)) {
+      const insidePreview = path.some(
+        (item) =>
+          item instanceof Element && item.hasAttribute(FOOTNOTE_PREVIEW_ATTRIBUTE)
+      );
+      if (path.includes(activeLink) || insidePreview) {
         return;
       }
-      hidePreview(false);
+      dismiss();
     },
     { capture: true, signal }
   );
@@ -903,7 +788,7 @@ function createPreviewController(options: {
     (event) => {
       const link = findReference(event.target);
       if (link && link === activeLink) {
-        hidePreview(false);
+        dismiss();
       }
     },
     { signal }
@@ -917,8 +802,8 @@ function createPreviewController(options: {
       }
       event.preventDefault();
       const returnTarget = activeLink;
-      const shouldReturnFocus = focusIsWithinPreview();
-      hidePreview(false);
+      const shouldReturnFocus = previewFocusInside;
+      dismiss();
       if (shouldReturnFocus) {
         returnTarget.focus();
       }
@@ -926,23 +811,35 @@ function createPreviewController(options: {
     { capture: true, signal }
   );
 
-  win.addEventListener('scroll', schedulePosition, {
-    passive: true,
-    signal,
-  });
+  win.addEventListener('scroll', schedulePosition, { passive: true, signal });
   win.addEventListener('resize', schedulePosition, { signal });
 
-  return () => {
-    clearCloseTimer();
-    clearHideTimer();
-    clearShowFrame();
-    if (positionFrame !== null) {
-      win.cancelAnimationFrame(positionFrame);
-      positionFrame = null;
-    }
-    preview.hidden = true;
-    content.replaceChildren();
-    layer.remove();
+  return {
+    cleanup: () => {
+      clearCloseTimer();
+      if (positionFrame !== null) {
+        win.cancelAnimationFrame(positionFrame);
+        positionFrame = null;
+      }
+      dismiss();
+    },
+    dismiss,
+    previewPointerEnter: () => {
+      previewPointerInside = true;
+      clearCloseTimer();
+    },
+    previewPointerLeave: () => {
+      previewPointerInside = false;
+      scheduleClose();
+    },
+    previewFocusEnter: () => {
+      previewFocusInside = true;
+      clearCloseTimer();
+    },
+    previewFocusLeave: () => {
+      previewFocusInside = false;
+      closeUnlessFocusRemains();
+    },
   };
 }
 
@@ -1004,17 +901,25 @@ async function loadFootnoteDocuments(options: {
   return parsedByKey;
 }
 
+function createNoopController(): FootnoteController {
+  const noop = () => undefined;
+  return {
+    cleanup: noop,
+    dismiss: noop,
+    previewPointerEnter: noop,
+    previewPointerLeave: noop,
+    previewFocusEnter: noop,
+    previewFocusLeave: noop,
+  };
+}
+
 export function initFootnotes(
   options: FootnoteControllerOptions = {}
-): () => void {
+): FootnoteController {
   const doc = options.document ?? document;
   const win = options.window ?? doc.defaultView ?? window;
   const fetcher = options.fetch ?? win.fetch.bind(win);
-  const existingLayer = doc.getElementById(
-    FOOTNOTE_LAYER_ID
-  ) as FootnoteLayerElement | null;
-  existingLayer?.sepPlusCleanup?.();
-  existingLayer?.remove();
+  activeCleanups.get(doc)?.();
   for (const link of Array.from(
     doc.querySelectorAll<HTMLAnchorElement>(
       '#article-content sup a[data-sep-plus-footnote-source-href]'
@@ -1035,7 +940,7 @@ export function initFootnotes(
     ?.remove();
   const references = collectFootnoteReferences(doc, win.location.href);
   if (!references.length || !doc.body) {
-    return () => undefined;
+    return createNoopController();
   }
 
   const lifecycle = new AbortController();
@@ -1049,40 +954,20 @@ export function initFootnotes(
     decoration: RemovedDecoration[];
   }> = [];
   let section: HTMLElement | null = null;
-  let previewCleanup: (() => void) | null = null;
+  let preview: FootnoteController | null = null;
   let cleaned = false;
-
-  const layer = doc.createElement('div') as FootnoteLayerElement;
-  layer.id = FOOTNOTE_LAYER_ID;
-  const shadow = layer.attachShadow({ mode: 'open' });
-  const style = doc.createElement('style');
-  style.textContent = footnoteStyles;
-  const preview = doc.createElement('aside');
-  preview.className = 'sep-footnote-preview sep-margin-note';
-  preview.hidden = true;
-  preview.dataset.state = 'measuring';
-  preview.dataset.motion = 'instant';
-  preview.setAttribute('role', 'note');
-  const header = doc.createElement('div');
-  header.className = 'sep-margin-note-header';
-  const label = doc.createElement('div');
-  label.className = 'sep-margin-note-label';
-  label.textContent = 'Footnote';
-  header.append(label);
-  const content = doc.createElement('div');
-  content.className = 'sep-margin-note-body';
-  preview.append(header, content);
-  shadow.append(style, preview);
-  doc.body.appendChild(layer);
 
   function cleanup(): void {
     if (cleaned) {
       return;
     }
     cleaned = true;
+    if (activeCleanups.get(doc) === cleanup) {
+      activeCleanups.delete(doc);
+    }
     lifecycle.abort();
-    previewCleanup?.();
-    previewCleanup = null;
+    preview?.cleanup();
+    preview = null;
     for (const restore of restores) {
       if (restore.href === null) {
         restore.link.removeAttribute('href');
@@ -1113,10 +998,9 @@ export function initFootnotes(
     }
     section?.remove();
     section = null;
-    layer.remove();
   }
 
-  layer.sepPlusCleanup = cleanup;
+  activeCleanups.set(doc, cleanup);
 
   void loadFootnoteDocuments({
     references,
@@ -1182,18 +1066,22 @@ export function initFootnotes(
     if (!article) {
       return;
     }
-    previewCleanup = createPreviewController({
+    preview = createPreviewController({
       doc,
       win,
       article,
-      layer,
-      shadow,
-      preview,
-      content,
       notesByKey: built.notesByKey,
       signal: lifecycle.signal,
+      onPreviewChange: options.onPreviewChange,
     });
   });
 
-  return cleanup;
+  return {
+    cleanup,
+    dismiss: () => preview?.dismiss(),
+    previewPointerEnter: () => preview?.previewPointerEnter(),
+    previewPointerLeave: () => preview?.previewPointerLeave(),
+    previewFocusEnter: () => preview?.previewFocusEnter(),
+    previewFocusLeave: () => preview?.previewFocusLeave(),
+  };
 }
