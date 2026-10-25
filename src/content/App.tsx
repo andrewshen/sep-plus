@@ -1,18 +1,12 @@
+import { useEffect, useMemo, useState } from 'react';
 import {
-  useCallback,
-  useEffect,
-  useLayoutEffect,
-  useMemo,
-  useRef,
-  useState,
-} from 'react';
-import { writeSidebarCollapsed } from '../lib/storage';
-import type {
-  SiteNavSection,
-  ThemePreference,
-  TocItem,
-} from '../lib/types';
-import { getActiveTocIndex, identifyPrintBlock } from '../host/toc';
+  onHighlightColorChanged,
+  onThemeChanged,
+  setHighlightColor as storeHighlightColor,
+  setTheme as storeTheme,
+} from '../lib/storage';
+import type { HighlightColor, ThemePreference, TocItem } from '../lib/types';
+import { getActiveTocIndex } from '../host/toc';
 import { formatRelativeAnnotationTime } from '../lib/marginNotePlacement';
 import { AnnotationMarks } from './annotations/AnnotationMarks';
 import { MarginNotePopover } from './annotations/MarginNotePopover';
@@ -20,22 +14,17 @@ import { SelectionToolbar } from './annotations/SelectionToolbar';
 import { useAnnotations } from './annotations/useAnnotations';
 import { BibliographyPreview } from './citations/BibliographyPreview';
 import { useBibliographyCitations } from './citations/useBibliographyCitations';
-import { Sidebar } from './sidebar/Sidebar';
+import { Header, type HeaderPopover } from './header/Header';
+import { Outline } from './outline/Outline';
 
 type AppProps = {
   items: TocItem[];
-  siteNav?: SiteNavSection[];
-  initialCollapsed: boolean;
   initialTheme: ThemePreference;
+  initialHighlightColor: HighlightColor;
   articleMode: boolean;
   articleSource?: string;
   articleTitle: string;
 };
-
-type SidebarPhase = 'closed' | 'opening' | 'open' | 'closing-ready' | 'closing';
-
-const SIDEBAR_TRANSITION_MS = 200;
-const SIDEBAR_TRANSITION_FALLBACK_MS = SIDEBAR_TRANSITION_MS + 100;
 
 function bibliographyPreviewLabel(sections: readonly string[]): string {
   const unique = new Set(sections);
@@ -48,45 +37,41 @@ function bibliographyPreviewLabel(sections: readonly string[]): string {
     : 'Bibliography';
 }
 
-function syncSidebarPhase(phase: SidebarPhase): void {
-  document.documentElement.dataset.sepPlusSidebarPhase = phase;
-  document.body.dataset.sepPlusSidebarPhase = phase;
-}
-
-function prefersReducedMotion(): boolean {
-  return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+function isEditableTarget(target: EventTarget | null): boolean {
+  return (
+    target instanceof HTMLElement &&
+    (target.isContentEditable ||
+      target.tagName === 'INPUT' ||
+      target.tagName === 'TEXTAREA' ||
+      target.tagName === 'SELECT')
+  );
 }
 
 export function App({
   items,
-  siteNav,
-  initialCollapsed,
   initialTheme,
+  initialHighlightColor,
   articleMode,
   articleSource,
   articleTitle,
 }: AppProps) {
-  const [sidebarPhase, setSidebarPhase] = useState<SidebarPhase>(
-    initialCollapsed ? 'closed' : 'open',
-  );
-  const [paletteOpen, setPaletteOpen] = useState(false);
+  const [openPopover, setOpenPopover] = useState<HeaderPopover | null>(null);
+  const [theme, setTheme] = useState(initialTheme);
+  const [highlightColor, setHighlightColor] = useState(initialHighlightColor);
   const [activeIndex, setActiveIndex] = useState(0);
   const [dark, setDark] = useState(() =>
     document.body.classList.contains('dark'),
   );
-  const prepareFrameRef = useRef<number | null>(null);
-  const startFrameRef = useRef<number | null>(null);
+  const popoverOpen = openPopover !== null;
   const annotationState = useAnnotations({
     enabled: articleMode && Boolean(articleSource),
     source: articleSource,
     pageTitle: articleTitle,
-    paletteOpen,
-    sidebarPhase,
+    popoverOpen,
   });
   const citationState = useBibliographyCitations({
     enabled: articleMode,
-    paletteOpen,
-    sidebarPhase,
+    popoverOpen,
     onPreviewOpen: annotationState.dismissSelection,
   });
   const [deletingAnnotation, setDeletingAnnotation] = useState(false);
@@ -102,10 +87,6 @@ export function App({
     );
   }, [annotationState.activeAnnotation?.annotationId, annotationState.annotations]);
 
-  useLayoutEffect(() => {
-    syncSidebarPhase(sidebarPhase);
-  }, [sidebarPhase]);
-
   useEffect(() => {
     setDeletingAnnotation(false);
   }, [annotationState.activeAnnotation?.key]);
@@ -120,62 +101,31 @@ export function App({
     citationState.dismiss,
   ]);
 
-  useEffect(
-    () => () => {
-      if (prepareFrameRef.current !== null) {
-        window.cancelAnimationFrame(prepareFrameRef.current);
-      }
-      if (startFrameRef.current !== null) {
-        window.cancelAnimationFrame(startFrameRef.current);
-      }
-    },
-    [],
-  );
-
   useEffect(() => {
-    if (sidebarPhase !== 'opening' && sidebarPhase !== 'closing') {
+    if (!articleMode) {
       return;
     }
-
-    const container = document.getElementById('container');
-    const stablePhase = sidebarPhase === 'opening' ? 'open' : 'closed';
-    let finished = false;
-
-    function finish(): void {
-      if (finished) {
+    let frame: number | null = null;
+    function scheduleUpdate() {
+      if (frame !== null) {
         return;
       }
-      finished = true;
-      setSidebarPhase(stablePhase);
+      frame = window.requestAnimationFrame(() => {
+        frame = null;
+        setActiveIndex(getActiveTocIndex(items));
+      });
     }
-
-    function onTransitionEnd(event: TransitionEvent): void {
-      if (event.target === container && event.propertyName === 'transform') {
-        finish();
+    setActiveIndex(getActiveTocIndex(items));
+    window.addEventListener('scroll', scheduleUpdate, { passive: true });
+    window.addEventListener('resize', scheduleUpdate);
+    return () => {
+      if (frame !== null) {
+        window.cancelAnimationFrame(frame);
       }
-    }
-
-    container?.addEventListener('transitionend', onTransitionEnd);
-    const fallback = window.setTimeout(finish, SIDEBAR_TRANSITION_FALLBACK_MS);
-    return () => {
-      container?.removeEventListener('transitionend', onTransitionEnd);
-      window.clearTimeout(fallback);
+      window.removeEventListener('scroll', scheduleUpdate);
+      window.removeEventListener('resize', scheduleUpdate);
     };
-  }, [sidebarPhase]);
-
-  useEffect(() => {
-    function updateActive() {
-      identifyPrintBlock();
-      setActiveIndex(getActiveTocIndex(items));
-    }
-    updateActive();
-    window.addEventListener('scroll', updateActive, { passive: true });
-    window.addEventListener('resize', updateActive);
-    return () => {
-      window.removeEventListener('scroll', updateActive);
-      window.removeEventListener('resize', updateActive);
-    };
-  }, [items]);
+  }, [articleMode, items]);
 
   useEffect(() => {
     const observer = new MutationObserver(() => {
@@ -188,51 +138,22 @@ export function App({
     return () => observer.disconnect();
   }, []);
 
-  const openPalette = useCallback(() => setPaletteOpen(true), []);
-  const closePalette = useCallback(() => setPaletteOpen(false), []);
-
-  function toggleSidebar(): void {
-    if (
-      sidebarPhase === 'opening' ||
-      sidebarPhase === 'closing-ready' ||
-      sidebarPhase === 'closing'
-    ) {
-      return;
-    }
-
-    const opening = sidebarPhase === 'closed';
-    writeSidebarCollapsed(!opening);
-
-    if (prefersReducedMotion()) {
-      setSidebarPhase(opening ? 'open' : 'closed');
-      return;
-    }
-
-    if (opening) {
-      setSidebarPhase('opening');
-      return;
-    }
-
-    setSidebarPhase('closing-ready');
-    prepareFrameRef.current = window.requestAnimationFrame(() => {
-      prepareFrameRef.current = null;
-      startFrameRef.current = window.requestAnimationFrame(() => {
-        startFrameRef.current = null;
-        setSidebarPhase('closing');
-      });
-    });
-  }
-
-  const sidebarCollapsed =
-    sidebarPhase === 'closed' || sidebarPhase === 'closing';
+  useEffect(() => {
+    const stopTheme = onThemeChanged(setTheme);
+    const stopHighlight = onHighlightColorChanged(setHighlightColor);
+    return () => {
+      stopTheme();
+      stopHighlight();
+    };
+  }, []);
 
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
-      const isPaletteShortcut =
+      const isSearchShortcut =
         (event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k';
-      if (isPaletteShortcut) {
+      if (isSearchShortcut) {
         event.preventDefault();
-        setPaletteOpen((open) => !open);
+        setOpenPopover((open) => (open === 'search' ? null : 'search'));
         return;
       }
 
@@ -241,25 +162,16 @@ export function App({
         !event.metaKey &&
         !event.ctrlKey &&
         !event.altKey &&
-        !paletteOpen
+        openPopover !== 'search' &&
+        !isEditableTarget(event.composedPath()[0] ?? null)
       ) {
-        const target = event.target;
-        if (
-          target instanceof HTMLElement &&
-          (target.isContentEditable ||
-            target.tagName === 'INPUT' ||
-            target.tagName === 'TEXTAREA' ||
-            target.tagName === 'SELECT')
-        ) {
-          return;
-        }
         event.preventDefault();
-        setPaletteOpen(true);
+        setOpenPopover('search');
       }
     }
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [paletteOpen]);
+  }, [openPopover]);
 
   return (
     <div
@@ -267,29 +179,33 @@ export function App({
         .filter(Boolean)
         .join(' ')}
     >
-      <Sidebar
-        items={items}
-        siteNav={siteNav}
-        activeIndex={activeIndex}
-        collapsed={sidebarCollapsed}
-        onToggleCollapsed={toggleSidebar}
-        paletteOpen={paletteOpen}
-        onOpenPalette={openPalette}
-        onClosePalette={closePalette}
+      <Header
+        articleMode={articleMode}
         dark={dark}
-        initialTheme={initialTheme}
+        openPopover={openPopover}
+        onOpenPopoverChange={setOpenPopover}
+        theme={theme}
+        onThemeChange={(next) => {
+          setTheme(next);
+          void storeTheme(next);
+        }}
+        highlightColor={highlightColor}
+        onHighlightColorChange={(next) => {
+          setHighlightColor(next);
+          void storeHighlightColor(next);
+        }}
         annotations={annotationState.annotations}
         annotationsLoading={annotationState.loading}
         annotationsError={annotationState.error}
         onScrollToAnnotation={annotationState.scrollToAnnotation}
-        onUpdateAnnotation={annotationState.updateAnnotation}
-        onDeleteAnnotation={annotationState.deleteAnnotation}
         onExportAnnotations={annotationState.exportAnnotations}
       />
+      {articleMode ? <Outline items={items} activeIndex={activeIndex} /> : null}
       <AnnotationMarks
         ranges={annotationState.markedRanges}
         emphasizedIds={annotationState.emphasizedIds}
         host={annotationState.articleRoot}
+        color={highlightColor}
       />
       <SelectionToolbar
         selection={annotationState.pendingSelection}
@@ -350,6 +266,7 @@ export function App({
           ariaLabel="Bibliography citation preview"
           role="note"
           motion="pointer"
+          structuredBody
           bibliographyPreview
           className="sep-bibliography-popover"
           onDismiss={citationState.dismiss}

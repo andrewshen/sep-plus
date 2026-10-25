@@ -419,7 +419,7 @@ export function toDisplayTitleCase(text: string): string {
 }
 
 /**
- * Format a TOC entry title for palette display.
+ * Format a TOC entry title for search display.
  * Does not mutate search text — callers should keep matching against the raw title.
  */
 export function formatEntryTitle(title: string, href?: string): string {

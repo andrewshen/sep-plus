@@ -1,5 +1,8 @@
 import type { TocItem } from '../lib/types';
 
+/** Height of the fixed SEP+ header; keep in sync with `.sep-header`. */
+export const HEADER_HEIGHT = 60;
+
 const SKIP_TEXTS = new Set([
   'Bibliography',
   'Academic Tools',
@@ -82,43 +85,45 @@ export function collectTocItems(): TocItem[] {
   return items;
 }
 
-export function getHeadingOffset(href: string): number | null {
+function findHeading(href: string): Element | null {
   const id = href.startsWith('#') ? href.slice(1) : href;
-  const target = document.querySelector(`[name="${id}"], [id="${id}"]`);
-  if (!target) {
-    return null;
+  return document.querySelector(`[name="${id}"], [id="${id}"]`);
+}
+
+/** Headings don't move between nodes, so resolve each list's targets once. */
+const headingCache = new WeakMap<readonly TocItem[], (Element | null)[]>();
+
+function headingsFor(items: readonly TocItem[]): (Element | null)[] {
+  let headings = headingCache.get(items);
+  if (!headings) {
+    headings = items.map((item) => findHeading(item.href));
+    headingCache.set(items, headings);
   }
-  const rect = target.getBoundingClientRect();
-  return rect.top + window.scrollY;
+  return headings;
 }
 
 export function smoothScrollToHref(href: string): void {
-  const id = href.startsWith('#') ? href.slice(1) : href;
-  const target = document.querySelector(`[name="${id}"], [id="${id}"]`);
+  const target = findHeading(href);
   if (!target) {
     return;
   }
   const top = target.getBoundingClientRect().top + window.scrollY;
   window.scrollTo({
-    top: Math.max(top - 24, 0),
+    top: Math.max(top - HEADER_HEIGHT - 24, 0),
     behavior: 'smooth',
   });
 }
 
 export function getActiveTocIndex(
-  items: TocItem[],
-  scrollOffset = 80
+  items: readonly TocItem[],
+  scrollOffset = HEADER_HEIGHT + 40
 ): number {
-  const scroll = window.scrollY + scrollOffset;
+  const headings = headingsFor(items);
   let index = -1;
 
-  for (let i = 0; i < items.length; i++) {
-    const item = items[i];
-    if (!item) {
-      continue;
-    }
-    const top = getHeadingOffset(item.href);
-    if (typeof top === 'number' && top <= scroll) {
+  for (let i = 0; i < headings.length; i++) {
+    const heading = headings[i];
+    if (heading && heading.getBoundingClientRect().top <= scrollOffset) {
       index = i;
     }
   }
@@ -127,17 +132,4 @@ export function getActiveTocIndex(
     return 0;
   }
   return index;
-}
-
-export function identifyPrintBlock(): void {
-  for (const el of Array.from(document.querySelectorAll('div'))) {
-    const style = window.getComputedStyle(el);
-    if (
-      style.display === 'block' &&
-      style.width === '242px' &&
-      style.float === 'left'
-    ) {
-      el.id = 'print-block';
-    }
-  }
 }

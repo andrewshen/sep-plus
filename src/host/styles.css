@@ -6,19 +6,16 @@
  */
 html:not(.sep-plus-ready) {
   min-height: 100%;
-  background: var(--sep-page-bg, #f9f9f8) !important;
+  background: var(--sep-page-bg, #fff) !important;
 }
 
 html:not(.sep-plus-ready) > body,
 html:not(.sep-plus-ready) > #sep-plus-root,
-html:not(.sep-plus-ready) > #sep-plus-edge-toggle,
-html:not(.sep-plus-ready) > #sep-plus-palette-layer,
 html:not(.sep-plus-ready) > #sep-plus-annotation-layer {
   visibility: hidden !important;
 }
 
-html:not(.sep-plus-ready) body *,
-html:not(.sep-plus-ready) #sep-plus-edge-toggle * {
+html:not(.sep-plus-ready) body * {
   transition: none !important;
 }
 
@@ -107,6 +104,17 @@ a:hover {
   padding-right: 0 !important;
 }
 
+/* The root background and color-scheme also set the fill Chrome uses for
+   tiles it hasn't rasterized yet; without them a fast scroll flashes white. */
+html.sep-plus {
+  background: var(--sep-page-bg) !important;
+  color-scheme: light;
+}
+
+html.sep-plus.dark {
+  color-scheme: dark;
+}
+
 body.sep-plus {
   background: var(--sep-page-bg) !important;
 }
@@ -117,7 +125,7 @@ body.sep-plus :focus-visible {
   outline: none !important;
 }
 
-/* Native SEP chrome — replaced by the React sidebar on every page. */
+/* Native SEP chrome — replaced by the React header on every page. */
 body.sep-plus #header-wrapper,
 body.sep-plus #article-sidebar,
 body.sep-plus #search,
@@ -134,43 +142,25 @@ body.sep-plus #article {
   box-sizing: border-box !important;
 }
 
-body.sep-plus #container {
-  margin-left: 0 !important;
-  width: 100% !important;
-  max-width: 100% !important;
-  padding: 0 !important;
-  transform: none;
-  transition: none;
-}
-
+body.sep-plus #container,
 body.sep-plus #content {
   padding: 0 !important;
 }
 
-/* Sidebar + content-sheet tokens (React chrome lives in Shadow DOM) */
+/* Header + reading-column tokens (React chrome lives in Shadow DOM) */
 :root {
-  --sep-plus-sidebar-width: 380px;
-  --sep-plus-sidebar-half-width: 190px;
-  --sep-plus-sheet-padding: 80px 60px 120px;
+  --sep-plus-header-height: 60px;
+  /* Paper places the title 144px below the header. */
+  --sep-plus-page-padding: calc(var(--sep-plus-header-height) + 144px) 60px
+    120px;
   --sep-plus-content-max-width: 585px;
-  /* Soft ambient shadow; sits above the sidebar so the left edge reads clearly */
-  --sep-plus-sheet-shadow: 0 0 16px
-    color-mix(in srgb, var(--sand-12) 5%, transparent);
-  --sep-plus-sheet-shadow-dark: 0 0 16px
-    color-mix(in srgb, var(--sand-1) 35%, transparent);
 }
 
-/*
- * Shared content sheet: white surface + edge shadow.
- * Entries use #article; every other page uses #content (no nested #article).
- */
+/* Entries use #article; every other page uses #content (no nested #article). */
 body.sep-plus :is(#article, #content:not(:has(#article))) {
-  position: relative !important;
-  z-index: 2 !important;
-  padding: var(--sep-plus-sheet-padding) !important;
+  padding: var(--sep-plus-page-padding) !important;
   min-height: 100vh !important;
-  background: var(--sep-article-bg) !important;
-  box-shadow: var(--sep-plus-sheet-shadow) !important;
+  background: transparent !important;
 }
 
 body.sep-plus #article-content,
@@ -187,8 +177,9 @@ body.sep-plus .sep-plus-content-column {
 html.sep-plus,
 body.sep-plus {
   overflow-x: hidden !important;
-  /* Prevent load-time layout (sidebar offset / fonts) from nudging scroll. */
+  /* Prevent load-time layout (fonts) from nudging scroll. */
   overflow-anchor: none;
+  scroll-padding-top: var(--sep-plus-header-height);
 }
 
 body.sep-plus #container,
@@ -196,114 +187,9 @@ body.sep-plus #article {
   overflow-anchor: none;
 }
 
-/* Stable open layout. Transient phases below animate only transforms, then
-   commit this layout once the visual motion has finished. */
-body.sep-plus[data-sep-plus-sidebar-phase='open'] #container {
-  margin-left: var(--sep-plus-sidebar-width) !important;
-  width: calc(100% - var(--sep-plus-sidebar-width)) !important;
-  max-width: calc(100% - var(--sep-plus-sidebar-width)) !important;
-}
-
-body.sep-plus[data-sep-plus-sidebar-phase='opening'] #container,
-body.sep-plus[data-sep-plus-sidebar-phase='closing-ready'] #container,
-body.sep-plus[data-sep-plus-sidebar-phase='closing'] #container {
-  position: relative;
-  z-index: 2;
-}
-
-body.sep-plus[data-sep-plus-sidebar-phase='opening'] #container {
-  transform: translateX(var(--sep-plus-sidebar-width));
-  transition: transform var(--sep-duration-drawer) var(--sep-ease-out);
-}
-
-body.sep-plus[data-sep-plus-sidebar-phase='closing-ready'] #container {
-  transform: translateX(var(--sep-plus-sidebar-width));
-}
-
-body.sep-plus[data-sep-plus-sidebar-phase='closing'] #container {
-  transform: translateX(0);
-  transition: transform var(--sep-duration-drawer) var(--sep-ease-out);
-}
-
-body.sep-plus[data-sep-plus-sidebar-phase='opening']
-  :is(
-    #article-content,
-    #article-copyright,
-    #article-banner,
-    #site-credits,
-    .sep-plus-content-column
-  ),
-body.sep-plus[data-sep-plus-sidebar-phase='closing-ready']
-  :is(
-    #article-content,
-    #article-copyright,
-    #article-banner,
-    #site-credits,
-    .sep-plus-content-column
-  ),
-body.sep-plus[data-sep-plus-sidebar-phase='closing']
-  :is(
-    #article-content,
-    #article-copyright,
-    #article-banner,
-    #site-credits,
-    .sep-plus-content-column
-  ) {
-  width: max(0px, calc(100% - var(--sep-plus-sidebar-width))) !important;
-  margin-left: auto !important;
-  margin-right: auto !important;
-}
-
-body.sep-plus[data-sep-plus-sidebar-phase='opening']
-  :is(
-    #article-content,
-    #article-copyright,
-    #article-banner,
-    #site-credits,
-    .sep-plus-content-column
-  ),
-body.sep-plus[data-sep-plus-sidebar-phase='closing-ready']
-  :is(
-    #article-content,
-    #article-copyright,
-    #article-banner,
-    #site-credits,
-    .sep-plus-content-column
-  ) {
-  transform: translateX(calc(0px - var(--sep-plus-sidebar-half-width)));
-}
-
-body.sep-plus[data-sep-plus-sidebar-phase='opening']
-  :is(
-    #article-content,
-    #article-copyright,
-    #article-banner,
-    #site-credits,
-    .sep-plus-content-column
-  ),
-body.sep-plus[data-sep-plus-sidebar-phase='closing']
-  :is(
-    #article-content,
-    #article-copyright,
-    #article-banner,
-    #site-credits,
-    .sep-plus-content-column
-  ) {
-  transition: transform var(--sep-duration-drawer) var(--sep-ease-out);
-}
-
+/* Fixed header + outline sit above the page. */
 #sep-plus-root {
   all: initial;
-  position: fixed;
-  inset: 0;
-  /* Below the article sheet so content shadow overlays the sidebar */
-  z-index: 1;
-  pointer-events: none;
-}
-
-/* Search palette layer sits above the article so it can protrude, while
-   #sep-plus-root stays below so the article edge shadow still paints. */
-#sep-plus-palette-layer {
   position: fixed;
   inset: 0;
   z-index: 100;
@@ -317,210 +203,14 @@ body.sep-plus[data-sep-plus-sidebar-phase='closing']
   pointer-events: none;
 }
 
-/* Edge expander lives outside the shadow root so it can sit above the
-   article while the sidebar stays below the content shadow. */
-#sep-plus-edge-toggle {
-  position: fixed;
-  inset: 0;
-  z-index: 3;
-  pointer-events: none;
-}
-
-#sep-plus-edge-toggle .sep-sidebar-toggle {
-  pointer-events: auto;
-  position: fixed;
-  top: 0;
-  left: calc(var(--sep-plus-sidebar-width) - 8px);
-  width: 60px;
-  height: 100vh;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  opacity: 0;
-  transform: translateX(0);
-  transition:
-    transform var(--sep-duration-drawer) var(--sep-ease-out),
-    opacity var(--sep-duration-ui) var(--sep-ease-out);
-}
-
-#sep-plus-edge-toggle .sep-sidebar-toggle.is-collapsed {
-  transform: translateX(calc(0px - var(--sep-plus-sidebar-width)));
-}
-
-#sep-plus-edge-toggle .sep-sidebar-toggle[data-phase='pressed'] {
-  opacity: 0;
-  transition:
-    transform var(--sep-duration-drawer) var(--sep-ease-out),
-    opacity var(--sep-duration-fast) var(--sep-ease-out);
-}
-
-#sep-plus-edge-toggle .sep-sidebar-expander {
-  appearance: none;
-  border: none;
-  background: transparent;
-  position: relative;
-  cursor: pointer;
-  width: 40px;
-  height: 100px;
-  margin-top: calc(100vh / 2 - 50px);
-  margin-left: 2px;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 0;
-}
-
-#sep-plus-edge-toggle .sep-expander {
-  display: block;
-  width: 4px;
-  border-radius: 8px;
-  background: var(--sand-7);
-  transition:
-    transform var(--sep-duration-ui) var(--sep-ease-out),
-    background var(--sep-duration-ui) var(--sep-ease);
-  transform-origin: center center;
-}
-
-#sep-plus-edge-toggle .sep-expander.top {
-  height: 20px;
-  margin-bottom: -2px;
-}
-
-#sep-plus-edge-toggle .sep-expander.bottom {
-  height: 20px;
-  margin-top: -2px;
-}
-
-#sep-plus-edge-toggle .sep-sidebar-toggle[data-phase='target']:focus-within {
-  opacity: 1;
-}
-
-#sep-plus-edge-toggle
-  .sep-sidebar-toggle[data-phase='target']:focus-within
-  .sep-expander,
-#sep-plus-edge-toggle .sep-sidebar-toggle[data-phase='pressed'] .sep-expander {
-  background: var(--sand-9);
-}
-
-#sep-plus-edge-toggle
-  .sep-sidebar-toggle[data-direction='left'][data-phase='target']:focus-within
-  .sep-expander.top,
-#sep-plus-edge-toggle
-  .sep-sidebar-toggle[data-direction='left'][data-phase='pressed']
-  .sep-expander.top {
-  transform: rotate(15deg);
-}
-
-#sep-plus-edge-toggle
-  .sep-sidebar-toggle[data-direction='left'][data-phase='target']:focus-within
-  .sep-expander.bottom,
-#sep-plus-edge-toggle
-  .sep-sidebar-toggle[data-direction='left'][data-phase='pressed']
-  .sep-expander.bottom {
-  transform: rotate(-15deg);
-}
-
-#sep-plus-edge-toggle
-  .sep-sidebar-toggle[data-direction='right'][data-phase='target']:focus-within
-  .sep-expander.top,
-#sep-plus-edge-toggle
-  .sep-sidebar-toggle[data-direction='right'][data-phase='pressed']
-  .sep-expander.top {
-  transform: rotate(-15deg);
-}
-
-#sep-plus-edge-toggle
-  .sep-sidebar-toggle[data-direction='right'][data-phase='target']:focus-within
-  .sep-expander.bottom,
-#sep-plus-edge-toggle
-  .sep-sidebar-toggle[data-direction='right'][data-phase='pressed']
-  .sep-expander.bottom {
-  transform: rotate(15deg);
-}
-
-@media (hover: hover) and (pointer: fine) {
-  #sep-plus-edge-toggle .sep-sidebar-toggle[data-phase='area'],
-  #sep-plus-edge-toggle .sep-sidebar-toggle[data-phase='target'] {
-    opacity: 1;
-  }
-
-  #sep-plus-edge-toggle .sep-sidebar-toggle[data-phase='target'] .sep-expander {
-    background: var(--sand-9);
-  }
-
-  #sep-plus-edge-toggle
-    .sep-sidebar-toggle[data-direction='left'][data-phase='target']
-    .sep-expander.top {
-    transform: rotate(15deg);
-  }
-
-  #sep-plus-edge-toggle
-    .sep-sidebar-toggle[data-direction='left'][data-phase='target']
-    .sep-expander.bottom {
-    transform: rotate(-15deg);
-  }
-
-  #sep-plus-edge-toggle
-    .sep-sidebar-toggle[data-direction='right'][data-phase='target']
-    .sep-expander.top {
-    transform: rotate(-15deg);
-  }
-
-  #sep-plus-edge-toggle
-    .sep-sidebar-toggle[data-direction='right'][data-phase='target']
-    .sep-expander.bottom {
-    transform: rotate(15deg);
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  body.sep-plus #container,
-  body.sep-plus :is(
-    #article-content,
-    #article-copyright,
-    #article-banner,
-    #site-credits,
-    .sep-plus-content-column
-  ) {
-    transform: none !important;
-    transition: none !important;
-  }
-
-  #sep-plus-edge-toggle .sep-sidebar-toggle,
-  #sep-plus-edge-toggle .sep-sidebar-toggle[data-phase='pressed'] {
-    transition: opacity var(--sep-duration-fast) var(--sep-ease-out);
-  }
-
-  #sep-plus-edge-toggle .sep-expander {
-    transition: background var(--sep-duration-fast) var(--sep-ease);
-  }
-}
-
 @media print {
   #sep-plus-root,
-  #sep-plus-edge-toggle,
-  #sep-plus-palette-layer,
   #sep-plus-annotation-layer {
     display: none !important;
   }
 
-  body.sep-plus #container {
-    margin-left: 0 !important;
-    width: 100% !important;
-    max-width: none !important;
-    transform: none !important;
-  }
-
-  body.sep-plus :is(
-    #article-content,
-    #article-copyright,
-    #article-banner,
-    #site-credits,
-    .sep-plus-content-column
-  ) {
-    transform: none !important;
+  body.sep-plus :is(#article, #content:not(:has(#article))) {
+    padding-top: 0 !important;
   }
 }
 
@@ -986,9 +676,7 @@ body.dark.sep-plus {
 }
 
 body.dark.sep-plus :is(#article, #content:not(:has(#article))) {
-  background: var(--sep-article-bg) !important;
   color: var(--sep-text) !important;
-  box-shadow: var(--sep-plus-sheet-shadow-dark) !important;
 }
 
 body.dark #article-sidebar .navbar .nav,
@@ -1120,7 +808,6 @@ body.dark blockquote {
 /* Print */
 
 @media print {
-  #print-block,
   #article-sidebar,
   #academic-tools,
   #other-internet-resources,

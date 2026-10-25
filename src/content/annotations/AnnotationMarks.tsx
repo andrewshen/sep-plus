@@ -1,11 +1,14 @@
 import { useMemo } from 'react';
 import { useHighlight, type HighlightOptions } from '@highlighters/react';
 import type { ResolvedAnnotationRange } from '../../host/annotationHighlights';
+import { highlightSwatch } from '../../lib/highlightColors';
+import type { HighlightColor } from '../../lib/types';
 
 type AnnotationMarksProps = {
   ranges: readonly ResolvedAnnotationRange[];
   emphasizedIds: ReadonlySet<string>;
   host: HTMLElement | null;
+  color: HighlightColor;
 };
 
 type AnnotationMarkProps = {
@@ -13,6 +16,7 @@ type AnnotationMarkProps = {
   range: Range;
   emphasized: boolean;
   host: HTMLElement;
+  color: HighlightColor;
 };
 
 const BASE_OPACITY = 0.6;
@@ -27,15 +31,22 @@ function seedFromId(id: string): number {
   return hash >>> 0;
 }
 
-function AnnotationMark({ id, range, emphasized, host }: AnnotationMarkProps) {
+function AnnotationMark({
+  id,
+  range,
+  emphasized,
+  host,
+  color,
+}: AnnotationMarkProps) {
   const options = useMemo<HighlightOptions>(
     () => ({
       seed: seedFromId(id),
+      color: highlightSwatch(color),
       tip: { type: 'fine' },
       animation: { draw: false },
       opacity: emphasized ? EMPHASIZED_OPACITY : BASE_OPACITY,
     }),
-    [emphasized, id],
+    [color, emphasized, id],
   );
   useHighlight(range, options, host);
   return null;
@@ -45,6 +56,7 @@ export function AnnotationMarks({
   ranges,
   emphasizedIds,
   host,
+  color,
 }: AnnotationMarksProps) {
   if (!host) {
     return null;
@@ -58,6 +70,7 @@ export function AnnotationMarks({
           range={range}
           emphasized={emphasizedIds.has(id)}
           host={host}
+          color={color}
         />
       ))}
     </>

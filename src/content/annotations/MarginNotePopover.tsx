@@ -5,7 +5,6 @@ import {
   type AriaRole,
   type CSSProperties,
   type FocusEventHandler,
-  type PointerEvent as ReactPointerEvent,
   type PointerEventHandler,
   type ReactNode,
 } from 'react';
@@ -14,6 +13,7 @@ import {
   computeMarginNotePlacement,
   type MarginNoteRect,
 } from '../../lib/marginNotePlacement';
+import { PopoverSurface } from '../ui/Popover';
 
 export type MarginNotePopoverProps = {
   anchorRect: MarginNoteRect;
@@ -28,6 +28,8 @@ export type MarginNotePopoverProps = {
   className?: string;
   role?: AriaRole;
   motion?: 'instant' | 'pointer';
+  /** Body is structured markup (citation entries) rather than note text. */
+  structuredBody?: boolean;
   bibliographyPreview?: boolean;
   onPointerEnter?: PointerEventHandler<HTMLDivElement>;
   onPointerLeave?: PointerEventHandler<HTMLDivElement>;
@@ -35,15 +37,12 @@ export type MarginNotePopoverProps = {
   onBlurCapture?: FocusEventHandler<HTMLDivElement>;
 };
 
-function keepFocus(event: ReactPointerEvent<HTMLButtonElement>): void {
-  event.preventDefault();
-}
-
 function getAnnotationMount(): HTMLElement | null {
   const layer = document.getElementById('sep-plus-annotation-layer');
   return layer?.shadowRoot?.getElementById('sep-plus-annotation-mount') ?? null;
 }
 
+/** A PopoverSurface anchored to a range or link in the article. */
 export function MarginNotePopover({
   anchorRect,
   label,
@@ -57,6 +56,7 @@ export function MarginNotePopover({
   className,
   role = 'dialog',
   motion = 'instant',
+  structuredBody = false,
   bibliographyPreview = false,
   onPointerEnter,
   onPointerLeave,
@@ -110,14 +110,19 @@ export function MarginNotePopover({
         .filter(Boolean)
         .join(' ')}
     >
-      <div
+      <PopoverSurface
         ref={noteRef}
-        className={['sep-margin-note', className].filter(Boolean).join(' ')}
+        className={['sep-popover--anchored', className].filter(Boolean).join(' ')}
         style={style}
-        data-sep-plus-annotation-ui=""
-        data-sep-plus-bibliography-preview={
-          bibliographyPreview ? '' : undefined
+        title={label}
+        action={
+          actionLabel && onAction
+            ? { label: actionLabel, disabled: actionDisabled, onClick: onAction }
+            : undefined
         }
+        prose={!structuredBody}
+        data-sep-plus-annotation-ui=""
+        data-sep-plus-bibliography-preview={bibliographyPreview ? '' : undefined}
         data-placement={placement}
         data-motion={motion}
         role={role}
@@ -133,22 +138,8 @@ export function MarginNotePopover({
           }
         }}
       >
-        <div className="sep-margin-note-header">
-          <div className="sep-margin-note-label">{label}</div>
-          {actionLabel && onAction ? (
-            <button
-              type="button"
-              className="sep-margin-note-action"
-              disabled={actionDisabled}
-              onPointerDown={keepFocus}
-              onClick={onAction}
-            >
-              {actionLabel}
-            </button>
-          ) : null}
-        </div>
-        {body ? <div className="sep-margin-note-body">{body}</div> : null}
-      </div>
+        {body}
+      </PopoverSurface>
     </div>,
     mount,
   );

@@ -78,17 +78,19 @@ body.dark {
 
 /* Semantic aliases used by SEP+ chrome + article */
 :root {
-  --sep-page-bg: var(--sand-2);
-  --sep-article-bg: var(--sand-1);
+  --sep-page-bg: #fff;
+  --sep-article-bg: #fff;
   --sep-bg: var(--sand-2);
   --sep-bg-elevated: var(--sand-3);
-  --sep-surface: var(--sand-1);
-  --sep-panel-bg: var(--sand-1);
+  --sep-surface: #fff;
+  --sep-panel-bg: #fff;
   --sep-text: var(--sand-12);
   --sep-muted: var(--sand-11);
   --sep-muted-soft: var(--sand-9);
   --sep-border: var(--sand-6);
   --sep-border-subtle: var(--sand-4);
+  --sep-divider: var(--sand-3);
+  --sep-hover: var(--sand-2);
   --sep-control-bg: var(--sand-4);
   --sep-ease-out: cubic-bezier(0.23, 1, 0.32, 1);
   --sep-ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
@@ -102,8 +104,9 @@ body.dark {
   --sep-footnote-label-font: normal 400 12px/1 var(--sep-font);
 }
 
+html.dark,
 body.dark {
-  --sep-page-bg: var(--sand-2);
+  --sep-page-bg: var(--sand-3);
   --sep-article-bg: var(--sand-3);
   --sep-bg: var(--sand-2);
   --sep-bg-elevated: var(--sand-4);
@@ -114,5 +117,7 @@ body.dark {
   --sep-muted-soft: var(--sand-9);
   --sep-border: var(--sand-7);
   --sep-border-subtle: var(--sand-5);
+  --sep-divider: var(--sand-5);
+  --sep-hover: var(--sand-5);
   --sep-control-bg: var(--sand-6);
 }

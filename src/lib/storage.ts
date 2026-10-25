@@ -1,10 +1,21 @@
-import type { ThemePreference } from './types';
+import type { HighlightColor, ThemePreference } from './types';
 
 const THEME_KEY = 'theme';
-const SIDEBAR_COLLAPSED_KEY = 'sepPlusSidebarCollapsed';
+const HIGHLIGHT_COLOR_KEY = 'highlightColor';
+export const DEFAULT_HIGHLIGHT_COLOR: HighlightColor = 'yellow';
 
 function isTheme(value: unknown): value is ThemePreference {
   return value === 'light' || value === 'dark' || value === 'auto';
+}
+
+export function isHighlightColor(value: unknown): value is HighlightColor {
+  return (
+    value === 'yellow' ||
+    value === 'green' ||
+    value === 'blue' ||
+    value === 'pink' ||
+    value === 'purple'
+  );
 }
 
 export async function getTheme(): Promise<ThemePreference> {
@@ -34,22 +45,6 @@ export async function setTheme(theme: ThemePreference): Promise<void> {
   await chrome.storage.local.set({ [THEME_KEY]: theme });
 }
 
-export function readSidebarCollapsed(): boolean {
-  try {
-    return localStorage.getItem(SIDEBAR_COLLAPSED_KEY) === '1';
-  } catch {
-    return false;
-  }
-}
-
-export function writeSidebarCollapsed(collapsed: boolean): void {
-  try {
-    localStorage.setItem(SIDEBAR_COLLAPSED_KEY, collapsed ? '1' : '0');
-  } catch {
-    // Ignore restricted storage access.
-  }
-}
-
 export function onThemeChanged(
   callback: (theme: ThemePreference) => void
 ): () => void {
@@ -62,6 +57,35 @@ export function onThemeChanged(
     }
     const next = changes[THEME_KEY].newValue;
     if (isTheme(next)) {
+      callback(next);
+    }
+  };
+  chrome.storage.onChanged.addListener(listener);
+  return () => chrome.storage.onChanged.removeListener(listener);
+}
+
+export async function getHighlightColor(): Promise<HighlightColor> {
+  const result = await chrome.storage.local.get(HIGHLIGHT_COLOR_KEY);
+  const stored = result[HIGHLIGHT_COLOR_KEY];
+  return isHighlightColor(stored) ? stored : DEFAULT_HIGHLIGHT_COLOR;
+}
+
+export async function setHighlightColor(color: HighlightColor): Promise<void> {
+  await chrome.storage.local.set({ [HIGHLIGHT_COLOR_KEY]: color });
+}
+
+export function onHighlightColorChanged(
+  callback: (color: HighlightColor) => void
+): () => void {
+  const listener: Parameters<typeof chrome.storage.onChanged.addListener>[0] = (
+    changes,
+    area
+  ) => {
+    if (area !== 'local' || !changes[HIGHLIGHT_COLOR_KEY]) {
+      return;
+    }
+    const next = changes[HIGHLIGHT_COLOR_KEY].newValue;
+    if (isHighlightColor(next)) {
       callback(next);
     }
   };

@@ -418,10 +418,10 @@ describe('controller lifecycle and interactions', () => {
     expect(preview.dataset.motion).toBe('instant');
     expect(preview.dataset.state).toBe('open');
     expect(
-      preview.querySelector('.sep-margin-note-label')?.textContent
+      preview.querySelector('.sep-popover-title-text')?.textContent
     ).toBe('Footnote');
     expect(
-      preview.querySelector('.sep-margin-note-body')?.textContent?.trim()
+      preview.querySelector('.sep-popover-body')?.textContent?.trim()
     ).toBe('Preview content');
     expect(preview.textContent).not.toMatch(/^\s*1\./);
 

@@ -67,8 +67,7 @@ type UseAnnotationsOptions = {
   enabled: boolean;
   source?: string;
   pageTitle: string;
-  paletteOpen: boolean;
-  sidebarPhase: string;
+  popoverOpen: boolean;
 };
 
 type AnnotationUpdate = {
@@ -112,8 +111,7 @@ export function useAnnotations({
   enabled,
   source,
   pageTitle,
-  paletteOpen,
-  sidebarPhase,
+  popoverOpen,
 }: UseAnnotationsOptions) {
   const [entry, setEntry] = useState<EntryAnnotations | null>(null);
   const [resolvedIds, setResolvedIds] = useState<ReadonlySet<string>>(
@@ -376,7 +374,7 @@ export function useAnnotations({
   useEffect(() => {
     setPendingSelection(null);
     setActiveAnnotation(null);
-  }, [paletteOpen, sidebarPhase]);
+  }, [popoverOpen]);
 
   useEffect(() => {
     let frame: number | null = null;

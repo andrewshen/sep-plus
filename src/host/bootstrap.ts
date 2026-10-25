@@ -311,7 +311,7 @@ export function styleRelatedEntries(): void {
   for (const link of links) {
     const rawTitle = (link.textContent || '').replace(/\s+/g, ' ').trim();
     if (rawTitle) {
-      // Keep raw title for palette matching; formatEntryTitle is display-only.
+      // Keep raw title for search matching; formatEntryTitle is display-only.
       link.dataset.sepPlusRawTitle = rawTitle;
       link.textContent = formatEntryTitle(rawTitle, link.href);
     }

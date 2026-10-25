@@ -1,4 +1,4 @@
-@import '../lib/marginNote.css';
+@import '../lib/popover.css';
 
 /* Shadow-local sand + semantic tokens (document :root does not pierce here) */
 :host,
@@ -16,18 +16,19 @@
   --sand-11: #63635e;
   --sand-12: #21201c;
 
-  --sep-sidebar-width: 380px;
-  --sep-page-bg: var(--sand-2);
-  --sep-article-bg: var(--sand-1);
+  --sep-page-bg: #fff;
+  --sep-article-bg: #fff;
   --sep-bg: var(--sand-2);
   --sep-bg-elevated: var(--sand-3);
-  --sep-surface: var(--sand-1);
-  --sep-panel-bg: var(--sand-1);
+  --sep-surface: #fff;
+  --sep-panel-bg: #fff;
   --sep-text: var(--sand-12);
   --sep-muted: var(--sand-11);
   --sep-muted-soft: var(--sand-9);
   --sep-border: var(--sand-6);
   --sep-border-subtle: var(--sand-4);
+  --sep-divider: var(--sand-3);
+  --sep-hover: var(--sand-2);
   --sep-ease-out: cubic-bezier(0.23, 1, 0.32, 1);
   --sep-ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
   --sep-ease: cubic-bezier(0.25, 0.1, 0.25, 1);
@@ -123,26 +124,21 @@
 .sep-bibliography-preview {
   display: flex;
   flex-direction: column;
-  gap: 12px;
   white-space: normal;
-}
-
-/* Bleed the scroll body to the popover edges so entry dividers run full
-   width; entries restore the popover's 20px inline padding. */
-.sep-bibliography-popover .sep-margin-note-body {
-  margin-inline: -20px;
 }
 
 .sep-bibliography-preview-entry {
   min-width: 0;
-  padding-inline: 20px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--sep-divider);
   color: var(--sep-text);
+  font-size: 14px;
+  line-height: 22px;
   overflow-wrap: anywhere;
 }
 
-.sep-bibliography-preview-entry + .sep-bibliography-preview-entry {
-  padding-top: 12px;
-  border-top: 1px solid var(--sep-border-subtle);
+.sep-bibliography-preview-entry:last-child {
+  border-bottom: none;
 }
 
 .sep-bibliography-preview-entry-key {
@@ -159,20 +155,20 @@
   font-weight: 600;
 }
 
-.sep-margin-note-body a.sep-bibliography-preview-search {
+.sep-popover-body a.sep-bibliography-preview-search {
   display: flex;
   align-items: center;
   gap: 4px;
   width: fit-content;
   margin-top: 8px;
-  color: var(--sep-muted-soft);
-  font-size: 12px;
+  color: var(--sep-muted);
+  font-size: 14px;
   font-weight: 400;
-  line-height: 16px;
+  line-height: 22px;
   text-decoration: none;
 }
 
-.sep-margin-note-body a.sep-bibliography-preview-search:hover {
+.sep-popover-body a.sep-bibliography-preview-search:hover {
   color: var(--sep-text);
   text-decoration: none;
 }
@@ -190,99 +186,96 @@
   font-family: inherit;
 }
 
-.sep-sidebar {
+/* Header */
+
+.sep-header {
   pointer-events: auto;
   position: fixed;
   top: 0;
   left: 0;
-  bottom: 0;
-  width: var(--sep-sidebar-width);
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  gap: 20px;
-  padding: 24px 20px;
-  background: var(--sep-bg);
-  border-right: none;
-  transform: translateX(0);
-  /* Match article #container timing so the sheet edge and sidebar move as one. */
-  transition: transform var(--sep-duration-drawer) var(--sep-ease-out);
-  box-sizing: border-box;
+  right: 0;
+  z-index: 2;
+  height: 60px;
+  border-bottom: 1px solid var(--sep-divider);
+  background: var(--sep-page-bg);
 }
 
-:host([data-sep-plus-booting]) .sep-sidebar {
-  transition: none;
-}
-
-.sep-sidebar > * {
-  width: 100%;
-  min-width: 0;
-  align-self: stretch;
-}
-
-.sep-sidebar.is-collapsed {
-  transform: translateX(-100%);
-}
-
-.sep-sidebar.is-searching {
-  overflow: visible;
-}
-
-.sep-logo-row {
+.sep-header-logo {
+  position: absolute;
+  top: 16px;
+  left: 24px;
+  display: block;
+  width: 19px;
   height: 28px;
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
 }
 
-.sep-search-slot {
-  flex-shrink: 0;
-  position: relative;
-  z-index: 4;
+.sep-header-logo img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
 }
 
-.sep-plus-app button.sep-search-trigger {
+.sep-header-search {
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  width: min(400px, calc(100vw - 224px));
+  translate: -50% 0;
+}
+
+.sep-search-field {
   display: flex;
   align-items: center;
   gap: 6px;
-  width: 100%;
   height: 40px;
-  padding: 0 10px;
-  appearance: none;
-  border: none;
-  border-radius: 6px;
-  background: var(--sep-bg-elevated);
+  padding: 0 12px;
+  border-radius: 999px;
+  background: var(--sand-2);
   color: var(--sep-muted-soft);
   cursor: text;
-  font-family: var(--sep-font);
-  text-align: left;
 }
 
-/* Size-stable slot while the portaled shell morphs above */
-.sep-plus-app button.sep-search-trigger.is-placeholder {
-  visibility: hidden;
-  pointer-events: none;
-}
-
-.sep-search-trigger svg {
+.sep-search-field > svg {
+  display: block;
   width: 16px;
   height: 16px;
   flex-shrink: 0;
 }
 
-.sep-search-trigger-label {
+.sep-plus-app input.sep-search-input {
   flex: 1;
+  min-width: 0;
+  height: 20px;
+  margin: 0;
+  padding: 0;
+  border: none;
+  outline: none;
+  appearance: none;
+  background: transparent;
+  color: var(--sep-text);
   font-size: 14px;
-  line-height: 20px;
   font-weight: 400;
-  color: inherit;
+  line-height: 20px;
+}
+
+.sep-search-input::-webkit-search-decoration,
+.sep-search-input::-webkit-search-cancel-button,
+.sep-search-input::-webkit-search-results-button,
+.sep-search-input::-webkit-search-results-decoration {
+  display: none;
+  -webkit-appearance: none;
+}
+
+.sep-search-input::placeholder {
+  color: var(--sep-muted-soft);
+  opacity: 1;
 }
 
 .sep-search-slash {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  box-sizing: border-box;
   width: 22px;
   height: 22px;
   flex-shrink: 0;
@@ -293,468 +286,432 @@
   color: var(--sep-muted-soft);
   font-family: var(--sep-font);
   font-size: 12px;
-  line-height: 16px;
   font-weight: 500;
+  line-height: 16px;
   pointer-events: none;
-}
-
-.sep-sidebar-main {
-  flex: 1;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-}
-
-.sep-panel-chrome {
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  gap: 20px;
-  flex-shrink: 0;
-}
-
-.sep-plus-app button.sep-panel-back {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  width: 100%;
-  appearance: none;
-  border: none;
-  border-radius: 6px;
-  background: transparent;
-  color: var(--sep-text);
-  cursor: pointer;
-  padding: 4px 10px;
-  font-family: var(--sep-font);
-  font-size: 14px;
-  line-height: 20px;
-  font-weight: 400;
-  text-align: left;
-}
-
-.sep-panel-back-icon {
-  width: 16px;
-  height: 16px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  color: currentColor;
-}
-
-.sep-panel-back-icon svg {
-  width: 16px;
-  height: 16px;
-  display: block;
-}
-
-.sep-panel-title {
-  margin: 0;
-  padding: 0 8px;
-  font-family: var(--sep-font);
-  font-size: 27px;
-  line-height: 37.8px;
-  letter-spacing: -0.02em;
-  font-weight: 700;
-  color: var(--sep-text);
-}
-
-.sep-sidebar.is-panel .sep-sidebar-body {
-  margin-top: 0;
-}
-
-.sep-logo-mark {
-  display: inline-flex;
-  align-items: center;
-}
-
-.sep-logo-link {
-  display: inline-flex;
-  align-items: center;
-  text-decoration: none;
-  border-radius: 4px;
+  opacity: 0;
   transition: opacity var(--sep-duration-fast) var(--sep-ease);
 }
 
-.sep-logo-link:hover {
-  opacity: 0.75;
+.sep-search-field:hover .sep-search-slash {
+  opacity: 1;
 }
 
-.sep-logo {
-  display: block;
-  width: 18px;
-  height: 28px;
-  object-fit: contain;
-  flex-shrink: 0;
-}
-
-.sep-nav {
+.sep-header-actions {
+  position: absolute;
+  top: 16px;
+  right: 24px;
   display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  flex-shrink: 0;
+  gap: 4px;
 }
 
-.sep-plus-app button.sep-nav-item {
+.sep-header-anchor {
+  position: relative;
+}
+
+.sep-plus-app button.sep-icon-button {
   display: flex;
   align-items: center;
-  gap: 6px;
-  width: 100%;
-  appearance: none;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 4px;
   border: none;
   border-radius: 6px;
   background: transparent;
-  color: var(--sep-text);
+  color: var(--sep-muted-soft);
   cursor: pointer;
-  padding: 4px 10px;
-  font-family: var(--sep-font);
-  text-align: left;
   transition:
-    background var(--sep-duration-fast) var(--sep-ease),
-    color var(--sep-duration-fast) var(--sep-ease);
+    color var(--sep-duration-fast) var(--sep-ease),
+    background-color var(--sep-duration-fast) var(--sep-ease);
 }
 
-.sep-plus-app button.sep-nav-item:hover,
-.sep-plus-app button.sep-nav-item.is-active {
+.sep-icon-button svg {
+  display: block;
+  width: 20px;
+  height: 20px;
+}
+
+.sep-plus-app button.sep-icon-button:hover,
+.sep-plus-app button.sep-icon-button.is-pressed {
   background: var(--sep-bg-elevated);
+  color: var(--sep-text);
 }
 
-.sep-nav-icon {
-  width: 16px;
-  height: 16px;
+/* Header dropdown placement + motion (surface comes from popover.css) */
+
+.sep-popover--dropdown {
+  pointer-events: none;
+  position: absolute;
+  z-index: 1;
+  opacity: 0;
+  transform: translateY(-4px) scale(0.98);
+  transition:
+    opacity var(--sep-duration-ui) var(--sep-ease-out),
+    transform var(--sep-duration-ui) var(--sep-ease-out);
+}
+
+.sep-popover--dropdown.is-open {
+  pointer-events: auto;
+  opacity: 1;
+  transform: none;
+}
+
+.sep-popover--end {
+  top: calc(100% + 6px);
+  right: 0;
+  transform-origin: top right;
+}
+
+.sep-popover--center {
+  top: calc(100% + 4px);
+  left: 50%;
+  translate: -50% 0;
+  transform-origin: top center;
+}
+
+/* Seven 44px rows, matching the search mock. */
+.sep-popover--menu .sep-popover-body {
+  max-height: min(308px, calc(100vh - 96px));
+}
+
+.sep-plus-app button.sep-popover-back {
   display: inline-flex;
   align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  color: currentColor;
-}
-
-.sep-nav-icon svg {
-  width: 16px;
-  height: 16px;
-  display: block;
-}
-
-.sep-nav-label {
-  font-size: 14px;
-  line-height: 20px;
-  font-weight: 400;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
   color: inherit;
+  cursor: pointer;
+  font: inherit;
 }
 
-.sep-sidebar-body {
-  flex: 1;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-  position: relative;
-  /* Bleed to the sidebar’s right edge so the scrollbar isn’t inset by padding */
-  margin-right: -20px;
-  width: calc(100% + 20px);
-}
-
-.sep-contents-label {
-  flex-shrink: 0;
-  margin-top: 20px;
-  padding: 4px 8px;
-  font-size: 12px;
-  line-height: 16px;
-  font-weight: 400;
+.sep-popover-back svg {
+  width: 12px;
+  height: 12px;
   color: var(--sep-muted-soft);
 }
 
-.sep-toc-scroll {
+.sep-plus-app .sep-popover-row {
   position: relative;
-  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
   width: 100%;
-  overflow: auto;
-  padding: 0;
-  scrollbar-width: thin;
-}
-
-.sep-sidebar-body:has(.sep-toc-scroll)::before,
-.sep-sidebar-body:has(.sep-toc-scroll)::after {
-  content: '';
-  position: absolute;
-  left: 0;
-  right: 0;
-  height: 16px;
-  pointer-events: none;
-  z-index: 1;
-}
-
-.sep-sidebar-body:has(.sep-toc-scroll)::before {
-  top: 0;
-  background: linear-gradient(
-    to bottom,
-    var(--sep-bg) 0,
-    var(--sep-bg) 4px,
-    transparent 100%
-  );
-}
-
-.sep-sidebar-body:has(.sep-toc-scroll)::after {
-  bottom: 0;
-  background: linear-gradient(
-    to top,
-    var(--sep-bg) 0,
-    var(--sep-bg) 4px,
-    transparent 100%
-  );
-}
-
-.sep-plus-app :is(button, a).sep-toc-link {
-  display: block;
-  box-sizing: border-box;
-  width: 100%;
-  height: 28px;
-  min-height: 28px;
-  max-height: 28px;
-  text-align: left;
-  appearance: none;
+  margin: 0;
+  padding: 12px 0;
   border: none;
+  border-bottom: 1px solid var(--sep-divider);
   background: transparent;
-  color: var(--sep-muted);
-  font-family: var(--sep-font);
+  color: var(--sep-text);
+  font: inherit;
   font-size: 14px;
   font-weight: 400;
   line-height: 20px;
-  padding: 4px 24px 4px 8px;
-  border-radius: 0;
-  cursor: pointer;
+  text-align: left;
   text-decoration: none;
-  white-space: nowrap;
+}
+
+.sep-plus-app .sep-popover-row:last-child {
+  border-bottom: none;
+}
+
+.sep-plus-app .sep-popover-row.is-interactive {
+  cursor: pointer;
+}
+
+.sep-plus-app .sep-popover-row:disabled {
+  cursor: default;
+}
+
+.sep-popover-row-leading {
+  display: flex;
+  flex-shrink: 0;
+}
+
+.sep-popover-row-main {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.sep-popover-row-label,
+.sep-popover-row-secondary {
   overflow: hidden;
   text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sep-popover-row-secondary,
+.sep-popover-row-trailing {
+  color: var(--sep-muted);
   transition: color var(--sep-duration-fast) var(--sep-ease);
 }
 
-.sep-plus-app :is(button, a).sep-toc-link:hover,
-.sep-plus-app :is(button, a).sep-toc-link.is-active {
+.sep-popover-row-trailing {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  gap: 6px;
+}
+
+.sep-popover-row-trailing svg {
+  display: block;
+  width: 20px;
+  height: 20px;
+}
+
+.sep-popover-row-chevron {
+  display: flex;
+  color: var(--sep-muted-soft);
+}
+
+.sep-popover-row-trailing .sep-popover-row-chevron svg {
+  width: 12px;
+  height: 12px;
+}
+
+.sep-popover-row.is-interactive:not(:disabled):hover
+  :is(.sep-popover-row-secondary, .sep-popover-row-trailing) {
   color: var(--sep-text);
 }
 
-.sep-plus-app :is(button, a).sep-toc-link--level-2 {
-  padding-left: 24px;
-}
-
-.sep-plus-app :is(button, a).sep-toc-link--level-3 {
-  padding-left: 40px;
-}
-
-.sep-stub {
-  padding: 12px 0;
-  color: var(--sep-muted);
-  font-size: 14px;
-  line-height: 20px;
-}
-
-.sep-annotations {
-  display: flex;
-  flex: 1;
-  min-height: 0;
-  flex-direction: column;
-}
-
-.sep-annotations-header {
-  position: relative;
-  z-index: 3;
-  display: flex;
-  flex-shrink: 0;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding-right: 20px;
-}
-
-.sep-annotations-count {
-  padding: 4px 8px;
+.sep-popover-row:disabled :is(.sep-popover-row-label, .sep-popover-row-secondary) {
   color: var(--sep-muted-soft);
-  font-size: 12px;
-  line-height: 16px;
 }
 
-.sep-annotation-export {
-  position: relative;
-}
-
-.sep-annotation-export summary {
-  display: block;
-  padding: 4px 8px;
-  border-radius: 4px;
-  color: var(--sep-muted);
+.sep-plus-app select.sep-popover-row-select {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: none;
+  background: transparent;
+  opacity: 0;
+  appearance: none;
   cursor: pointer;
-  font-size: 12px;
-  line-height: 16px;
+}
+
+.sep-swatch-slot {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+}
+
+.sep-swatch {
+  width: 16px;
+  height: 16px;
+  border: 1px solid var(--sep-divider);
+  border-radius: 999px;
+}
+
+/* Search results */
+
+.sep-search-results {
+  margin: 0;
+  padding: 0;
   list-style: none;
 }
 
-.sep-annotation-export summary::-webkit-details-marker {
-  display: none;
-}
-
-.sep-annotation-export summary:hover,
-.sep-annotation-export[open] summary {
-  background: var(--sep-bg-elevated);
-  color: var(--sep-text);
-}
-
-.sep-annotation-export-menu {
-  position: absolute;
-  top: calc(100% + 4px);
-  right: 0;
-  display: flex;
-  width: 190px;
-  flex-direction: column;
-  padding: 4px;
-  border: 1px solid var(--sep-border-subtle);
-  border-radius: 6px;
-  background: var(--sep-surface);
-  box-shadow: 0 8px 24px color-mix(in srgb, var(--sand-12) 10%, transparent);
-}
-
-.sep-plus-app .sep-annotation-export-menu button {
+.sep-plus-app button.sep-search-result {
+  display: block;
   width: 100%;
-  padding: 6px 8px;
-  border: 0;
-  border-radius: 4px;
-  background: transparent;
-  color: var(--sep-muted);
-  cursor: pointer;
-  font-size: 12px;
-  line-height: 16px;
-  text-align: left;
-}
-
-.sep-plus-app .sep-annotation-export-menu button:hover {
-  background: var(--sep-bg-elevated);
-  color: var(--sep-text);
-}
-
-.sep-plus-app .sep-annotation-export-menu button:disabled {
-  cursor: default;
-  opacity: 0.45;
-}
-
-.sep-annotation-message {
-  margin: 0 20px 8px 8px;
-  padding: 8px 10px;
-  border-radius: 6px;
-  background: var(--sep-bg-elevated);
-  color: var(--sep-muted);
-  font-size: 12px;
-  line-height: 16px;
-}
-
-.sep-annotation-message.is-error {
-  color: #8f2d36;
-}
-
-.sep-plus-app.is-dark .sep-annotation-message.is-error {
-  color: #f1a7ad;
-}
-
-.sep-annotations-empty {
-  padding: 12px 28px 12px 8px;
-  color: var(--sep-muted);
-  font-size: 14px;
-  line-height: 20px;
-}
-
-.sep-annotations-scroll {
-  position: relative;
-  display: flex;
-  flex: 1;
-  min-height: 0;
-  flex-direction: column;
-  gap: 8px;
-  overflow: auto;
-  padding: 0 20px 16px 0;
-  scrollbar-width: thin;
-}
-
-.sep-annotation-card {
-  position: relative;
-  margin-left: 8px;
-  padding: 10px 10px 8px 12px;
-  border: 1px solid var(--sep-border-subtle);
-  border-radius: 6px;
-  background: var(--sep-surface);
-  font-family: var(--sep-font);
-  font-size: 14px;
-  line-height: 20px;
-}
-
-.sep-plus-app button.sep-annotation-quote {
-  display: -webkit-box;
-  width: 100%;
-  padding: 0;
+  padding: 12px;
   overflow: hidden;
-  border: 0;
+  border: none;
+  border-radius: 6px;
   background: transparent;
   color: var(--sep-text);
   cursor: pointer;
-  font: inherit;
-  font-style: italic;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 20px;
   text-align: left;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 3;
-}
-
-.sep-plus-app button.sep-annotation-quote:disabled {
-  cursor: default;
-  opacity: 0.68;
-}
-
-.sep-annotation-section {
-  margin-top: 6px;
-  overflow: hidden;
-  color: var(--sep-muted-soft);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.sep-annotation-unresolved {
-  margin-top: 6px;
-  color: var(--sep-muted);
+.sep-plus-app button.sep-search-result.is-active {
+  background: var(--sep-hover);
 }
 
-.sep-annotation-note {
-  margin: 8px 0 0;
-  color: var(--sep-muted);
-  white-space: pre-wrap;
-}
-
-.sep-annotation-card-actions,
-.sep-annotation-editor-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 4px;
-  margin-top: 8px;
-}
-
-.sep-plus-app .sep-annotation-card-actions button,
-.sep-plus-app .sep-annotation-editor-actions button {
-  padding: 3px 6px;
-  border: 0;
-  border-radius: 4px;
-  background: transparent;
+.sep-plus-app button.sep-search-result--search {
   color: var(--sep-muted-soft);
-  cursor: pointer;
-  font: inherit;
 }
 
-.sep-plus-app .sep-annotation-card-actions button:hover,
-.sep-plus-app .sep-annotation-editor-actions button:hover {
-  background: var(--sep-bg-elevated);
+.sep-plus-app button.sep-search-result--search.is-active {
   color: var(--sep-text);
 }
 
-.sep-annotation-editor {
-  margin-top: 8px;
+/* Outline */
+
+.sep-outline {
+  pointer-events: auto;
+  position: fixed;
+  top: 50%;
+  left: 0;
+  z-index: 1;
+  /* 32px inset + 36px active tick + hover slack; widens while open. */
+  width: 108px;
+  padding: 24px 0 24px 32px;
+  transform: translateY(-50%);
+  transition: width 0s linear var(--sep-duration-drawer);
 }
 
-.sep-annotation-editor textarea,
+.sep-outline:hover,
+.sep-outline:focus-within {
+  width: 416px;
+  transition-delay: 0s;
+}
+
+.sep-outline-rail {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+  max-height: calc(100vh - 220px);
+  overflow: hidden;
+  transition: opacity var(--sep-duration-drawer) var(--sep-ease);
+}
+
+/* Ticks are 36px boxes scaled to 20px so the active change animates on the
+   compositor instead of re-laying out the rail. */
+.sep-outline-tick {
+  display: block;
+  flex-shrink: 0;
+  width: 36px;
+  height: 2px;
+  background: var(--sep-divider);
+  transform: scaleX(calc(20 / 36));
+  transform-origin: left center;
+  transition:
+    transform var(--sep-duration-ui) var(--sep-ease-out),
+    background-color var(--sep-duration-ui) var(--sep-ease);
+}
+
+.sep-outline-tick.is-active {
+  background: var(--sand-9);
+  transform: none;
+}
+
+.sep-outline:hover .sep-outline-rail,
+.sep-outline:focus-within .sep-outline-rail {
+  opacity: 0;
+}
+
+.sep-outline-panel {
+  --sep-outline-fade-top: 0px;
+  --sep-outline-fade-bottom: 0px;
+
+  pointer-events: none;
+  position: absolute;
+  top: 50%;
+  left: 24px;
+  width: 360px;
+  max-height: calc(100vh - 160px);
+  overflow-x: hidden;
+  overflow-y: auto;
+  scrollbar-width: none;
+  background: var(--sep-page-bg);
+  opacity: 0;
+  visibility: hidden;
+  transform: translate(-8px, -50%);
+  mask-image: linear-gradient(
+    to bottom,
+    transparent 0,
+    #000 var(--sep-outline-fade-top),
+    #000 calc(100% - var(--sep-outline-fade-bottom)),
+    transparent 100%
+  );
+  transition:
+    opacity var(--sep-duration-drawer) var(--sep-ease),
+    transform var(--sep-duration-drawer) var(--sep-ease),
+    visibility var(--sep-duration-drawer) var(--sep-ease);
+}
+
+.sep-outline-panel::-webkit-scrollbar {
+  display: none;
+}
+
+.sep-outline.has-fade-top .sep-outline-panel {
+  --sep-outline-fade-top: 40px;
+}
+
+.sep-outline.has-fade-bottom .sep-outline-panel {
+  --sep-outline-fade-bottom: 40px;
+}
+
+.sep-outline:hover .sep-outline-panel,
+.sep-outline:focus-within .sep-outline-panel {
+  pointer-events: auto;
+  opacity: 1;
+  visibility: visible;
+  transform: translate(0, -50%);
+}
+
+.sep-plus-app button.sep-outline-link {
+  display: block;
+  width: 100%;
+  height: 28px;
+  padding: 4px 24px 4px 8px;
+  overflow: hidden;
+  border: none;
+  background: transparent;
+  color: var(--sep-muted);
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 20px;
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  transition: color var(--sep-duration-fast) var(--sep-ease);
+}
+
+.sep-plus-app button.sep-outline-link:hover,
+.sep-plus-app button.sep-outline-link.is-active {
+  color: var(--sep-text);
+}
+
+@media (max-width: 899px) {
+  .sep-outline {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sep-bibliography-popover[data-motion='pointer'] {
+    animation: none;
+  }
+
+  .sep-popover--dropdown,
+  .sep-popover--dropdown.is-open {
+    transform: none;
+    transition: opacity var(--sep-duration-fast) var(--sep-ease-out);
+  }
+
+  .sep-outline-panel,
+  .sep-outline:hover .sep-outline-panel,
+  .sep-outline:focus-within .sep-outline-panel {
+    transform: translate(0, -50%);
+    transition:
+      opacity var(--sep-duration-fast) var(--sep-ease),
+      visibility var(--sep-duration-fast) var(--sep-ease);
+  }
+
+  .sep-outline-tick {
+    transition: none;
+  }
+}
+
+/* Selection toolbar + note composer */
+
 .sep-annotation-note-input {
   display: block;
   box-sizing: border-box;
@@ -769,21 +726,14 @@
   font: 14px/20px var(--sep-font);
 }
 
-.sep-annotation-editor textarea {
-  padding: 7px 8px;
-}
-
-.sep-annotation-editor textarea::placeholder,
 .sep-annotation-note-input::placeholder {
   color: var(--sep-muted-soft);
 }
 
-.sep-annotation-editor textarea:focus,
 .sep-annotation-note-input:focus {
   border-color: var(--sep-muted-soft);
 }
 
-.sep-annotation-editor-footer,
 .sep-annotation-composer-footer {
   display: flex;
   align-items: center;
@@ -886,415 +836,6 @@
   opacity: 0.55;
 }
 
-.sep-sidebar-footer {
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 4px 8px;
-  position: relative;
-  z-index: 2;
-  background: var(--sep-bg);
-}
-
-.sep-footer-links {
-  display: flex;
-  flex: 1;
-  gap: 12px;
-  min-width: 0;
-}
-
-.sep-footer-links a {
-  color: var(--sep-muted-soft);
-  font-size: 12px;
-  line-height: 16px;
-  font-weight: 400;
-  text-decoration: none;
-  flex-shrink: 0;
-  transition: color var(--sep-duration-fast) var(--sep-ease);
-}
-
-.sep-footer-links a:hover {
-  color: var(--sep-text);
-}
-
-.sep-appearance {
-  position: relative;
-  flex-shrink: 0;
-  display: inline-flex;
-  align-items: center;
-  gap: 2px;
-  color: var(--sep-muted-soft);
-  cursor: pointer;
-  font-size: 12px;
-  line-height: 16px;
-  font-weight: 400;
-}
-
-.sep-appearance:hover {
-  color: var(--sep-text);
-}
-
-.sep-appearance-label {
-  font-size: 12px;
-  line-height: 16px;
-  font-weight: 400;
-}
-
-.sep-appearance select {
-  appearance: none;
-  position: absolute;
-  inset: 0;
-  opacity: 0;
-  width: 100%;
-  height: 100%;
-  cursor: pointer;
-  border: none;
-  background: transparent;
-}
-
-.sep-appearance-chevron {
-  width: 12px;
-  height: 12px;
-  flex-shrink: 0;
-  color: currentColor;
-}
-
-/* Search shell morphs from sidebar bar → expanded palette */
-
-.sep-palette-scrim {
-  pointer-events: none;
-  position: fixed;
-  inset: 0;
-  z-index: 0;
-  background: color-mix(in srgb, var(--sep-article-bg) 60%, transparent);
-  opacity: 0;
-  transition: opacity var(--sep-duration-ui) var(--sep-ease-out);
-}
-
-.sep-palette-scrim.is-visible {
-  pointer-events: auto;
-  opacity: 1;
-}
-
-.sep-palette-scrim.is-exiting {
-  pointer-events: none;
-  opacity: 0;
-}
-
-.sep-palette-inline {
-  pointer-events: auto;
-  position: fixed;
-  z-index: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  min-height: 40px;
-  max-height: 40px;
-  background: var(--sep-bg-elevated);
-  border: none;
-  border-radius: 6px;
-  /* Ring via box-shadow so it sits outside overflow:hidden clip */
-  box-shadow: 0 0 0 1px transparent;
-  overflow: hidden;
-  transition:
-    width var(--sep-duration-ui) var(--sep-ease-in-out),
-    max-height var(--sep-duration-ui) var(--sep-ease-in-out),
-    background-color var(--sep-duration-ui) var(--sep-ease),
-    box-shadow var(--sep-duration-ui) var(--sep-ease);
-}
-
-.sep-palette-inline.is-open {
-  /* input 40 + results top pad 6 + 7 × 36 row */
-  max-height: min(298px, calc(100vh - 96px));
-  background: var(--sep-surface);
-  box-shadow:
-    0 0 0 1px var(--sep-border-subtle),
-    0 8px 28px color-mix(in srgb, var(--sand-12) 12%, transparent);
-}
-
-.sep-palette-inline.is-closing {
-  pointer-events: none;
-}
-
-/*
- * Collapsed sidebar: full-size shell immediately; only scale + opacity.
- * (Sidebar-open mode keeps the width/height morph above.)
- */
-.sep-palette-inline.is-centered,
-.sep-palette-inline.is-centered.is-open,
-.sep-palette-inline.is-centered.is-closing {
-  /* Same open height as .is-open — no expand/collapse morph */
-  max-height: min(298px, calc(100vh - 96px));
-  background: var(--sep-surface);
-  box-shadow:
-    0 0 0 1px var(--sep-border-subtle),
-    0 8px 28px color-mix(in srgb, var(--sand-12) 12%, transparent);
-  transform-origin: center center;
-  transition:
-    opacity var(--sep-duration-ui) var(--sep-ease-out),
-    transform var(--sep-duration-ui) var(--sep-ease-out);
-}
-
-.sep-palette-inline.is-centered {
-  opacity: 0;
-  transform: scale(0.95);
-}
-
-.sep-palette-inline.is-centered.is-open {
-  opacity: 1;
-  transform: scale(1);
-}
-
-.sep-palette-inline.is-centered.is-closing {
-  opacity: 0;
-  transform: scale(0.95);
-}
-
-/* Parent opacity handles the fade; skip nested reveal fades. */
-.sep-palette-inline.is-centered .sep-palette-esc,
-.sep-palette-inline.is-centered .sep-palette-results-wrap {
-  opacity: 1;
-  transition: none;
-}
-
-.sep-palette-inline.is-centered .sep-palette-input-row::after {
-  background: var(--sep-border-subtle);
-  transition: none;
-}
-
-.sep-palette-input-row {
-  position: relative;
-  z-index: 1;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  box-sizing: border-box;
-  flex: 0 0 40px;
-  height: 40px;
-  padding: 0 10px;
-  border: none;
-  border-radius: 6px 6px 0 0;
-  cursor: text;
-}
-
-/* Divider sits just below the 40px row, not inside it */
-.sep-palette-input-row::after {
-  content: '';
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: 100%;
-  height: 1px;
-  background: transparent;
-  pointer-events: none;
-  transition: background-color var(--sep-duration-ui) var(--sep-ease);
-}
-
-.sep-palette-inline.is-open .sep-palette-input-row::after {
-  background: var(--sep-border-subtle);
-}
-
-.sep-palette-input-row svg {
-  display: block;
-  width: 16px;
-  height: 16px;
-  color: var(--sep-muted-soft);
-  flex-shrink: 0;
-}
-
-.sep-palette-input {
-  flex: 1;
-  min-width: 0;
-  margin: 0;
-  padding: 0;
-  border: none;
-  outline: none;
-  appearance: none;
-  -webkit-appearance: none;
-  background: transparent;
-  font-family: var(--sep-font);
-  font-size: 14px;
-  line-height: 20px;
-  font-weight: 400;
-  height: 20px;
-  color: var(--sep-text);
-  cursor: text;
-  /* Room for overlaid Esc; left edge stays aligned with trigger label */
-  padding-right: 40px;
-}
-
-.sep-palette-input::-webkit-search-decoration,
-.sep-palette-input::-webkit-search-cancel-button,
-.sep-palette-input::-webkit-search-results-button,
-.sep-palette-input::-webkit-search-results-decoration {
-  display: none;
-  -webkit-appearance: none;
-}
-
-.sep-palette-input::placeholder {
-  color: var(--sep-muted-soft);
-  opacity: 1;
-}
-
-.sep-palette-esc {
-  position: absolute;
-  right: 10px;
-  top: 50%;
-  transform: translateY(-50%);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  box-sizing: border-box;
-  height: 22px;
-  padding: 0 6px;
-  border: 1px solid var(--sep-border-subtle);
-  border-radius: 4px;
-  background: transparent;
-  color: var(--sep-muted-soft);
-  font-family: var(--sep-font);
-  font-size: 12px;
-  line-height: 16px;
-  font-weight: 500;
-  pointer-events: none;
-  opacity: 0;
-  transition: opacity var(--sep-duration-ui) var(--sep-ease-out);
-}
-
-.sep-palette-inline.is-open .sep-palette-esc {
-  opacity: 1;
-}
-
-.sep-palette-results-wrap {
-  flex: 1;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  border-radius: 0 0 6px 6px;
-  opacity: 0;
-  transition: opacity var(--sep-duration-ui) var(--sep-ease-out);
-}
-
-.sep-palette-inline.is-open .sep-palette-results-wrap {
-  opacity: 1;
-}
-
-.sep-palette-body {
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-  min-height: 0;
-  overflow: hidden;
-  /* No padding here — it would inset the scrollbar from the results edge */
-  padding: 0;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .sep-sidebar {
-    transition: none;
-  }
-
-  .sep-bibliography-popover[data-motion='pointer'] {
-    animation: none;
-  }
-
-  /* Drop size morph; keep short opacity/color fades. */
-  .sep-palette-inline {
-    transition:
-      background-color var(--sep-duration-fast) var(--sep-ease),
-      box-shadow var(--sep-duration-fast) var(--sep-ease);
-  }
-
-  .sep-palette-inline.is-centered,
-  .sep-palette-inline.is-centered.is-open,
-  .sep-palette-inline.is-centered.is-closing {
-    transform: none;
-    transition: opacity var(--sep-duration-fast) var(--sep-ease-out);
-  }
-
-  .sep-palette-input-row::after {
-    transition: background-color var(--sep-duration-fast) var(--sep-ease);
-  }
-
-  .sep-palette-scrim,
-  .sep-palette-esc,
-  .sep-palette-results-wrap {
-    transition: opacity var(--sep-duration-fast) var(--sep-ease-out);
-  }
-}
-
-.sep-palette-empty {
-  padding: 20px 12px 24px;
-  text-align: center;
-  color: var(--sep-muted);
-  font-size: 14px;
-  line-height: 20px;
-}
-
-.sep-palette-results {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  flex: 1;
-  min-height: 0;
-  /* Top pad (first li) + 7 full rows — no partial cutoff */
-  max-height: calc(6px + 7 * 36px);
-  overflow-x: hidden;
-  overflow-y: auto;
-  scrollbar-width: thin;
-}
-
-.sep-palette-results li {
-  margin: 0;
-  /* Inset rows, not the scrollport — scrollbar stays edge-to-edge */
-  padding: 0 6px;
-}
-
-.sep-palette-results li:first-child {
-  padding-top: 6px;
-}
-
-.sep-palette-results li:last-child {
-  padding-bottom: 6px;
-}
-
-.sep-plus-app button.sep-palette-result {
-  display: block;
-  width: 100%;
-  appearance: none;
-  border: none;
-  background: transparent;
-  color: var(--sep-muted);
-  font-family: var(--sep-font);
-  font-size: 14px;
-  font-weight: 400;
-  line-height: 20px;
-  text-align: left;
-  padding: 8px 10px;
-  border-radius: 6px;
-  cursor: pointer;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.sep-plus-app button.sep-palette-result:hover,
-.sep-plus-app button.sep-palette-result.is-active {
-  color: var(--sep-text);
-  background: var(--sep-bg-elevated);
-}
-
-.sep-plus-app button.sep-palette-result--search {
-  color: var(--sep-muted-soft);
-}
-
-.sep-plus-app button.sep-palette-result--search:hover,
-.sep-plus-app button.sep-palette-result--search.is-active {
-  color: var(--sep-text);
-}
-
 .sep-plus-app.is-dark {
   --sand-1: #111110;
   --sand-2: #191918;
@@ -1309,7 +850,7 @@
   --sand-11: #b5b3ad;
   --sand-12: #eeeeec;
 
-  --sep-page-bg: var(--sand-2);
+  --sep-page-bg: var(--sand-3);
   --sep-article-bg: var(--sand-3);
   --sep-bg: var(--sand-2);
   --sep-bg-elevated: var(--sand-4);
@@ -1320,6 +861,8 @@
   --sep-muted-soft: var(--sand-9);
   --sep-border: var(--sand-7);
   --sep-border-subtle: var(--sand-5);
+  --sep-divider: var(--sand-5);
+  --sep-hover: var(--sand-5);
 }
 
 @supports (color: color(display-p3 1 1 1)) {
@@ -1339,22 +882,4 @@
       --sand-12: color(display-p3 0.933 0.933 0.926);
     }
   }
-}
-
-.sep-plus-app.is-dark .sep-palette-inline.is-open,
-.sep-plus-app.is-dark .sep-palette-inline.is-centered {
-  background: var(--sep-surface);
-  box-shadow:
-    0 0 0 1px var(--sep-border-subtle),
-    0 8px 28px color-mix(in srgb, var(--sand-1) 55%, transparent);
-}
-
-.sep-plus-app.is-dark .sep-palette-input {
-  color: var(--sep-text);
-}
-
-/* Surface and elevated share sand-4 in dark; lift the row highlight. */
-.sep-plus-app.is-dark button.sep-palette-result:hover,
-.sep-plus-app.is-dark button.sep-palette-result.is-active {
-  background: var(--sep-panel-bg);
 }

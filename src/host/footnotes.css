@@ -1,4 +1,4 @@
-@import '../lib/marginNote.css';
+@import '../lib/popover.css';
 
 :host {
   all: initial;
@@ -45,7 +45,7 @@
   transform: none;
 }
 
-.sep-footnote-preview .sep-margin-note-body {
+.sep-footnote-preview .sep-popover-body {
   /* Footnote HTML should wrap like article prose, not preserve source newlines. */
   white-space: normal;
 }

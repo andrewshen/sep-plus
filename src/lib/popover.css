@@ -1,0 +1,146 @@
+/*
+ * Shared popover surface for every SEP+ popover: header dropdowns (search,
+ * annotations, settings), private notes, citation previews, and footnotes.
+ * Footnotes build this markup by hand in their own shadow root; React
+ * popovers render it through PopoverSurface.
+ */
+.sep-popover {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  width: min(400px, calc(100vw - 32px));
+  max-height: calc(100vh - 80px);
+  padding: 8px 20px;
+  overflow: clip;
+  border: 1px solid var(--sep-divider);
+  border-radius: 16px;
+  background: var(--sep-surface);
+  box-shadow: 0 2px 20px -8px rgb(0 0 0 / 10%);
+  color: var(--sep-text);
+  font-family: var(--sep-font);
+  font-synthesis: none;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  pointer-events: auto;
+}
+
+.sep-popover *,
+.sep-popover *::before,
+.sep-popover *::after {
+  box-sizing: border-box;
+}
+
+.sep-popover--menu {
+  padding: 8px;
+}
+
+.sep-popover--anchored {
+  max-height: min(480px, calc(100vh - 24px));
+}
+
+.sep-popover-title {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  gap: 8px;
+  padding: 8px 0;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 20px;
+}
+
+.sep-popover-title-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.sep-popover-action {
+  flex-shrink: 0;
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--sep-muted);
+  cursor: pointer;
+  font: inherit;
+  font-weight: 400;
+  white-space: nowrap;
+  transition: color var(--sep-duration-fast) var(--sep-ease);
+}
+
+.sep-popover-action:hover {
+  color: var(--sep-text);
+}
+
+.sep-popover-action:disabled {
+  cursor: default;
+  opacity: 0.55;
+}
+
+.sep-popover-body {
+  flex: 1;
+  min-height: 0;
+  /* Bleed the scrollport to the popover edge so the scrollbar isn't inset. */
+  margin-inline: -20px;
+  padding-inline: 20px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+}
+
+.sep-popover--menu .sep-popover-body {
+  margin-inline: 0;
+  padding-inline: 0;
+}
+
+/* Free-form text (notes, footnotes) sits on the same 12px rhythm as rows. */
+.sep-popover-prose {
+  padding-block: 12px;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 22px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.sep-popover-prose :is(p, blockquote, ul, ol) {
+  margin: 0;
+}
+
+.sep-popover-prose :is(p, blockquote, ul, ol) + :is(p, blockquote, ul, ol) {
+  margin-top: 8px;
+}
+
+.sep-popover-prose :is(ul, ol) {
+  padding-left: 20px;
+}
+
+.sep-popover-prose a {
+  color: var(--sep-text);
+  font-weight: 600;
+  text-decoration-color: var(--sep-border);
+  text-underline-offset: 2px;
+}
+
+.sep-popover-prose a:hover {
+  text-decoration-color: currentColor;
+}
+
+.sep-popover-message {
+  padding: 12px 0;
+  color: var(--sep-muted);
+  font-size: 14px;
+  line-height: 20px;
+}
+
+.sep-popover--menu .sep-popover-message {
+  padding: 12px;
+}
+
+.sep-popover-message.is-error {
+  color: #8f2d36;
+}
+
+.sep-plus-app.is-dark .sep-popover-message.is-error {
+  color: #f1a7ad;
+}

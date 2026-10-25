@@ -14,8 +14,7 @@ import type { MarginNoteRect } from '../../lib/marginNotePlacement';
 
 type UseBibliographyCitationsOptions = {
   enabled: boolean;
-  paletteOpen: boolean;
-  sidebarPhase: string;
+  popoverOpen: boolean;
   onPreviewOpen: () => void;
 };
 
@@ -45,8 +44,7 @@ function documentRect(
 
 export function useBibliographyCitations({
   enabled,
-  paletteOpen,
-  sidebarPhase,
+  popoverOpen,
   onPreviewOpen,
 }: UseBibliographyCitationsOptions) {
   const [active, setActive] = useState<ActiveBibliographyPreview | null>(null);
@@ -94,14 +92,10 @@ export function useBibliographyCitations({
   }, [enabled]);
 
   useEffect(() => {
-    if (paletteOpen) {
+    if (popoverOpen) {
       controllerRef.current?.dismiss();
     }
-  }, [paletteOpen]);
-
-  useEffect(() => {
-    controllerRef.current?.dismiss();
-  }, [sidebarPhase]);
+  }, [popoverOpen]);
 
   const dismiss = useCallback(() => {
     controllerRef.current?.dismiss();

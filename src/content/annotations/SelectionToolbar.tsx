@@ -5,7 +5,7 @@ import {
   type PointerEvent as ReactPointerEvent,
 } from 'react';
 import { createPortal } from 'react-dom';
-import { IconAddNote, IconHighlight, IconRemove } from '../icons';
+import { IconAnnotations, IconHighlight, IconRemove } from '../icons';
 import type { SelectionToolbarAnchor } from './useAnnotations';
 
 type SelectionToolbarProps = {
@@ -76,7 +76,7 @@ export function SelectionToolbar({
     try {
       await onSave(nextNote);
     } catch {
-      // The shared annotation state exposes the actionable error in the sidebar.
+      // The shared annotation state exposes the actionable error in the annotations popover.
     } finally {
       setSaving(false);
     }
@@ -90,7 +90,7 @@ export function SelectionToolbar({
     try {
       await remover();
     } catch {
-      // The shared annotation state exposes the actionable error in the sidebar.
+      // The shared annotation state exposes the actionable error in the annotations popover.
     } finally {
       setSaving(false);
     }
@@ -196,7 +196,7 @@ export function SelectionToolbar({
               onPointerDown={keepSelection}
               onClick={() => setComposing(true)}
             >
-              <IconAddNote />
+              <IconAnnotations />
               Add note
             </button>
           </>

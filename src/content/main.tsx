@@ -12,21 +12,13 @@ import {
   wrapSiteContentColumn,
 } from '../host/bootstrap';
 import { initFootnotes } from '../host/footnotes';
-import { collectSiteNavSections } from '../host/siteNav';
 import {
   collectTocItems,
   prepareArticleNav,
 } from '../host/toc';
-import {
-  getTheme,
-  readSidebarCollapsed,
-} from '../lib/storage';
+import { DEFAULT_HIGHLIGHT_COLOR, getHighlightColor, getTheme } from '../lib/storage';
 import { normalizeEntryUrl } from '../lib/annotations';
-import type {
-  SiteNavSection,
-  ThemePreference,
-  TocItem,
-} from '../lib/types';
+import type { HighlightColor, ThemePreference, TocItem } from '../lib/types';
 import { App } from './App';
 import uiStyles from './styles.css?inline';
 import '../host/styles.css';
@@ -69,31 +61,24 @@ function waitForNextFrame(): Promise<void> {
 
 function mountShell(
   items: TocItem[],
-  siteNav: SiteNavSection[] | undefined,
-  initialCollapsed: boolean,
   initialTheme: ThemePreference,
+  initialHighlightColor: HighlightColor,
   articleMode: boolean,
   articleSource?: string,
   articleTitle = '',
 ): void {
-  const sidebarPhase = initialCollapsed ? 'closed' : 'open';
   document.documentElement.classList.add('sep-plus');
   document.body.classList.add('sep-plus');
-  document.documentElement.dataset.sepPlusSidebarPhase = sidebarPhase;
-  document.body.dataset.sepPlusSidebarPhase = sidebarPhase;
 
-  const articleSidebar = document.querySelector<HTMLElement>('#article-sidebar');
-  if (articleSidebar) {
-    articleSidebar.style.display = 'none';
-  }
+  // Detach rather than hide: SEP's sticky-sidebar script rewrites this node's
+  // inline styles on every scroll, which forces style + layout while attached.
+  document.querySelector('#article-sidebar')?.remove();
 
   const existingHost = document.getElementById('sep-plus-root') as
     | (HTMLElement & { sepPlusUnmount?: () => void })
     | null;
   existingHost?.sepPlusUnmount?.();
   existingHost?.remove();
-  document.getElementById('sep-plus-edge-toggle')?.remove();
-  document.getElementById('sep-plus-palette-layer')?.remove();
   document.getElementById('sep-plus-annotation-layer')?.remove();
 
   const host = document.createElement('div') as HTMLDivElement & {
@@ -102,14 +87,6 @@ function mountShell(
   host.id = 'sep-plus-root';
   host.setAttribute('data-sep-plus-booting', '');
   document.documentElement.appendChild(host);
-
-  const edgeToggle = document.createElement('div');
-  edgeToggle.id = 'sep-plus-edge-toggle';
-  document.documentElement.appendChild(edgeToggle);
-
-  const paletteLayer = document.createElement('div');
-  paletteLayer.id = 'sep-plus-palette-layer';
-  document.documentElement.appendChild(paletteLayer);
 
   const annotationLayer = document.createElement('div');
   annotationLayer.id = 'sep-plus-annotation-layer';
@@ -123,14 +100,6 @@ function mountShell(
   const mount = document.createElement('div');
   mount.id = 'sep-plus-shadow-root';
   shadow.appendChild(mount);
-
-  const paletteShadow = paletteLayer.attachShadow({ mode: 'open' });
-  const paletteStyle = document.createElement('style');
-  paletteStyle.textContent = uiStyles;
-  paletteShadow.appendChild(paletteStyle);
-  const paletteMount = document.createElement('div');
-  paletteMount.id = 'sep-plus-palette-mount';
-  paletteShadow.appendChild(paletteMount);
 
   const annotationShadow = annotationLayer.attachShadow({ mode: 'open' });
   const annotationStyle = document.createElement('style');
@@ -146,9 +115,8 @@ function mountShell(
     root.render(
       <App
         items={items}
-        siteNav={siteNav}
-        initialCollapsed={initialCollapsed}
         initialTheme={initialTheme}
+        initialHighlightColor={initialHighlightColor}
         articleMode={articleMode}
         articleSource={articleSource}
         articleTitle={articleTitle}
@@ -163,7 +131,10 @@ async function main(): Promise<void> {
     return;
   }
 
-  const theme = await themePromise;
+  const [theme, highlightColor] = await Promise.all([
+    themePromise,
+    highlightColorPromise,
+  ]);
   if (bootTimedOut) {
     return;
   }
@@ -181,7 +152,6 @@ async function main(): Promise<void> {
         .trim()
     : '';
   let tocItems: TocItem[] = [];
-  let siteNav: SiteNavSection[] | undefined;
 
   if (articleMode) {
     prepareArticleNav();
@@ -190,17 +160,14 @@ async function main(): Promise<void> {
     styleRelatedEntries();
     relocateArticleEndMatter();
   } else {
-    // Scrape footer nav before body.sep-plus hides #footer.
-    siteNav = collectSiteNavSections();
     wrapSiteContentColumn();
   }
 
   bootstrapHost(theme);
   mountShell(
     tocItems,
-    siteNav,
-    readSidebarCollapsed(),
     theme,
+    highlightColor,
     articleMode,
     articleSource,
     articleTitle,
@@ -233,6 +200,13 @@ const themePromise: Promise<ThemePreference> = getTheme().then(
     console.warn('SEP+ could not load the saved theme.', error);
     applyTheme('light');
     return 'light';
+  }
+);
+
+const highlightColorPromise: Promise<HighlightColor> = getHighlightColor().catch(
+  (error: unknown) => {
+    console.warn('SEP+ could not load the saved highlight color.', error);
+    return DEFAULT_HIGHLIGHT_COLOR;
   }
 );
 
