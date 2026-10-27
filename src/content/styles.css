@@ -313,7 +313,7 @@
 
 .sep-plus-app button.sep-icon-button:hover,
 .sep-plus-app button.sep-icon-button.is-pressed {
-  background: var(--sep-bg-elevated);
+  background: var(--sep-hover);
   color: var(--sep-text);
 }
 
@@ -751,7 +751,7 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 6px 12px;
+  padding: 6px 10px;
   border: 0;
   /* Concentric with the 12px surface over its 4px padding. */
   border-radius: 8px;
