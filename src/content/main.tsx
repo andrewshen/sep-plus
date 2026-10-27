@@ -10,6 +10,7 @@ import {
   reformatPubinfo,
   relocateArticleEndMatter,
   styleRelatedEntries,
+  restyleSearchResults,
   wrapSiteContentColumn,
 } from '../host/bootstrap';
 import { initFootnotes } from '../host/footnotes';
@@ -191,6 +192,7 @@ async function main(): Promise<void> {
     relocateArticleEndMatter();
   } else if (!homeMode) {
     wrapSiteContentColumn();
+    restyleSearchResults();
   }
 
   bootstrapHost(theme);

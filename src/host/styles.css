@@ -562,6 +562,66 @@ select {
   padding: 0 !important;
 }
 
+body.sep-plus .search_total.sep-plus-search-summary {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  margin: 0 0 20px !important;
+  padding: 0 0 16px !important;
+  border-bottom: 1px solid var(--sep-divider);
+  font-family: var(--sep-font);
+}
+
+body.sep-plus .sep-plus-search-summary-count {
+  color: var(--sep-text);
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 20px;
+}
+
+body.sep-plus .sep-plus-search-summary-label {
+  color: var(--sep-muted);
+}
+
+body.sep-plus .sep-plus-search-summary-page {
+  flex-shrink: 0;
+  color: var(--sep-muted);
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 20px;
+}
+
+body.sep-plus .result_listing {
+  margin-bottom: 24px;
+}
+
+body.sep-plus .result_snippet,
+body.sep-plus .result_snippet * {
+  color: var(--sep-muted) !important;
+}
+
+body.sep-plus .result_title a.l,
+body.sep-plus .result_title a.l:link,
+body.sep-plus .result_title a.l:visited,
+body.sep-plus .result_title a.l:hover,
+body.sep-plus .result_title a.l:active {
+  color: var(--sep-text) !important;
+}
+
+body.sep-plus .result_title a.l {
+  transition: opacity var(--sep-duration-fast) var(--sep-ease);
+}
+
+body.sep-plus .result_title a.l:hover {
+  opacity: 0.5;
+}
+
+/* The title already links to the entry. */
+body.sep-plus .result_url {
+  display: none !important;
+}
+
 /* Related Entries — pill chips (pipe separators removed in JS) */
 body.sep-plus .sep-plus-related-entries {
   display: flex;

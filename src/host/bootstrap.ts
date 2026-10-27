@@ -260,6 +260,78 @@ export function isArticlePage(): boolean {
   );
 }
 
+/** "1–10 of 1339 documents found" → summary copy for the search page. */
+export function parseSearchSummary(
+  status: string,
+  query: string,
+  pageSize = 10,
+): { count: string; page: string } | null {
+  const match = status
+    .replace(/\u2013/g, '-')
+    .match(/(\d[\d,]*)\s*-\s*(\d[\d,]*)\s+of\s+(\d[\d,]*)/i);
+  if (!match || pageSize < 1) {
+    return null;
+  }
+  const start = Number(match[1].replace(/,/g, ''));
+  const total = Number(match[3].replace(/,/g, ''));
+  if (!Number.isFinite(total) || total < 1 || !Number.isFinite(start) || start < 1) {
+    return null;
+  }
+  const current = Math.floor((start - 1) / pageSize) + 1;
+  const totalPages = Math.ceil(total / pageSize);
+  return {
+    count: `${total.toLocaleString('en-US')} results for “${query.trim()}”`,
+    page: `Page ${current.toLocaleString('en-US')} of ${totalPages.toLocaleString('en-US')}`,
+  };
+}
+
+/**
+ * Drop the native "Search" heading and replace the hit-range line with
+ * "{total} results for "{query}"" and "Page n of m".
+ */
+export function restyleSearchResults(): void {
+  const totalEl = document.querySelector<HTMLElement>('.search_total');
+  if (!totalEl || totalEl.dataset.sepPlusSearchSummary === '1') {
+    return;
+  }
+
+  const heading = totalEl
+    .closest('#content')
+    ?.querySelector<HTMLElement>(':scope > h1, :scope > .sep-plus-content-column > h1');
+  if (heading && /^search$/i.test((heading.textContent ?? '').trim())) {
+    heading.remove();
+  }
+
+  const query = new URLSearchParams(location.search).get('query') ?? '';
+  const pageSize = Number(
+    totalEl
+      .parentElement?.querySelector('a[href*="pagesize="]')
+      ?.href.match(/[?&]pagesize=(\d+)/)?.[1] ?? 10,
+  );
+  const parsed = parseSearchSummary(totalEl.textContent ?? '', query, pageSize);
+  if (!parsed) {
+    return;
+  }
+
+  const count = document.createElement('span');
+  count.className = 'sep-plus-search-summary-count';
+  const labelMatch = parsed.count.match(/^(.*?)(results for)(.*)$/);
+  if (labelMatch) {
+    const label = document.createElement('span');
+    label.className = 'sep-plus-search-summary-label';
+    label.textContent = labelMatch[2];
+    count.append(labelMatch[1], label, labelMatch[3]);
+  } else {
+    count.textContent = parsed.count;
+  }
+  const page = document.createElement('span');
+  page.className = 'sep-plus-search-summary-page';
+  page.textContent = parsed.page;
+  totalEl.replaceChildren(count, page);
+  totalEl.classList.add('sep-plus-search-summary');
+  totalEl.dataset.sepPlusSearchSummary = '1';
+}
+
 /**
  * Non-entry pages lack #article-content. Wrap #content’s main body in a
  * single column so max-width centering matches entry pages.
