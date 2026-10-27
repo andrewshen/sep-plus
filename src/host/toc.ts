@@ -1,4 +1,5 @@
 import type { TocItem } from '../lib/types';
+import { scrollWindowTo } from './scroll';
 
 /** Height of the fixed SEP+ header; keep in sync with `.sep-header`. */
 export const HEADER_HEIGHT = 60;
@@ -108,10 +109,7 @@ export function smoothScrollToHref(href: string): void {
     return;
   }
   const top = target.getBoundingClientRect().top + window.scrollY;
-  window.scrollTo({
-    top: Math.max(top - HEADER_HEIGHT - 24, 0),
-    behavior: 'smooth',
-  });
+  scrollWindowTo(top - HEADER_HEIGHT - 24);
 }
 
 export function getActiveTocIndex(

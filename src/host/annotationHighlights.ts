@@ -1,3 +1,5 @@
+import { scrollWindowTo } from './scroll';
+
 export type ResolvedAnnotationRange = {
   id: string;
   range: Range;
@@ -46,10 +48,7 @@ export class AnnotationHighlightRenderer {
       return false;
     }
     const rect = range.getBoundingClientRect();
-    window.scrollTo({
-      top: Math.max(0, window.scrollY + rect.top - offset),
-      behavior: 'smooth',
-    });
+    scrollWindowTo(window.scrollY + rect.top - offset);
     return true;
   }
 

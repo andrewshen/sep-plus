@@ -15,6 +15,9 @@ import {
   AnnotationHighlightRenderer,
   type ResolvedAnnotationRange,
 } from './annotationHighlights';
+import { scrollWindowTo } from './scroll';
+
+vi.mock('./scroll', () => ({ scrollWindowTo: vi.fn() }));
 
 function setArticle(html: string): HTMLElement {
   document.body.innerHTML = `<main id="article-content">${html}</main>`;
@@ -217,9 +220,6 @@ describe('annotation highlight renderer', () => {
       configurable: true,
       value: () => [new DOMRect(40, 0, 30, 20)],
     });
-    const scrollTo = vi
-      .spyOn(window, 'scrollTo')
-      .mockImplementation(() => undefined);
     const renderer = new AnnotationHighlightRenderer();
     const resolved: ResolvedAnnotationRange[] = [
       { id: 'one', range: first },
@@ -232,10 +232,7 @@ describe('annotation highlight renderer', () => {
     expect(renderer.annotationAtPoint(50, 10)).toBe('two');
     expect(renderer.annotationAtPoint(35, 10)).toBeNull();
     expect(renderer.scrollTo('one')).toBe(true);
-    expect(scrollTo).toHaveBeenCalledWith({
-      top: 144,
-      behavior: 'smooth',
-    });
+    expect(scrollWindowTo).toHaveBeenCalledWith(144);
 
     renderer.redraw([{ id: 'two', range: second }]);
     expect(renderer.getRange('one')).toBeNull();
