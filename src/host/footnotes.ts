@@ -714,6 +714,11 @@ function createPreviewController(options: {
     preview.style.top = `${placement.top}px`;
     preview.style.left = `${placement.left}px`;
     preview.dataset.placement = placement.placement;
+    const originX = triggerRect.left + triggerRect.width / 2 - placement.left;
+    preview.style.setProperty(
+      '--sep-popover-origin-x',
+      `${Math.min(Math.max(originX, 0), previewRect.width)}px`
+    );
   }
 
   function schedulePosition(): void {

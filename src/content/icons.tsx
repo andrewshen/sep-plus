@@ -100,15 +100,6 @@ export function IconChevron() {
   );
 }
 
-/** Chevron left, 12×12 — {@link IconChevron} rotated for back navigation. */
-export function IconChevronLeft() {
-  return (
-    <svg viewBox="0 0 12 12" aria-hidden="true" fill="none">
-      <path {...STROKE} d="M7.5 2.25L3.75 6L7.5 9.75" />
-    </svg>
-  );
-}
-
 /** Highlighter, 16×16 (Paper annotation bar LTO-0). */
 export function IconHighlight() {
   return (
@@ -132,14 +123,25 @@ export function IconHighlight() {
   );
 }
 
-/** Remove (trash), 16×16, matching the annotation bar strokes. */
-export function IconRemove() {
+/** Copy, 16×16 — Paper TN2-0 (Phosphor regular) redrawn as 1.25 strokes. */
+export function IconCopy() {
   return (
     <svg viewBox="0 0 16 16" aria-hidden="true" fill="none">
-      <path
-        {...STROKE}
-        d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.6 8.1c.04.5.45.9.95.9h3.9c.5 0 .91-.4.95-.9l.6-8.1"
-      />
+      <path {...STROKE} d="M2.5 5.5H10.5V13.5H2.5Z" />
+      <path {...STROKE} d="M10.5 10.5H13.5V2.5H5.5V5.5" />
+    </svg>
+  );
+}
+
+/** Trash, 16×16 — Paper TN0-0 (Phosphor regular) redrawn as 1.25 strokes. */
+export function IconTrash() {
+  return (
+    <svg viewBox="0 0 16 16" aria-hidden="true" fill="none">
+      <path {...STROKE} d="M2.5 3.5H13.5" />
+      <path {...STROKE} d="M5.5 3.5V2.5A1 1 0 0 1 6.5 1.5H9.5A1 1 0 0 1 10.5 2.5V3.5" />
+      <path {...STROKE} d="M12.5 3.5V13A0.5 0.5 0 0 1 12 13.5H4A0.5 0.5 0 0 1 3.5 13V3.5" />
+      <path {...STROKE} d="M6.5 6.5V10.5" />
+      <path {...STROKE} d="M9.5 6.5V10.5" />
     </svg>
   );
 }

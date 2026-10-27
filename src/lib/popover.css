@@ -5,6 +5,14 @@
  * popovers render it through PopoverSurface.
  */
 .sep-popover {
+  /* Entry/exit motion shared by every popover. Each popover grows toward
+     where it sits: from below (positive y) when it's above its anchor, from
+     above (negative y) when it hangs below one. */
+  --sep-popover-enter-y: 4px;
+  --sep-popover-enter-scale: 0.98;
+  --sep-popover-enter-transform: translateY(var(--sep-popover-enter-y))
+    scale(var(--sep-popover-enter-scale));
+
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
@@ -34,8 +42,37 @@
   padding: 8px;
 }
 
+/*
+ * Popovers anchored to something in the article (selection, highlight,
+ * citation, footnote) grow out of it: from their bottom edge when placed
+ * above it, from their top edge when placed below. Same timing and scale as
+ * the header dropdowns. `--sep-popover-origin-x` points at the anchor.
+ */
 .sep-popover--anchored {
   max-height: min(480px, calc(100vh - 24px));
+  transform-origin: var(--sep-popover-origin-x, 50%) bottom;
+  transition:
+    opacity var(--sep-duration-ui) var(--sep-ease-out),
+    transform var(--sep-duration-ui) var(--sep-ease-out);
+}
+
+.sep-popover--anchored[data-placement='below'] {
+  --sep-popover-enter-y: -4px;
+  transform-origin: var(--sep-popover-origin-x, 50%) top;
+}
+
+@starting-style {
+  .sep-popover--anchored {
+    opacity: 0;
+    transform: var(--sep-popover-enter-transform);
+  }
+}
+
+/* Fade only; no movement. */
+@media (prefers-reduced-motion: reduce) {
+  .sep-popover {
+    --sep-popover-enter-transform: none;
+  }
 }
 
 .sep-popover-title {
@@ -52,29 +89,6 @@
 .sep-popover-title-text {
   flex: 1;
   min-width: 0;
-}
-
-.sep-popover-action {
-  flex-shrink: 0;
-  margin: 0;
-  padding: 0;
-  border: none;
-  background: transparent;
-  color: var(--sep-muted);
-  cursor: pointer;
-  font: inherit;
-  font-weight: 400;
-  white-space: nowrap;
-  transition: color var(--sep-duration-fast) var(--sep-ease);
-}
-
-.sep-popover-action:hover {
-  color: var(--sep-text);
-}
-
-.sep-popover-action:disabled {
-  cursor: default;
-  opacity: 0.55;
 }
 
 .sep-popover-body {

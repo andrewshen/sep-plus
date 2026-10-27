@@ -10,17 +10,11 @@ import {
 
 export const POPOVER_EXIT_MS = 150;
 
-export type PopoverAction = {
-  label: string;
-  disabled?: boolean;
-  onClick: () => void;
-};
-
 type PopoverSurfaceProps = Omit<HTMLAttributes<HTMLDivElement>, 'title'> & {
   ref?: Ref<HTMLDivElement>;
   title?: ReactNode;
-  /** Quiet text button at the end of the title row. */
-  action?: PopoverAction;
+  /** Trailing control in the title row (e.g. an icon button). */
+  accessory?: ReactNode;
   /** `list` insets content 20px (rows, prose); `menu` insets 8px (search). */
   variant?: 'list' | 'menu';
   /** Free-form text body (notes, footnotes) instead of rows. */
@@ -34,7 +28,7 @@ type PopoverSurfaceProps = Omit<HTMLAttributes<HTMLDivElement>, 'title'> & {
 export function PopoverSurface({
   ref,
   title,
-  action,
+  accessory,
   variant = 'list',
   prose = false,
   className,
@@ -53,21 +47,10 @@ export function PopoverSurface({
         .filter(Boolean)
         .join(' ')}
     >
-      {title || action ? (
+      {title || accessory ? (
         <div className="sep-popover-title">
           <span className="sep-popover-title-text">{title}</span>
-          {action ? (
-            <button
-              type="button"
-              className="sep-popover-action"
-              disabled={action.disabled}
-              // Keep focus (and any text selection) where it was.
-              onPointerDown={(event) => event.preventDefault()}
-              onClick={action.onClick}
-            >
-              {action.label}
-            </button>
-          ) : null}
+          {accessory}
         </div>
       ) : null}
       {children ? (
@@ -91,11 +74,15 @@ type PopoverProps = {
   ariaLabel: string;
   role?: AriaRole;
   id?: string;
+  className?: string;
   children: ReactNode;
   onExited?: () => void;
 };
 
-/** Header dropdown: a PopoverSurface that mounts, fades in, and fades out. */
+/**
+ * Header dropdown: a PopoverSurface that fades and scales in from its trigger
+ * (via `@starting-style`), then stays mounted until its exit transition ends.
+ */
 export function Popover({
   open,
   align,
@@ -104,21 +91,19 @@ export function Popover({
   ariaLabel,
   role = 'dialog',
   id,
+  className,
   children,
   onExited,
 }: PopoverProps) {
   const [mounted, setMounted] = useState(open);
-  const [visible, setVisible] = useState(false);
   const onExitedRef = useRef(onExited);
   onExitedRef.current = onExited;
 
   useEffect(() => {
     if (open) {
       setMounted(true);
-      const frame = window.requestAnimationFrame(() => setVisible(true));
-      return () => window.cancelAnimationFrame(frame);
+      return;
     }
-    setVisible(false);
     const timer = window.setTimeout(() => {
       setMounted(false);
       onExitedRef.current?.();
@@ -140,7 +125,8 @@ export function Popover({
       className={[
         'sep-popover--dropdown',
         `sep-popover--${align}`,
-        visible ? 'is-open' : '',
+        open ? 'is-open' : '',
+        className,
       ]
         .filter(Boolean)
         .join(' ')}

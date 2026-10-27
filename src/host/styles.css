@@ -598,6 +598,15 @@ body.sep-plus .sep-plus-related-entries a:hover {
   cursor: pointer !important;
 }
 
+/* Hover in and out both ease. Slightly slower than icon buttons. */
+[data-highlighters-overlay] div,
+#article-content > div[aria-hidden='true'][style*='mix-blend-mode'] div {
+  transition:
+    background-color var(--sep-duration-ui) var(--sep-ease),
+    background-image var(--sep-duration-ui) var(--sep-ease),
+    opacity var(--sep-duration-ui) var(--sep-ease);
+}
+
 [data-sep-plus-bibliography-citation] {
   border-radius: 2px;
   color: inherit;

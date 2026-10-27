@@ -1,7 +1,10 @@
 import { useMemo } from 'react';
 import { useHighlight, type HighlightOptions } from '@highlighters/react';
 import type { ResolvedAnnotationRange } from '../../host/annotationHighlights';
-import { highlightSwatch } from '../../lib/highlightColors';
+import {
+  highlightEmphasisColor,
+  highlightSwatch,
+} from '../../lib/highlightColors';
 import type { HighlightColor } from '../../lib/types';
 
 type AnnotationMarksProps = {
@@ -20,7 +23,7 @@ type AnnotationMarkProps = {
 };
 
 const BASE_OPACITY = 0.6;
-const EMPHASIZED_OPACITY = 0.85;
+const EMPHASIZED_OPACITY = 0.8;
 
 function seedFromId(id: string): number {
   let hash = 2166136261;
@@ -41,7 +44,9 @@ function AnnotationMark({
   const options = useMemo<HighlightOptions>(
     () => ({
       seed: seedFromId(id),
-      color: highlightSwatch(color),
+      color: emphasized
+        ? highlightEmphasisColor(color)
+        : highlightSwatch(color),
       tip: { type: 'fine' },
       animation: { draw: false },
       opacity: emphasized ? EMPHASIZED_OPACITY : BASE_OPACITY,

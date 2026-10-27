@@ -14,7 +14,6 @@
 
 .sep-footnote-preview {
   position: fixed;
-  opacity: 0;
   visibility: hidden;
   pointer-events: none;
 }
@@ -28,51 +27,25 @@
   visibility: hidden;
 }
 
+/* The preview stays mounted, so its closed state carries the shared
+   anchored-popover entry values (see .sep-popover--anchored). */
+.sep-footnote-preview:not([data-state='open']) {
+  opacity: 0;
+  transform: var(--sep-popover-enter-transform);
+}
+
 .sep-footnote-preview[data-state='open'] {
-  opacity: 1;
   visibility: visible;
   pointer-events: auto;
 }
 
 .sep-footnote-preview[data-state='closing'] {
-  opacity: 0;
   visibility: visible;
   pointer-events: none;
-}
-
-.sep-footnote-preview[data-motion='instant'] {
-  transition: none;
-  transform: none;
+  transition-duration: var(--sep-duration-fast);
 }
 
 .sep-footnote-preview .sep-popover-body {
   /* Footnote HTML should wrap like article prose, not preserve source newlines. */
   white-space: normal;
-}
-
-@media (hover: hover) and (pointer: fine) {
-  .sep-footnote-preview[data-motion='pointer'] {
-    transition:
-      opacity var(--sep-duration-fast) var(--sep-ease-out),
-      transform var(--sep-duration-fast) var(--sep-ease-out);
-  }
-
-  .sep-footnote-preview[data-motion='pointer'][data-placement='above']:not(
-      [data-state='open']
-    ) {
-    transform: translateY(4px);
-  }
-
-  .sep-footnote-preview[data-motion='pointer'][data-placement='below']:not(
-      [data-state='open']
-    ) {
-    transform: translateY(-4px);
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .sep-footnote-preview[data-motion='pointer'] {
-    transform: none;
-    transition: opacity var(--sep-duration-fast) var(--sep-ease-out);
-  }
 }

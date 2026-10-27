@@ -19,15 +19,13 @@ export type MarginNotePopoverProps = {
   anchorRect: MarginNoteRect;
   label: string;
   body?: ReactNode;
-  actionLabel?: string;
-  actionDisabled?: boolean;
+  /** Trailing control in the title row. */
+  accessory?: ReactNode;
   dark: boolean;
   ariaLabel: string;
-  onAction?: () => void;
   onDismiss: () => void;
   className?: string;
   role?: AriaRole;
-  motion?: 'instant' | 'pointer';
   /** Body is structured markup (citation entries) rather than note text. */
   structuredBody?: boolean;
   bibliographyPreview?: boolean;
@@ -47,15 +45,12 @@ export function MarginNotePopover({
   anchorRect,
   label,
   body,
-  actionLabel,
-  actionDisabled,
+  accessory,
   dark,
   ariaLabel,
-  onAction,
   onDismiss,
   className,
   role = 'dialog',
-  motion = 'instant',
   structuredBody = false,
   bibliographyPreview = false,
   onPointerEnter,
@@ -77,26 +72,40 @@ export function MarginNotePopover({
     if (!node) {
       return;
     }
-    const placement = computeMarginNotePlacement(
-      anchorRect,
-      {
-        width: node.offsetWidth,
-        height: node.offsetHeight,
-      },
-      {
-        top: window.scrollY,
-        left: window.scrollX,
-        width: window.innerWidth,
-        height: window.innerHeight,
-      },
-    );
-    setPlacement(placement.placement);
-    setStyle({
-      position: 'absolute',
-      left: placement.left,
-      top: placement.top,
-      visibility: 'visible',
-    });
+    const element = node;
+    function place(): void {
+      const placement = computeMarginNotePlacement(
+        anchorRect,
+        {
+          width: element.offsetWidth,
+          height: element.offsetHeight,
+        },
+        {
+          top: window.scrollY,
+          left: window.scrollX,
+          width: window.innerWidth,
+          height: window.innerHeight,
+        },
+      );
+      const originX =
+        anchorRect.left + anchorRect.width / 2 - placement.left;
+      setPlacement(placement.placement);
+      setStyle({
+        position: 'absolute',
+        left: placement.left,
+        top: placement.top,
+        visibility: 'visible',
+        '--sep-popover-origin-x': `${Math.min(
+          Math.max(originX, 0),
+          element.offsetWidth,
+        )}px`,
+      } as CSSProperties);
+    }
+    place();
+    // Editable notes grow as you type; keep them clear of the highlight.
+    const observer = new ResizeObserver(place);
+    observer.observe(element);
+    return () => observer.disconnect();
   }, [anchorRect]);
 
   const mount = getAnnotationMount();
@@ -115,16 +124,11 @@ export function MarginNotePopover({
         className={['sep-popover--anchored', className].filter(Boolean).join(' ')}
         style={style}
         title={label}
-        action={
-          actionLabel && onAction
-            ? { label: actionLabel, disabled: actionDisabled, onClick: onAction }
-            : undefined
-        }
+        accessory={accessory}
         prose={!structuredBody}
         data-sep-plus-annotation-ui=""
         data-sep-plus-bibliography-preview={bibliographyPreview ? '' : undefined}
         data-placement={placement}
-        data-motion={motion}
         role={role}
         aria-label={ariaLabel}
         onPointerEnter={onPointerEnter}

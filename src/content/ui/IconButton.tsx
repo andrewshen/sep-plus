@@ -4,6 +4,7 @@ type IconButtonProps = {
   label: string;
   expanded: boolean;
   controls?: string;
+  hasPopup?: 'dialog' | 'menu';
   onClick: () => void;
   children: ReactNode;
 };
@@ -12,6 +13,7 @@ export function IconButton({
   label,
   expanded,
   controls,
+  hasPopup = 'dialog',
   onClick,
   children,
 }: IconButtonProps) {
@@ -22,7 +24,7 @@ export function IconButton({
         .filter(Boolean)
         .join(' ')}
       aria-label={label}
-      aria-haspopup="dialog"
+      aria-haspopup={hasPopup}
       aria-expanded={expanded}
       aria-controls={expanded ? controls : undefined}
       onClick={onClick}

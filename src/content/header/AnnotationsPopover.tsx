@@ -46,7 +46,10 @@ export function AnnotationsPopover({
               : 'Text could not be located in this revision.'
           }
           disabled={!annotation.resolved}
-          onClick={() => {
+          onClick={(event) => {
+            // Closing removes this row; if it still has focus, Chrome's focus
+            // reset cancels the smooth scroll partway.
+            event.currentTarget.blur();
             if (onScrollTo(annotation.id)) {
               onClose();
             }

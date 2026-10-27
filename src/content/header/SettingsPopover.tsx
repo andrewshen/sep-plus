@@ -8,7 +8,7 @@ import type {
   AnnotationExportFormat,
   AnnotationExportScope,
 } from '../annotations/useAnnotations';
-import { IconChevronLeft, IconMoon, IconSun } from '../icons';
+import { IconMoon, IconSun } from '../icons';
 import { Popover } from '../ui/Popover';
 import { PopoverRow } from '../ui/PopoverRow';
 
@@ -18,15 +18,19 @@ const THEME_OPTIONS: ReadonlyArray<{ value: ThemePreference; label: string }> = 
   { value: 'auto', label: 'System' },
 ];
 
-const EXPORT_OPTIONS: ReadonlyArray<{
+type ExportChoice = `${AnnotationExportScope}:${AnnotationExportFormat}`;
+
+const EXPORT_GROUPS: Record<AnnotationExportScope, string> = {
+  entry: 'This entry',
+  all: 'All entries',
+};
+
+const EXPORT_FORMATS: ReadonlyArray<{
   format: AnnotationExportFormat;
-  scope: AnnotationExportScope;
   label: string;
 }> = [
-  { format: 'json', scope: 'entry', label: 'This entry · JSON' },
-  { format: 'md', scope: 'entry', label: 'This entry · Markdown' },
-  { format: 'json', scope: 'all', label: 'All entries · JSON' },
-  { format: 'md', scope: 'all', label: 'All entries · Markdown' },
+  { format: 'json', label: 'JSON' },
+  { format: 'md', label: 'Markdown' },
 ];
 
 const FEEDBACK_HREF = `mailto:me@andrewshen.net?subject=${encodeURIComponent(
@@ -68,15 +72,25 @@ export function SettingsPopover({
   onExport,
   onClose,
 }: SettingsPopoverProps) {
-  const [view, setView] = useState<'root' | 'export'>('root');
   const [exportError, setExportError] = useState<string | null>(null);
 
-  async function runExport(
-    format: AnnotationExportFormat,
-    scope: AnnotationExportScope,
-  ): Promise<void> {
+  const exportOptions = (['entry', 'all'] as const).flatMap((scope) =>
+    EXPORT_FORMATS.map(({ format, label }) => ({
+      value: `${scope}:${format}` as ExportChoice,
+      label,
+      group: EXPORT_GROUPS[scope],
+      disabled: scope === 'entry' && !canExportEntry,
+    })),
+  );
+
+  async function runExport(choice: ExportChoice): Promise<void> {
+    const [scope, format] = choice.split(':') as [
+      AnnotationExportScope,
+      AnnotationExportFormat,
+    ];
     try {
       await onExport(format, scope);
+      setExportError(null);
       onClose();
     } catch (error: unknown) {
       setExportError(
@@ -85,99 +99,71 @@ export function SettingsPopover({
     }
   }
 
-  const title =
-    view === 'root' ? (
-      'Settings'
-    ) : (
-      <button
-        type="button"
-        className="sep-popover-back"
-        onClick={() => {
-          setView('root');
-          setExportError(null);
-        }}
-      >
-        <IconChevronLeft />
-        Export annotations
-      </button>
-    );
-
   return (
     <Popover
       id={id}
       open={open}
       align="end"
-      title={title}
+      title="Settings"
       ariaLabel="Settings"
-      onExited={() => {
-        setView('root');
-        setExportError(null);
-      }}
+      onExited={() => setExportError(null)}
     >
-      {view === 'root' ? (
-        <>
-          <PopoverRow
-            label="Appearance"
-            trailing={
-              <>
-                {dark ? <IconMoon /> : <IconSun />}
-                {optionLabel(THEME_OPTIONS, theme)}
-              </>
-            }
-            select={{
-              value: theme,
-              options: THEME_OPTIONS,
-              ariaLabel: 'Appearance',
-              onChange: onThemeChange,
-            }}
-          />
-          <PopoverRow
-            label="Highlight color"
-            trailing={
-              <>
-                <span className="sep-swatch-slot">
-                  <span
-                    className="sep-swatch"
-                    style={{ background: highlightColorValue(highlightColor) }}
-                  />
-                </span>
-                {optionLabel(HIGHLIGHT_COLOR_OPTIONS, highlightColor)}
-              </>
-            }
-            select={{
-              value: highlightColor,
-              options: HIGHLIGHT_COLOR_OPTIONS,
-              ariaLabel: 'Highlight color',
-              onChange: onHighlightColorChange,
-            }}
-          />
-          <PopoverRow
-            label="Export annotations"
-            onClick={() => setView('export')}
-          />
-          <PopoverRow
-            label="Send feedback"
-            href={FEEDBACK_HREF}
-            onClick={onClose}
-          />
-        </>
-      ) : (
-        <>
-          {exportError ? (
-            <div className="sep-popover-message is-error" role="alert">
-              {exportError}
-            </div>
-          ) : null}
-          {EXPORT_OPTIONS.map((option) => (
-            <PopoverRow
-              key={`${option.scope}-${option.format}`}
-              label={option.label}
-              disabled={option.scope === 'entry' && !canExportEntry}
-              onClick={() => void runExport(option.format, option.scope)}
-            />
-          ))}
-        </>
-      )}
+      {exportError ? (
+        <div className="sep-popover-message is-error" role="alert">
+          {exportError}
+        </div>
+      ) : null}
+      <PopoverRow
+        label="Appearance"
+        trailing={
+          <>
+            {dark ? <IconMoon /> : <IconSun />}
+            {optionLabel(THEME_OPTIONS, theme)}
+          </>
+        }
+        select={{
+          value: theme,
+          options: THEME_OPTIONS,
+          ariaLabel: 'Appearance',
+          onChange: onThemeChange,
+        }}
+      />
+      <PopoverRow
+        label="Highlight color"
+        trailing={
+          <>
+            <span className="sep-swatch-slot">
+              <span
+                className="sep-swatch"
+                style={{ background: highlightColorValue(highlightColor) }}
+              />
+            </span>
+            {optionLabel(HIGHLIGHT_COLOR_OPTIONS, highlightColor)}
+          </>
+        }
+        select={{
+          value: highlightColor,
+          options: HIGHLIGHT_COLOR_OPTIONS,
+          ariaLabel: 'Highlight color',
+          onChange: onHighlightColorChange,
+        }}
+      />
+      <PopoverRow
+        label="Export annotations"
+        select={{
+          value: '',
+          options: exportOptions,
+          ariaLabel: 'Export annotations',
+          placeholder: 'Choose',
+          onChange: (choice) => void runExport(choice),
+        }}
+      />
+      <PopoverRow
+        label="Send feedback"
+        trailing="Email"
+        href={FEEDBACK_HREF}
+        onClick={onClose}
+      />
     </Popover>
   );
 }

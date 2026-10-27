@@ -1,12 +1,20 @@
-import type { ReactNode } from 'react';
+import type { MouseEvent, ReactNode } from 'react';
 import { IconChevron } from '../icons';
 
-type SelectOption<T extends string> = { value: T; label: string };
+type SelectOption<T extends string> = {
+  value: T;
+  label: string;
+  /** Options sharing a group render under one native `<optgroup>`. */
+  group?: string;
+  disabled?: boolean;
+};
 
 type PopoverRowSelect<T extends string> = {
-  value: T;
+  /** `''` shows the placeholder (action menus with no current value). */
+  value: T | '';
   options: ReadonlyArray<SelectOption<T>>;
   ariaLabel: string;
+  placeholder?: string;
   onChange: (value: T) => void;
 };
 
@@ -16,11 +24,41 @@ type PopoverRowProps<T extends string> = {
   leading?: ReactNode;
   trailing?: ReactNode;
   href?: string;
-  onClick?: () => void;
+  onClick?: (event: MouseEvent<HTMLElement>) => void;
   disabled?: boolean;
   /** Native select stretched over the row; the trailing slot shows its value. */
   select?: PopoverRowSelect<T>;
 };
+
+function renderOptions<T extends string>(
+  options: ReadonlyArray<SelectOption<T>>,
+): ReactNode[] {
+  const nodes: ReactNode[] = [];
+  let index = 0;
+  while (index < options.length) {
+    const group = options[index]?.group;
+    const run: SelectOption<T>[] = [];
+    while (index < options.length && options[index]?.group === group) {
+      run.push(options[index] as SelectOption<T>);
+      index += 1;
+    }
+    const items = run.map((option) => (
+      <option key={option.value} value={option.value} disabled={option.disabled}>
+        {option.label}
+      </option>
+    ));
+    nodes.push(
+      group ? (
+        <optgroup key={group} label={group}>
+          {items}
+        </optgroup>
+      ) : (
+        items
+      ),
+    );
+  }
+  return nodes;
+}
 
 export function PopoverRow<T extends string = string>({
   label,
@@ -32,6 +70,7 @@ export function PopoverRow<T extends string = string>({
   disabled,
   select,
 }: PopoverRowProps<T>) {
+  const trailingContent = trailing ?? select?.placeholder;
   const content = (
     <>
       {leading ? <span className="sep-popover-row-leading">{leading}</span> : null}
@@ -41,9 +80,9 @@ export function PopoverRow<T extends string = string>({
           <span className="sep-popover-row-secondary">{secondary}</span>
         ) : null}
       </span>
-      {trailing || select ? (
+      {trailingContent || select ? (
         <span className="sep-popover-row-trailing">
-          {trailing}
+          {trailingContent}
           {select ? (
             <span className="sep-popover-row-chevron">
               <IconChevron />
@@ -71,11 +110,12 @@ export function PopoverRow<T extends string = string>({
             }
           }}
         >
-          {select.options.map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
+          {select.placeholder ? (
+            <option value="" disabled hidden>
+              {select.placeholder}
             </option>
-          ))}
+          ) : null}
+          {renderOptions(select.options)}
         </select>
       </label>
     );

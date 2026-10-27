@@ -314,8 +314,8 @@ export function Search({ open, onOpen, onClose }: SearchProps) {
                   tabIndex={-1}
                   aria-selected={index === activeIndex}
                   className={[
-                    'sep-search-result',
-                    row.kind === 'search' ? 'sep-search-result--search' : '',
+                    'sep-menu-item',
+                    row.kind === 'search' ? 'sep-menu-item--muted' : '',
                     index === activeIndex ? 'is-active' : '',
                   ]
                     .filter(Boolean)

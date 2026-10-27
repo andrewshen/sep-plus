@@ -7,8 +7,8 @@ import {
 } from '../lib/storage';
 import type { HighlightColor, ThemePreference, TocItem } from '../lib/types';
 import { getActiveTocIndex } from '../host/toc';
-import { formatRelativeAnnotationTime } from '../lib/marginNotePlacement';
 import { AnnotationMarks } from './annotations/AnnotationMarks';
+import { AnnotationPopover } from './annotations/AnnotationPopover';
 import { MarginNotePopover } from './annotations/MarginNotePopover';
 import { SelectionToolbar } from './annotations/SelectionToolbar';
 import { useAnnotations } from './annotations/useAnnotations';
@@ -74,7 +74,6 @@ export function App({
     popoverOpen,
     onPreviewOpen: annotationState.dismissSelection,
   });
-  const [deletingAnnotation, setDeletingAnnotation] = useState(false);
   const activeNote = useMemo(() => {
     const activeId = annotationState.activeAnnotation?.annotationId;
     if (!activeId) {
@@ -86,10 +85,6 @@ export function App({
       ) ?? null
     );
   }, [annotationState.activeAnnotation?.annotationId, annotationState.annotations]);
-
-  useEffect(() => {
-    setDeletingAnnotation(false);
-  }, [annotationState.activeAnnotation?.key]);
 
   useEffect(() => {
     if (annotationState.pendingSelection || annotationState.activeAnnotation) {
@@ -210,46 +205,21 @@ export function App({
       <SelectionToolbar
         selection={annotationState.pendingSelection}
         dark={dark}
-        onSave={annotationState.saveSelection}
+        onHighlight={() => annotationState.saveSelection('')}
+        onAddNote={() => annotationState.saveSelection('', { openNote: true })}
         onDismiss={annotationState.dismissSelection}
       />
-      {annotationState.activeAnnotation &&
-      activeNote &&
-      !activeNote.note.trim() ? (
-        <SelectionToolbar
-          selection={annotationState.activeAnnotation}
-          dark={dark}
-          onSave={async (note) => {
-            await annotationState.updateAnnotation(activeNote.id, { note });
-            annotationState.dismissSelection();
-          }}
-          onRemove={() => annotationState.deleteAnnotation(activeNote.id)}
-          onDismiss={annotationState.dismissSelection}
-        />
-      ) : null}
-      {annotationState.activeAnnotation &&
-      activeNote &&
-      activeNote.note.trim() ? (
-        <MarginNotePopover
+      {annotationState.activeAnnotation && activeNote ? (
+        <AnnotationPopover
+          key={annotationState.activeAnnotation.key}
+          annotation={activeNote}
           anchorRect={annotationState.activeAnnotation.rect}
-          label={`Private note · ${formatRelativeAnnotationTime(activeNote.updatedAt)}`}
-          body={activeNote.note}
-          actionLabel={deletingAnnotation ? 'Deleting…' : 'Delete'}
-          actionDisabled={deletingAnnotation}
           dark={dark}
-          ariaLabel="Private note"
+          onSaveNote={(note) =>
+            annotationState.updateAnnotation(activeNote.id, { note })
+          }
+          onDelete={() => annotationState.deleteAnnotation(activeNote.id)}
           onDismiss={annotationState.dismissSelection}
-          onAction={() => {
-            if (deletingAnnotation) {
-              return;
-            }
-            setDeletingAnnotation(true);
-            void annotationState
-              .deleteAnnotation(activeNote.id)
-              .catch(() => {
-                setDeletingAnnotation(false);
-              });
-          }}
         />
       ) : null}
       {citationState.active ? (
@@ -265,7 +235,6 @@ export function App({
           dark={dark}
           ariaLabel="Bibliography citation preview"
           role="note"
-          motion="pointer"
           structuredBody
           bibliographyPreview
           className="sep-bibliography-popover"

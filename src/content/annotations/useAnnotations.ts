@@ -63,6 +63,10 @@ export type ActiveAnnotationHighlight = {
 export type AnnotationExportFormat = 'json' | 'md';
 export type AnnotationExportScope = 'entry' | 'all';
 
+const ARRIVAL_EMPHASIS_MS = 1200;
+/** Clear even if `scrollend` never fires (e.g. already in view). */
+const ARRIVAL_FALLBACK_MS = 1500;
+
 type UseAnnotationsOptions = {
   enabled: boolean;
   source?: string;
@@ -121,6 +125,7 @@ export function useAnnotations({
     readonly ResolvedAnnotationRange[]
   >([]);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
+  const [arrivedId, setArrivedId] = useState<string | null>(null);
   const [pendingSelection, setPendingSelection] =
     useState<PendingAnnotationSelection | null>(null);
   const [activeAnnotation, setActiveAnnotation] =
@@ -368,8 +373,11 @@ export function useAnnotations({
     if (activeAnnotationId) {
       ids.add(activeAnnotationId);
     }
+    if (arrivedId) {
+      ids.add(arrivedId);
+    }
     return ids;
-  }, [activeAnnotationId, hoveredId]);
+  }, [activeAnnotationId, arrivedId, hoveredId]);
 
   useEffect(() => {
     setPendingSelection(null);
@@ -432,7 +440,10 @@ export function useAnnotations({
   );
 
   const saveSelection = useCallback(
-    async (note: string): Promise<void> => {
+    async (
+      note: string,
+      options: { openNote?: boolean } = {},
+    ): Promise<void> => {
       if (!source || !pendingSelection) {
         return;
       }
@@ -455,7 +466,15 @@ export function useAnnotations({
         );
         setEntry(next);
         setPendingSelection(null);
-        setActiveAnnotation(null);
+        setActiveAnnotation(
+          options.openNote
+            ? {
+                annotationId: annotation.id,
+                rect: pendingSelection.rect,
+                key: `existing:${annotation.id}`,
+              }
+            : null,
+        );
         setError(null);
         document.getSelection()?.removeAllRanges();
       } catch (saveError: unknown) {
@@ -519,9 +538,39 @@ export function useAnnotations({
   );
 
   const scrollToAnnotation = useCallback(
-    (annotationId: string): boolean => renderer.scrollTo(annotationId),
+    (annotationId: string): boolean => {
+      if (!renderer.scrollTo(annotationId)) {
+        return false;
+      }
+      setArrivedId(annotationId);
+      return true;
+    },
     [renderer],
   );
+
+  // Hold the emphasis on a jumped-to annotation until shortly after the
+  // smooth scroll lands, so it's clear which one you arrived at.
+  useEffect(() => {
+    if (!arrivedId) {
+      return;
+    }
+    let clearTimer: number | undefined;
+    function settle(): void {
+      window.clearTimeout(fallback);
+      window.removeEventListener('scrollend', settle);
+      clearTimer = window.setTimeout(
+        () => setArrivedId(null),
+        ARRIVAL_EMPHASIS_MS,
+      );
+    }
+    const fallback = window.setTimeout(settle, ARRIVAL_FALLBACK_MS);
+    window.addEventListener('scrollend', settle);
+    return () => {
+      window.clearTimeout(fallback);
+      window.clearTimeout(clearTimer);
+      window.removeEventListener('scrollend', settle);
+    };
+  }, [arrivedId]);
 
   const exportAnnotations = useCallback(
     async (
