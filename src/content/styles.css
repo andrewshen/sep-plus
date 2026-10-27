@@ -33,6 +33,8 @@
   --sep-outline-tick: var(--sand-6);
   /* Halfway between sand-2 and sand-3. */
   --sep-hover: color-mix(in srgb, var(--sand-2), var(--sand-3));
+  /* One step past --sep-hover, for controls sitting on a hover surface. */
+  --sep-hover-strong: color-mix(in srgb, var(--sand-3), var(--sand-4));
   --sep-ease-out: cubic-bezier(0.23, 1, 0.32, 1);
   --sep-ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
   --sep-ease: cubic-bezier(0.25, 0.1, 0.25, 1);
@@ -165,6 +167,23 @@
   outline-offset: 2px;
 }
 
+.sep-bibliography-preview-entry-body a,
+.sep-bibliography-preview-entry-body a:link,
+.sep-bibliography-preview-entry-body a:visited,
+.sep-bibliography-preview-entry-body a:hover,
+.sep-bibliography-preview-entry-body a:active {
+  color: var(--sep-muted);
+  text-decoration: none;
+}
+
+.sep-bibliography-preview-entry-body a {
+  transition: opacity var(--sep-duration-fast) var(--sep-ease);
+}
+
+.sep-bibliography-preview-entry-body a:hover {
+  opacity: 0.5;
+}
+
 .sep-plus-app button,
 .sep-plus-app a,
 .sep-plus-app select,
@@ -182,8 +201,14 @@
   right: 0;
   z-index: 2;
   height: 60px;
-  border-bottom: 1px solid var(--sep-divider);
+  /* Shown once the title scrolls up under the header. */
+  border-bottom: 1px solid transparent;
   background: var(--sep-page-bg);
+  transition: border-color var(--sep-duration-fast) var(--sep-ease);
+}
+
+.sep-header.is-scrolled {
+  border-bottom-color: var(--sep-divider);
 }
 
 .sep-header-logo {
@@ -233,6 +258,11 @@
   padding: 0 16px;
 }
 
+/* Full-page search: the field spans the results column. */
+.sep-search-page .sep-search--hero {
+  width: 100%;
+}
+
 /* Results span the field, whatever its size. */
 .sep-search > .sep-popover {
   width: 100%;
@@ -244,10 +274,19 @@
   gap: 6px;
   height: 40px;
   padding: 0 12px;
+  border: 1px solid transparent;
   border-radius: 999px;
   background: var(--sep-hover);
   color: var(--sep-muted-soft);
   cursor: text;
+}
+
+.sep-search-field:focus-within {
+  border-color: var(--sand-4);
+}
+
+.sep-plus-app.is-dark .sep-search-field:focus-within {
+  border-color: var(--sand-6);
 }
 
 .sep-search-field > svg {
@@ -284,6 +323,37 @@
 .sep-search-input::placeholder {
   color: var(--sep-muted-soft);
   opacity: 1;
+}
+
+.sep-plus-app button.sep-search-clear {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  /* Matches the right gap to the top/bottom gap in both field sizes. */
+  margin-right: -5px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--sep-muted-soft);
+  cursor: pointer;
+  transition:
+    color var(--sep-duration-fast) var(--sep-ease),
+    background-color var(--sep-duration-fast) var(--sep-ease);
+}
+
+.sep-search-clear svg {
+  display: block;
+  width: 12px;
+  height: 12px;
+}
+
+.sep-plus-app button.sep-search-clear:hover {
+  background: var(--sep-hover-strong);
+  color: var(--sep-text);
 }
 
 .sep-search-slash {
@@ -565,7 +635,7 @@
 }
 
 .sep-plus-app button.sep-menu-item--muted {
-  color: var(--sep-muted-soft);
+  color: var(--sep-muted);
 }
 
 .sep-plus-app button.sep-menu-item--muted:is(:hover, .is-active) {
@@ -1163,6 +1233,7 @@
   --sep-divider: var(--sand-5);
   --sep-outline-tick: var(--sand-9);
   --sep-hover: var(--sand-5);
+  --sep-hover-strong: var(--sand-6);
 }
 
 .sep-plus-app.is-dark .sep-outline-tick.is-active::before {
@@ -1170,12 +1241,14 @@
 }
 
 .sep-plus-app.is-dark button.sep-icon-button,
+.sep-plus-app.is-dark button.sep-search-clear,
 .sep-plus-app.is-dark .sep-search-field > svg {
   color: var(--sep-muted);
 }
 
 .sep-plus-app.is-dark button.sep-icon-button:hover,
-.sep-plus-app.is-dark button.sep-icon-button.is-pressed {
+.sep-plus-app.is-dark button.sep-icon-button.is-pressed,
+.sep-plus-app.is-dark button.sep-search-clear:hover {
   color: #fff;
 }
 

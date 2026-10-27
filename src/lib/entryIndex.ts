@@ -195,6 +195,96 @@ function searchKey(entry: EntryIndexItem): string {
   return key;
 }
 
+/** Folded display title (what users read) and, for person entries, the
+ *  surname from the raw `Surname, Given` TOC title. */
+type RankTitles = { display: string; surname: string | null };
+
+/** `Kant, Immanuel` / `Abelard [Abailard], Peter` — not topic heads like
+ *  `logic, history of: modal`, which are lowercase or carry a colon. */
+const PERSON_TITLE = /^(\p{Lu}[^,:[\]]*?)(?:\s*\[[^\]]*\])?,\s*\p{Lu}[^:]*$/u;
+
+const rankTitles = new WeakMap<EntryIndexItem, RankTitles>();
+
+function rankTitlesFor(entry: EntryIndexItem): RankTitles {
+  let titles = rankTitles.get(entry);
+  if (titles === undefined) {
+    const person = PERSON_TITLE.exec(entry.title);
+    titles = {
+      display: foldForSearch(formatEntryTitle(entry.title, entry.href)),
+      surname: person?.[1] ? foldForSearch(person[1]) : null,
+    };
+    rankTitles.set(entry, titles);
+  }
+  return titles;
+}
+
+function isWordChar(char: string | undefined): boolean {
+  return char !== undefined && /[\p{L}\p{N}]/u.test(char);
+}
+
+/** Whether `needle` occurs in `text` at the start of a word. */
+function startsWord(text: string, needle: string): boolean {
+  for (
+    let index = text.indexOf(needle);
+    index !== -1;
+    index = text.indexOf(needle, index + 1)
+  ) {
+    if (!isWordChar(text[index - 1])) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/**
+ * Lower is better:
+ * 0 exact title (or the surname of a `Surname, Given` entry),
+ * 1 title starts with the phrase as whole words, 2 whole words elsewhere,
+ * 3 title starts with the phrase mid-word (`logic` → `Logical`),
+ * 4 a word starts with it, 5 every query word starts a word,
+ * 6 anywhere (mid-word or bracket aliases).
+ */
+function rankIn(text: string, phrase: string, terms: readonly string[]): number {
+  if (text === phrase) {
+    return 0;
+  }
+  let best = 6;
+  for (
+    let index = text.indexOf(phrase);
+    index !== -1 && best > 1;
+    index = text.indexOf(phrase, index + 1)
+  ) {
+    if (isWordChar(text[index - 1])) {
+      continue;
+    }
+    const whole = !isWordChar(text[index + phrase.length]);
+    const tier = index === 0 ? (whole ? 1 : 3) : whole ? 2 : 4;
+    best = Math.min(best, tier);
+  }
+  if (best < 6) {
+    return best;
+  }
+  return terms.every((term) => startsWord(text, term)) ? 5 : 6;
+}
+
+function matchRank(
+  titles: RankTitles,
+  phrase: string,
+  terms: readonly string[],
+): number {
+  if (titles.surname === phrase) {
+    return 0;
+  }
+  return rankIn(titles.display, phrase, terms);
+}
+
+type RankedEntry = { entry: EntryIndexItem; rank: number; length: number };
+
+/** Best rank first; shorter titles break ties, then contents order. */
+function byRank(left: RankedEntry, right: RankedEntry): number {
+  return left.rank - right.rank || left.length - right.length;
+}
+
 const WARM_CHUNK = 200;
 
 /** Build search keys in idle time so the first keystroke doesn't format every title. */
@@ -208,6 +298,7 @@ export function warmSearchKeys(entries: readonly EntryIndexItem[]): void {
     const end = Math.min(index + WARM_CHUNK, entries.length);
     for (; index < end; index++) {
       searchKey(entries[index]!);
+      rankTitlesFor(entries[index]!);
     }
     if (index < entries.length) {
       schedule(step);
@@ -218,7 +309,8 @@ export function warmSearchKeys(entries: readonly EntryIndexItem[]): void {
 
 /**
  * Every query word must appear (any order); entries containing the whole
- * phrase rank first. `related` entries lead either way.
+ * phrase rank first, each group ordered by `matchRank`. `related` entries
+ * lead either way.
  */
 export function filterEntries(
   entries: EntryIndexItem[],
@@ -234,22 +326,32 @@ export function filterEntries(
   const results: EntryIndexItem[] = [];
 
   for (const pool of [related, entries]) {
-    const loose: EntryIndexItem[] = [];
+    const whole: RankedEntry[] = [];
+    const loose: RankedEntry[] = [];
     for (const entry of pool) {
       if (seen.has(entry.href)) {
         continue;
       }
       const key = searchKey(entry);
-      if (key.includes(phrase)) {
-        results.push(entry);
-      } else if (terms.every((term) => key.includes(term))) {
-        loose.push(entry);
-      } else {
+      const group = key.includes(phrase)
+        ? whole
+        : terms.every((term) => key.includes(term))
+          ? loose
+          : null;
+      if (!group) {
         continue;
       }
+      const titles = rankTitlesFor(entry);
+      group.push({
+        entry,
+        rank: matchRank(titles, phrase, terms),
+        length: titles.display.length,
+      });
       seen.add(entry.href);
     }
-    results.push(...loose);
+    for (const group of [whole, loose]) {
+      results.push(...group.sort(byRank).map(({ entry }) => entry));
+    }
     if (results.length >= MAX_RESULTS) {
       break;
     }

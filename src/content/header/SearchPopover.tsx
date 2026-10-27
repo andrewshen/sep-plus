@@ -15,7 +15,7 @@ import {
 } from '../../lib/entryIndex';
 import { formatEntryTitle } from '../../lib/formatEntryTitle';
 import type { EntryIndexItem } from '../../lib/types';
-import { IconSearch } from '../icons';
+import { IconClose, IconSearch } from '../icons';
 import { Popover, POPOVER_EXIT_MS } from '../ui/Popover';
 import { useDismiss } from '../ui/useDismiss';
 
@@ -28,6 +28,8 @@ type SearchProps = {
    */
   suggestions?: readonly EntryIndexItem[];
   suggestionsLabel?: string;
+  /** Pre-filled query, restored whenever the results close. */
+  initialQuery?: string;
   open: boolean;
   onOpen: () => void;
   onClose: () => void;
@@ -113,6 +115,7 @@ export function Search({
   variant = 'header',
   suggestions,
   suggestionsLabel = 'Related entries',
+  initialQuery = '',
   open,
   onOpen,
   onClose,
@@ -121,7 +124,7 @@ export function Search({
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLUListElement>(null);
   const prefetchedUrlsRef = useRef(new Set<string>());
-  const [query, setQuery] = useState('');
+  const [query, setQuery] = useState(initialQuery);
   const [entries, setEntries] = useState<EntryIndexItem[] | null>(null);
   const [pageRelated, setPageRelated] = useState<EntryIndexItem[]>([]);
   const related = useMemo(
@@ -292,7 +295,23 @@ export function Search({
           }}
           onKeyDown={onKeyDown}
         />
-        <kbd className="sep-search-slash">/</kbd>
+        {query ? (
+          <button
+            type="button"
+            className="sep-search-clear"
+            aria-label="Clear search"
+            onMouseDown={(event) => event.preventDefault()}
+            onClick={() => {
+              setQuery('');
+              inputRef.current?.focus();
+              onOpen();
+            }}
+          >
+            <IconClose />
+          </button>
+        ) : (
+          <kbd className="sep-search-slash">/</kbd>
+        )}
       </div>
 
       <Popover
@@ -302,7 +321,7 @@ export function Search({
         role="group"
         ariaLabel="Search results"
         onExited={() => {
-          setQuery('');
+          setQuery(initialQuery);
           setActiveIndex(0);
           setLoadError(null);
         }}

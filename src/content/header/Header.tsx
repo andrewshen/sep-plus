@@ -11,6 +11,7 @@ import { useDismiss } from '../ui/useDismiss';
 import { AnnotationsPopover } from './AnnotationsPopover';
 import { Search } from './SearchPopover';
 import { SettingsPopover } from './SettingsPopover';
+import { useHeaderBorder } from './useHeaderBorder';
 
 export type HeaderPopover = 'search' | 'annotations' | 'settings';
 
@@ -19,6 +20,8 @@ const SETTINGS_POPOVER_ID = 'sep-settings-popover';
 
 type HeaderProps = {
   articleMode: boolean;
+  /** Off on full-page search, which shows its own field above the results. */
+  showSearch: boolean;
   dark: boolean;
   openPopover: HeaderPopover | null;
   onOpenPopoverChange: (next: HeaderPopover | null) => void;
@@ -38,6 +41,7 @@ type HeaderProps = {
 
 export function Header({
   articleMode,
+  showSearch,
   dark,
   openPopover,
   onOpenPopoverChange,
@@ -53,6 +57,7 @@ export function Header({
 }: HeaderProps) {
   const annotationsRef = useRef<HTMLDivElement>(null);
   const settingsRef = useRef<HTMLDivElement>(null);
+  const scrolled = useHeaderBorder();
   function close(): void {
     onOpenPopoverChange(null);
   }
@@ -65,7 +70,7 @@ export function Header({
   useDismiss(settingsRef, openPopover === 'settings', close);
 
   return (
-    <header className="sep-header">
+    <header className={scrolled ? 'sep-header is-scrolled' : 'sep-header'}>
       <a
         href="https://plato.stanford.edu/"
         className="sep-header-logo"
@@ -74,11 +79,13 @@ export function Header({
         <SepLogo />
       </a>
 
-      <Search
-        open={openPopover === 'search'}
-        onOpen={() => onOpenPopoverChange('search')}
-        onClose={close}
-      />
+      {showSearch ? (
+        <Search
+          open={openPopover === 'search'}
+          onOpen={() => onOpenPopoverChange('search')}
+          onClose={close}
+        />
+      ) : null}
 
       <div className="sep-header-actions">
         {articleMode ? (

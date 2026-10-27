@@ -76,6 +76,19 @@ function createFlowHost(id: string, insert: (host: HTMLElement) => void): void {
   shadow.appendChild(mount);
 }
 
+/** Full-page search: the search field sits above the result count. */
+function insertSearchHost(host: HTMLElement): void {
+  const anchor =
+    document.querySelector('.search_total') ??
+    document.querySelector('.searchpage') ??
+    document.querySelector('.sep-plus-content-column h1')?.nextElementSibling;
+  if (anchor?.parentElement) {
+    anchor.parentElement.insertBefore(host, anchor);
+  } else {
+    document.querySelector('.sep-plus-content-column')?.prepend(host);
+  }
+}
+
 function mountShell(
   items: TocItem[],
   initialTheme: ThemePreference,
@@ -85,11 +98,14 @@ function mountShell(
   articleSource?: string,
   articleTitle = '',
 ): void {
+  const searchMode =
+    !articleMode && !homeMode && location.pathname.startsWith('/search/');
   document.documentElement.classList.add('sep-plus');
   document.body.classList.add('sep-plus');
   document.documentElement.classList.toggle('sep-plus-home', homeMode);
   document.body.classList.toggle('sep-plus-home', homeMode);
   document.body.classList.toggle('sep-plus-site', !articleMode && !homeMode);
+  document.body.classList.toggle('sep-plus-search', searchMode);
 
   // Detach rather than hide: SEP's sticky-sidebar script rewrites this node's
   // inline styles on every scroll, which forces style + layout while attached.
@@ -103,6 +119,7 @@ function mountShell(
   document.getElementById('sep-plus-annotation-layer')?.remove();
   document.getElementById('sep-plus-home')?.remove();
   document.getElementById('sep-plus-footer')?.remove();
+  document.getElementById('sep-plus-search')?.remove();
 
   const host = document.createElement('div') as HTMLDivElement & {
     sepPlusUnmount?: () => void;
@@ -136,6 +153,9 @@ function mountShell(
     createFlowHost('sep-plus-home', (homeHost) => document.body.prepend(homeHost));
   } else if (!articleMode) {
     createFlowHost('sep-plus-footer', (footerHost) => document.body.append(footerHost));
+    if (searchMode) {
+      createFlowHost('sep-plus-search', insertSearchHost);
+    }
   }
 
   const root = createRoot(mount);

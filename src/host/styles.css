@@ -146,6 +146,18 @@ html body.sep-plus-site #content:not(:has(#article)) {
   min-height: 0 !important;
 }
 
+/* Full-page search starts closer to the header than other pages. */
+html body.sep-plus-search #content:not(:has(#article)) {
+  padding-top: 100px !important;
+}
+
+/* Above the result listings that follow it, so its dropdown isn't covered. */
+#sep-plus-search {
+  position: relative;
+  z-index: 10;
+  margin-bottom: 24px;
+}
+
 /* Native SEP chrome — replaced by the React header on every page. */
 body.sep-plus #header-wrapper,
 body.sep-plus #article-sidebar,
@@ -182,6 +194,11 @@ body.sep-plus :is(#article, #content:not(:has(#article))) {
   padding: var(--sep-plus-page-padding) !important;
   min-height: 100vh !important;
   background: transparent !important;
+}
+
+/* Search results sit 100px below the fixed header, not the 144px entry offset. */
+body.sep-plus #content:has(.searchpage) {
+  padding-top: calc(var(--sep-plus-header-height) + 100px) !important;
 }
 
 body.sep-plus #article-content,
@@ -596,6 +613,22 @@ body.sep-plus .result_listing {
   margin-bottom: 24px;
 }
 
+body.sep-plus .result_listing[data-sep-plus-result-link] {
+  position: relative;
+  transition: opacity var(--sep-duration-fast) var(--sep-ease);
+}
+
+body.sep-plus .result_listing[data-sep-plus-result-link]:hover {
+  opacity: 0.5;
+}
+
+body.sep-plus .result_listing[data-sep-plus-result-link] .result_title a.l::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+}
+
 body.sep-plus .result_snippet,
 body.sep-plus .result_snippet * {
   color: var(--sep-muted) !important;
@@ -609,12 +642,14 @@ body.sep-plus .result_title a.l:active {
   color: var(--sep-text) !important;
 }
 
-body.sep-plus .result_title a.l {
-  transition: opacity var(--sep-duration-fast) var(--sep-ease);
+body.sep-plus .result_author {
+  margin-top: 4px;
+  margin-bottom: 8px;
+  color: var(--sand-12);
 }
 
-body.sep-plus .result_title a.l:hover {
-  opacity: 0.5;
+body.sep-plus .result_title a.l {
+  font-weight: 700;
 }
 
 /* The title already links to the entry. */
@@ -890,6 +925,101 @@ body.dark .dropdown-menu li a {
 body.dark .dropdown-menu li a:hover {
   background: var(--sand-7) !important;
   color: var(--sep-text) !important;
+}
+
+/* Search pager — centered pills. Placed after the dark link accent so
+   sand colors win over the maroon and pink link rules. */
+body.sep-plus .sep-plus-search-pager {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: auto !important;
+  margin: 32px auto 8px !important;
+  padding: 0 !important;
+  font-family: var(--sep-font);
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 20px;
+}
+
+body.sep-plus .sep-plus-search-pager-step {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  height: 36px;
+  padding: 0 16px;
+  border: 1px solid var(--sep-border);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--sep-text) !important;
+  cursor: pointer;
+  font: inherit;
+  text-decoration: none !important;
+  transition:
+    color var(--sep-duration-fast) var(--sep-ease),
+    background-color var(--sep-duration-fast) var(--sep-ease);
+}
+
+body.sep-plus .sep-plus-search-pager-step.is-disabled {
+  opacity: 0.5;
+}
+
+body.sep-plus .sep-plus-search-pager-page {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  min-width: 32px;
+  height: 32px;
+  padding: 0 6px;
+  border-radius: 999px;
+  color: var(--sep-muted) !important;
+  cursor: pointer;
+  font: inherit;
+  text-decoration: none !important;
+  transition:
+    color var(--sep-duration-fast) var(--sep-ease),
+    background-color var(--sep-duration-fast) var(--sep-ease);
+}
+
+body.sep-plus a.sep-plus-search-pager-page:hover {
+  background: var(--sep-bg-elevated);
+  color: var(--sep-text) !important;
+}
+
+body.sep-plus .sep-plus-search-pager-page.is-current {
+  background: var(--sep-hover);
+  color: var(--sep-text) !important;
+}
+
+body.sep-plus .sep-plus-search-pager-gap {
+  color: var(--sep-muted);
+}
+
+body.sep-plus .sep-plus-search-pager-step:hover,
+body.sep-plus .sep-plus-search-pager-page.is-current:hover {
+  color: var(--sep-text) !important;
+}
+
+body.sep-plus .sep-plus-search-pager-step:hover {
+  background: var(--sep-hover);
+}
+
+body.dark.sep-plus .sep-plus-search-pager-step:link,
+body.dark.sep-plus .sep-plus-search-pager-step:visited {
+  color: var(--sep-text) !important;
+}
+
+body.dark.sep-plus .sep-plus-search-pager-page:link,
+body.dark.sep-plus .sep-plus-search-pager-page:visited {
+  color: var(--sep-muted) !important;
+}
+
+body.dark.sep-plus .sep-plus-search-pager-step:hover,
+body.dark.sep-plus .sep-plus-search-pager-page:hover {
+  color: #fff !important;
 }
 
 body.dark blockquote {

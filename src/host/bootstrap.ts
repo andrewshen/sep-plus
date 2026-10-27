@@ -282,7 +282,74 @@ export function parseSearchSummary(
   return {
     count: `${total.toLocaleString('en-US')} results for “${query.trim()}”`,
     page: `Page ${current.toLocaleString('en-US')} of ${totalPages.toLocaleString('en-US')}`,
+    current,
+    totalPages,
   };
+}
+
+/** Nearby pages, plus the last page when it falls outside that window. */
+export function searchPagerItems(
+  current: number,
+  totalPages: number,
+): Array<number | 'ellipsis'> {
+  if (totalPages < 1) {
+    return [];
+  }
+  const page = Math.min(Math.max(current, 1), totalPages);
+  if (totalPages <= 7) {
+    return Array.from({ length: totalPages }, (_, index) => index + 1);
+  }
+
+  let start = Math.max(1, page - 2);
+  let end = Math.min(totalPages, start + 4);
+  start = Math.max(1, end - 4);
+
+  const items: Array<number | 'ellipsis'> = [];
+  if (start > 1) {
+    items.push(1);
+    if (start > 2) {
+      items.push('ellipsis');
+    }
+  }
+  for (let number = start; number <= end; number += 1) {
+    items.push(number);
+  }
+  if (end < totalPages) {
+    if (end < totalPages - 1) {
+      items.push('ellipsis');
+    }
+    items.push(totalPages);
+  }
+  return items;
+}
+
+/**
+ * Stretch the title link over the listing so author and snippet share its
+ * href. Safe to run more than once.
+ */
+function stretchSearchResultLinks(): void {
+  for (const listing of document.querySelectorAll<HTMLElement>('.result_listing')) {
+    if (listing.dataset.sepPlusResultLink === '1') {
+      continue;
+    }
+    const link = listing.querySelector(':scope > .result_title a.l');
+    if (!link) {
+      continue;
+    }
+    listing.dataset.sepPlusResultLink = '1';
+  }
+}
+
+/** Title, then author, then snippet. Safe to run more than once. */
+function placeSearchAuthors(): void {
+  for (const listing of document.querySelectorAll<HTMLElement>('.result_listing')) {
+    const title = listing.querySelector(':scope > .result_title');
+    const author = listing.querySelector(':scope > .result_author');
+    if (!title || !author || title.nextElementSibling === author) {
+      continue;
+    }
+    title.after(author);
+  }
 }
 
 /**
@@ -290,6 +357,9 @@ export function parseSearchSummary(
  * "{total} results for "{query}"" and "Page n of m".
  */
 export function restyleSearchResults(): void {
+  placeSearchAuthors();
+  stretchSearchResultLinks();
+
   const totalEl = document.querySelector<HTMLElement>('.search_total');
   if (!totalEl || totalEl.dataset.sepPlusSearchSummary === '1') {
     return;
@@ -313,6 +383,8 @@ export function restyleSearchResults(): void {
     return;
   }
 
+  restyleSearchPager(parsed.current, parsed.totalPages);
+
   const count = document.createElement('span');
   count.className = 'sep-plus-search-summary-count';
   const labelMatch = parsed.count.match(/^(.*?)(results for)(.*)$/);
@@ -330,6 +402,73 @@ export function restyleSearchResults(): void {
   totalEl.replaceChildren(count, page);
   totalEl.classList.add('sep-plus-search-summary');
   totalEl.dataset.sepPlusSearchSummary = '1';
+}
+
+function pageHref(template: string, page: number): string {
+  const url = new URL(template, location.href);
+  url.searchParams.set('page', String(page));
+  return url.href;
+}
+
+/** Centered Previous / page window / Next. Keeps the native page hrefs. */
+function restyleSearchPager(current: number, totalPages: number): void {
+  const nav = document.querySelector<HTMLElement>('.PagingNav');
+  if (!nav || totalPages < 1) {
+    return;
+  }
+
+  const template = nav.querySelector('a[href*="page="]')?.getAttribute('href');
+  if (!template) {
+    return;
+  }
+
+  const pager = document.createElement('nav');
+  pager.className = 'sep-plus-search-pager';
+  pager.setAttribute('aria-label', 'Search results pages');
+
+  const step = (label: string, page: number | null) => {
+    if (page == null) {
+      const disabled = document.createElement('span');
+      disabled.className = 'sep-plus-search-pager-step is-disabled';
+      disabled.textContent = label;
+      return disabled;
+    }
+    const link = document.createElement('a');
+    link.className = 'sep-plus-search-pager-step';
+    link.href = pageHref(template, page);
+    link.textContent = label;
+    return link;
+  };
+
+  pager.append(step('Previous', current > 1 ? current - 1 : null));
+
+  for (const item of searchPagerItems(current, totalPages)) {
+    if (item === 'ellipsis') {
+      const gap = document.createElement('span');
+      gap.className = 'sep-plus-search-pager-gap';
+      gap.setAttribute('aria-hidden', 'true');
+      gap.textContent = '…';
+      pager.append(gap);
+      continue;
+    }
+    if (item === current) {
+      const currentPage = document.createElement('span');
+      currentPage.className = 'sep-plus-search-pager-page is-current';
+      currentPage.setAttribute('aria-current', 'page');
+      currentPage.textContent = item.toLocaleString('en-US');
+      pager.append(currentPage);
+      continue;
+    }
+    const link = document.createElement('a');
+    link.className = 'sep-plus-search-pager-page';
+    link.href = pageHref(template, item);
+    link.textContent = item.toLocaleString('en-US');
+    pager.append(link);
+  }
+
+  pager.append(step('Next', current < totalPages ? current + 1 : null));
+
+  nav.replaceWith(pager);
 }
 
 /**

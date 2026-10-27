@@ -17,6 +17,7 @@ import { BibliographyPreview } from './citations/BibliographyPreview';
 import { useBibliographyCitations } from './citations/useBibliographyCitations';
 import { SiteFooter } from './footer/SiteFooter';
 import { Header, type HeaderPopover } from './header/Header';
+import { Search } from './header/SearchPopover';
 import { Homepage } from './home/Homepage';
 import { Outline } from './outline/Outline';
 
@@ -77,6 +78,12 @@ export function App({
   );
   const [footerMount] = useState(() =>
     !homeMode && !articleMode ? getFlowMount('sep-plus-footer') : null,
+  );
+  const [searchMount] = useState(() =>
+    !homeMode && !articleMode ? getFlowMount('sep-plus-search') : null,
+  );
+  const [searchQuery] = useState(
+    () => new URLSearchParams(location.search).get('query')?.trim() ?? '',
   );
   const [theme, setTheme] = useState(initialTheme);
   const [highlightColor, setHighlightColor] = useState(initialHighlightColor);
@@ -212,6 +219,7 @@ export function App({
       ) : (
         <Header
           articleMode={articleMode}
+          showSearch={!searchMount}
           dark={dark}
           openPopover={openPopover}
           onOpenPopoverChange={setOpenPopover}
@@ -232,6 +240,20 @@ export function App({
           onExportAnnotations={annotationState.exportAnnotations}
         />
       )}
+      {searchMount
+        ? createPortal(
+            <div className={flowAppClassName(dark, 'sep-search-page')}>
+              <Search
+                variant="hero"
+                initialQuery={searchQuery}
+                open={openPopover === 'search'}
+                onOpen={() => setOpenPopover('search')}
+                onClose={() => setOpenPopover(null)}
+              />
+            </div>,
+            searchMount,
+          )
+        : null}
       {footerMount
         ? createPortal(
             <div className={flowAppClassName(dark, 'sep-site-footer-page')}>

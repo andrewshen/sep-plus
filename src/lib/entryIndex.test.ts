@@ -104,4 +104,86 @@ describe('filterEntries', () => {
       href('scattered'),
     ]);
   });
+
+  it('ranks exact, then whole-word, then partial-word, then mid-word matches', () => {
+    const pool: EntryIndexItem[] = [
+      { title: 'Reminders in Ethics', href: href('mid-word') },
+      { title: 'Other Minds', href: href('word-partial') },
+      { title: 'Mindfulness', href: href('title-partial') },
+      { title: 'Theories of the Mind', href: href('word-whole') },
+      { title: 'Mind and World', href: href('title-whole') },
+      { title: 'Mind', href: href('exact') },
+    ];
+    expect(filterEntries(pool, 'mind').map((e) => e.href)).toEqual([
+      href('exact'),
+      href('title-whole'),
+      href('word-whole'),
+      href('title-partial'),
+      href('word-partial'),
+      href('mid-word'),
+    ]);
+  });
+
+  it('ranks a whole word above a longer word it starts', () => {
+    const pool: EntryIndexItem[] = [
+      { title: 'Logical Form', href: href('logical-form') },
+      { title: 'Logic and Games', href: href('logic-games') },
+    ];
+    expect(filterEntries(pool, 'logic').map((e) => e.href)).toEqual([
+      href('logic-games'),
+      href('logical-form'),
+    ]);
+  });
+
+  it('treats the surname of a person entry as an exact match', () => {
+    const pool: EntryIndexItem[] = [
+      { title: 'Kant and Leibniz', href: href('kant-leibniz') },
+      { title: 'Kant, Immanuel', href: href('kant') },
+    ];
+    expect(filterEntries(pool, 'kant').map((e) => e.href)).toEqual([
+      href('kant'),
+      href('kant-leibniz'),
+    ]);
+  });
+
+  it('does not treat comma topic heads as surnames', () => {
+    const pool: EntryIndexItem[] = [
+      { title: 'logic, history of: modal logic', href: href('logic-modal-history') },
+      { title: 'Logic and Games', href: href('logic-games') },
+    ];
+    expect(filterEntries(pool, 'logic')[0]?.href).toBe(href('logic-games'));
+  });
+
+  it('breaks ties with the shorter title', () => {
+    const pool: EntryIndexItem[] = [
+      { title: 'Kant’s Philosophy of Religion', href: href('kant-religion') },
+      { title: 'Kant’s Aesthetics', href: href('kant-aesthetics') },
+    ];
+    expect(filterEntries(pool, 'kant').map((e) => e.href)).toEqual([
+      href('kant-aesthetics'),
+      href('kant-religion'),
+    ]);
+  });
+
+  it('ranks scattered words at word starts above mid-word ones', () => {
+    const pool: EntryIndexItem[] = [
+      { title: 'Unmodal Theories of Logic', href: href('mid-word') },
+      { title: 'Logic and Modal Realism', href: href('word-starts') },
+    ];
+    expect(filterEntries(pool, 'modal logic').map((e) => e.href)).toEqual([
+      href('word-starts'),
+      href('mid-word'),
+    ]);
+  });
+
+  it('keeps related entries ahead of better-ranked matches', () => {
+    const related: EntryIndexItem[] = [
+      { title: 'Theories of the Mind', href: href('related') },
+    ];
+    const pool: EntryIndexItem[] = [{ title: 'Mind', href: href('exact') }];
+    expect(filterEntries(pool, 'mind', related).map((e) => e.href)).toEqual([
+      href('related'),
+      href('exact'),
+    ]);
+  });
 });

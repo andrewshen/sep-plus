@@ -166,6 +166,16 @@ export function IconArrowUpRight() {
   );
 }
 
+/** Close / clear, 12×12 — Phosphor "x" redrawn at 1.25 stroke. */
+export function IconClose() {
+  return (
+    <svg viewBox="0 0 12 12" aria-hidden="true" fill="none">
+      <path {...STROKE} d="M9.375 2.625L2.625 9.375" />
+      <path {...STROKE} d="M9.375 9.375L2.625 2.625" />
+    </svg>
+  );
+}
+
 /** SEP figure mark on a 28×42 grid; colored by `currentColor`. */
 export function SepLogo({ label }: { label?: string }) {
   return (
