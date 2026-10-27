@@ -99,7 +99,7 @@ export function onHighlightColorChanged(
   return () => chrome.storage.onChanged.removeListener(listener);
 }
 function isExportFormat(value: unknown): value is AnnotationExportFormat {
-  return value === 'json' || value === 'md';
+  return value === 'json' || value === 'md' || value === 'doc';
 }
 
 export async function getExportFormat(): Promise<AnnotationExportFormat> {

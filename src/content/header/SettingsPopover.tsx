@@ -31,6 +31,7 @@ const EXPORT_FORMAT_OPTIONS: ReadonlyArray<{
 }> = [
   { value: 'json', label: 'JSON' },
   { value: 'md', label: 'Markdown' },
+  { value: 'doc', label: 'Word' },
 ];
 
 const FEEDBACK_HREF = `mailto:me@andrewshen.net?subject=${encodeURIComponent(

@@ -12,6 +12,7 @@ import {
   downloadTextFile,
   serializeAnnotationExport,
   serializeAnnotationsMarkdown,
+  serializeAnnotationsWord,
 } from '../../lib/annotationExport';
 import {
   getAllEntryAnnotations,
@@ -609,6 +610,12 @@ export function useAnnotations({
             contents,
             annotationExportFilename('json', exportedAt, scope),
             'application/json',
+          );
+        } else if (format === 'doc') {
+          downloadTextFile(
+            serializeAnnotationsWord(entries, exportedAt),
+            annotationExportFilename('doc', exportedAt, scope),
+            'application/msword',
           );
         } else {
           downloadTextFile(
