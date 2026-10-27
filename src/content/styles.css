@@ -23,6 +23,8 @@
   --sep-surface: #fff;
   --sep-panel-bg: #fff;
   --sep-text: var(--sand-12);
+  /* SEP brand red; outside the sand scale. */
+  --sep-logo: #8c1515;
   --sep-muted: var(--sand-11);
   --sep-muted-soft: var(--sand-9);
   --sep-border: var(--sand-6);
@@ -142,6 +144,16 @@
   text-decoration: none;
 }
 
+.sep-bibliography-preview-entry-body {
+  display: contents;
+}
+
+.sep-popover-body a.sep-bibliography-preview-search svg {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+
 .sep-popover-body a.sep-bibliography-preview-search:hover {
   color: var(--sep-text);
   text-decoration: none;
@@ -188,19 +200,42 @@
   opacity: 0.5;
 }
 
-.sep-header-logo img {
+.sep-header-logo,
+.sep-home-logo {
+  color: var(--sep-logo);
+}
+
+:is(.sep-header-logo, .sep-home-logo) svg {
   display: block;
   width: 100%;
   height: 100%;
-  object-fit: contain;
 }
 
-.sep-header-search {
+.sep-search {
+  position: relative;
+}
+
+.sep-search--header {
   position: absolute;
   top: 10px;
   left: 50%;
   width: min(400px, calc(100vw - 224px));
   translate: -50% 0;
+}
+
+.sep-search--hero {
+  width: min(484px, 100%);
+}
+
+.sep-search--hero .sep-search-field {
+  gap: 8px;
+  height: 48px;
+  padding: 0 16px;
+}
+
+/* Results span the field, whatever its size. */
+.sep-search > .sep-popover {
+  width: 100%;
 }
 
 .sep-search-field {
@@ -720,6 +755,272 @@
   }
 }
 
+/* Homepage */
+
+/* In-flow shadow hosts (homepage, site footer), not the fixed overlay. */
+.sep-plus-app.sep-flow-app {
+  --sep-site-gutter: 24px;
+  --sep-site-max-width: 1092px;
+
+  position: static;
+  pointer-events: auto;
+}
+
+.sep-home {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-height: 100vh;
+  padding: 0 var(--sep-site-gutter);
+  background: var(--sep-page-bg);
+  color: var(--sep-text);
+}
+
+/* Fills the space above the sections and centers its content there; the
+   min height and padding keep room above and below on short windows. */
+.sep-home-hero {
+  display: flex;
+  flex: 1 0 auto;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 40px;
+  width: 100%;
+  min-height: 480px;
+  padding-block: 80px;
+}
+
+.sep-home-logo {
+  display: block;
+  width: 28px;
+  height: 42px;
+}
+
+.sep-home-mission-subject {
+  color: var(--sep-text);
+}
+
+.sep-home-mission {
+  max-width: 816px;
+  margin: 0;
+  color: var(--sep-muted);
+  font-size: clamp(20px, 3vw, 28px);
+  font-weight: 400;
+  line-height: 1.43;
+  text-align: center;
+}
+
+.sep-home-sections {
+  width: min(var(--sep-site-max-width), 100%);
+}
+
+.sep-site-section {
+  padding-top: 32px;
+  padding-bottom: 40px;
+  border-top: 1px solid var(--sep-divider);
+}
+
+:where(.sep-home, .sep-site-footer) h2 {
+  margin: 0;
+}
+
+.sep-home-label {
+  color: var(--sep-muted-soft);
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 20px;
+}
+
+/* Zero-specificity default, so label and column colors win. */
+:where(.sep-home, .sep-site-footer) a {
+  color: inherit;
+}
+
+.sep-plus-app a.sep-fade-link {
+  text-decoration: none;
+  transition: opacity var(--sep-duration-fast) var(--sep-ease);
+}
+
+.sep-plus-app a.sep-fade-link:hover {
+  opacity: 0.5;
+}
+
+.sep-home-see-all {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.sep-home-see-all svg {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+
+.sep-home-recent-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.sep-home-carousel {
+  --sep-home-fade-start: 0px;
+  --sep-home-fade-end: 0px;
+
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+  mask-image: linear-gradient(
+    to right,
+    transparent 0,
+    #000 var(--sep-home-fade-start),
+    #000 calc(100% - var(--sep-home-fade-end)),
+    transparent 100%
+  );
+}
+
+.sep-home-carousel::-webkit-scrollbar {
+  display: none;
+}
+
+.sep-home-carousel.has-fade-start {
+  --sep-home-fade-start: 48px;
+}
+
+.sep-home-carousel.has-fade-end {
+  --sep-home-fade-end: 48px;
+}
+
+.sep-plus-app .sep-home-card {
+  display: flex;
+  flex: 0 0 212px;
+  flex-direction: column;
+  gap: 8px;
+  /* Hold 212px; single-line titles would otherwise widen the card. */
+  min-width: 0;
+  min-height: 102px;
+  padding: 16px;
+  border: 1px solid var(--sep-border-subtle);
+  border-radius: 12px;
+  color: var(--sep-text);
+  font-size: 14px;
+  line-height: 20px;
+  text-decoration: none;
+  scroll-snap-align: start;
+  transition: border-color var(--sep-duration-fast) var(--sep-ease);
+}
+
+.sep-plus-app a.sep-home-card:hover {
+  border-color: var(--sep-border);
+}
+
+.sep-home-card-title {
+  overflow: hidden;
+  font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sep-home-card-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.sep-home-card-authors {
+  display: flex;
+  gap: 4px;
+  min-width: 0;
+}
+
+.sep-home-card-author {
+  overflow: hidden;
+  color: var(--sep-muted);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sep-home-card-more,
+.sep-home-card-date {
+  flex-shrink: 0;
+  color: var(--sep-muted-soft);
+}
+
+/* Site footer */
+
+/* Other pages: centered under the content, sized like the homepage. */
+.sep-site-footer-page {
+  display: flex;
+  justify-content: center;
+  padding: 0 var(--sep-site-gutter);
+  background: var(--sep-page-bg);
+  color: var(--sep-text);
+}
+
+.sep-site-footer-page .sep-site-footer {
+  width: min(var(--sep-site-max-width), 100%);
+}
+
+.sep-site-footer-columns {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 32px 48px;
+  padding-right: 60px;
+}
+
+.sep-site-footer-column {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 14px;
+  line-height: 20px;
+}
+
+.sep-site-footer-column-title {
+  color: var(--sep-text);
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 20px;
+}
+
+.sep-site-footer-column .sep-fade-link {
+  color: var(--sep-muted);
+}
+
+.sep-site-footer-legal {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 8px 16px;
+  padding-top: 20px;
+  padding-bottom: 24px;
+  color: var(--sep-muted-soft);
+  font-size: 14px;
+  line-height: 20px;
+}
+
+@media (max-width: 640px) {
+  .sep-home-hero {
+    min-height: 400px;
+    padding-block: 56px;
+  }
+
+  .sep-site-footer-columns {
+    padding-right: 0;
+  }
+
+  .sep-site-footer-column {
+    flex-basis: calc(50% - 24px);
+  }
+}
+
 /* Action menus: the selection toolbar (row) and overflow menus (column)
    share one surface, button size, spacing, and icon size. */
 
@@ -829,7 +1130,7 @@
 }
 
 .sep-annotation-note::placeholder {
-  color: var(--sand-10);
+  color: var(--sep-muted-soft);
   opacity: 1;
 }
 
@@ -854,6 +1155,7 @@
   --sep-surface: var(--sand-4);
   --sep-panel-bg: var(--sand-6);
   --sep-text: var(--sand-12);
+  --sep-logo: var(--sep-text);
   --sep-muted: var(--sand-11);
   --sep-muted-soft: var(--sand-9);
   --sep-border: var(--sand-7);

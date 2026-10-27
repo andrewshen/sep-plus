@@ -5,6 +5,7 @@ import {
   bootstrapHost,
   injectLocalFonts,
   isArticlePage,
+  isHomePage,
   preloadLocalFonts,
   reformatPubinfo,
   relocateArticleEndMatter,
@@ -59,16 +60,35 @@ function waitForNextFrame(): Promise<void> {
   });
 }
 
+/** A shadow host in the page flow (unlike the fixed overlays), so it scrolls
+ *  with the page. React portals into its `${id}-mount` element. */
+function createFlowHost(id: string, insert: (host: HTMLElement) => void): void {
+  const host = document.createElement('div');
+  host.id = id;
+  insert(host);
+  const shadow = host.attachShadow({ mode: 'open' });
+  const style = document.createElement('style');
+  style.textContent = uiStyles;
+  shadow.appendChild(style);
+  const mount = document.createElement('div');
+  mount.id = `${id}-mount`;
+  shadow.appendChild(mount);
+}
+
 function mountShell(
   items: TocItem[],
   initialTheme: ThemePreference,
   initialHighlightColor: HighlightColor,
   articleMode: boolean,
+  homeMode: boolean,
   articleSource?: string,
   articleTitle = '',
 ): void {
   document.documentElement.classList.add('sep-plus');
   document.body.classList.add('sep-plus');
+  document.documentElement.classList.toggle('sep-plus-home', homeMode);
+  document.body.classList.toggle('sep-plus-home', homeMode);
+  document.body.classList.toggle('sep-plus-site', !articleMode && !homeMode);
 
   // Detach rather than hide: SEP's sticky-sidebar script rewrites this node's
   // inline styles on every scroll, which forces style + layout while attached.
@@ -80,6 +100,8 @@ function mountShell(
   existingHost?.sepPlusUnmount?.();
   existingHost?.remove();
   document.getElementById('sep-plus-annotation-layer')?.remove();
+  document.getElementById('sep-plus-home')?.remove();
+  document.getElementById('sep-plus-footer')?.remove();
 
   const host = document.createElement('div') as HTMLDivElement & {
     sepPlusUnmount?: () => void;
@@ -109,6 +131,12 @@ function mountShell(
   annotationMount.id = 'sep-plus-annotation-mount';
   annotationShadow.appendChild(annotationMount);
 
+  if (homeMode) {
+    createFlowHost('sep-plus-home', (homeHost) => document.body.prepend(homeHost));
+  } else if (!articleMode) {
+    createFlowHost('sep-plus-footer', (footerHost) => document.body.append(footerHost));
+  }
+
   const root = createRoot(mount);
   host.sepPlusUnmount = () => root.unmount();
   flushSync(() => {
@@ -118,6 +146,7 @@ function mountShell(
         initialTheme={initialTheme}
         initialHighlightColor={initialHighlightColor}
         articleMode={articleMode}
+        homeMode={homeMode}
         articleSource={articleSource}
         articleTitle={articleTitle}
       />
@@ -140,6 +169,7 @@ async function main(): Promise<void> {
   }
 
   const articleMode = isArticlePage();
+  const homeMode = !articleMode && isHomePage();
   const articleSource = articleMode
     ? normalizeEntryUrl(window.location.href) ?? undefined
     : undefined;
@@ -159,7 +189,7 @@ async function main(): Promise<void> {
     reformatPubinfo();
     styleRelatedEntries();
     relocateArticleEndMatter();
-  } else {
+  } else if (!homeMode) {
     wrapSiteContentColumn();
   }
 
@@ -169,6 +199,7 @@ async function main(): Promise<void> {
     theme,
     highlightColor,
     articleMode,
+    homeMode,
     articleSource,
     articleTitle,
   );

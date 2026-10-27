@@ -5,7 +5,7 @@ import type {
   AnnotationExportScope,
   AnnotationListItem,
 } from '../annotations/useAnnotations';
-import { IconAnnotations, IconMore } from '../icons';
+import { IconAnnotations, IconMore, SepLogo } from '../icons';
 import { IconButton } from '../ui/IconButton';
 import { useDismiss } from '../ui/useDismiss';
 import { AnnotationsPopover } from './AnnotationsPopover';
@@ -53,10 +53,6 @@ export function Header({
 }: HeaderProps) {
   const annotationsRef = useRef<HTMLDivElement>(null);
   const settingsRef = useRef<HTMLDivElement>(null);
-  const logoSrc = chrome.runtime.getURL(
-    dark ? 'sep-logo-white.png' : 'sep-logo.png',
-  );
-
   function close(): void {
     onOpenPopoverChange(null);
   }
@@ -75,7 +71,7 @@ export function Header({
         className="sep-header-logo"
         aria-label="Stanford Encyclopedia of Philosophy home"
       >
-        <img src={logoSrc} alt="SEP+" width={19} height={28} />
+        <SepLogo />
       </a>
 
       <Search
@@ -123,7 +119,6 @@ export function Header({
             onThemeChange={onThemeChange}
             highlightColor={highlightColor}
             onHighlightColorChange={onHighlightColorChange}
-            canExportEntry={articleMode && annotations.length > 0}
             onExport={onExportAnnotations}
             onClose={close}
           />

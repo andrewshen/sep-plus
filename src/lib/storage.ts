@@ -1,8 +1,14 @@
-import type { HighlightColor, ThemePreference } from './types';
+import type {
+  AnnotationExportFormat,
+  HighlightColor,
+  ThemePreference,
+} from './types';
 
 const THEME_KEY = 'theme';
 const HIGHLIGHT_COLOR_KEY = 'highlightColor';
 export const DEFAULT_HIGHLIGHT_COLOR: HighlightColor = 'yellow';
+const EXPORT_FORMAT_KEY = 'annotationExportFormat';
+export const DEFAULT_EXPORT_FORMAT: AnnotationExportFormat = 'json';
 
 function isTheme(value: unknown): value is ThemePreference {
   return value === 'light' || value === 'dark' || value === 'auto';
@@ -86,6 +92,38 @@ export function onHighlightColorChanged(
     }
     const next = changes[HIGHLIGHT_COLOR_KEY].newValue;
     if (isHighlightColor(next)) {
+      callback(next);
+    }
+  };
+  chrome.storage.onChanged.addListener(listener);
+  return () => chrome.storage.onChanged.removeListener(listener);
+}
+function isExportFormat(value: unknown): value is AnnotationExportFormat {
+  return value === 'json' || value === 'md';
+}
+
+export async function getExportFormat(): Promise<AnnotationExportFormat> {
+  const result = await chrome.storage.local.get(EXPORT_FORMAT_KEY);
+  const stored = result[EXPORT_FORMAT_KEY];
+  return isExportFormat(stored) ? stored : DEFAULT_EXPORT_FORMAT;
+}
+
+export async function setExportFormat(format: AnnotationExportFormat): Promise<void> {
+  await chrome.storage.local.set({ [EXPORT_FORMAT_KEY]: format });
+}
+
+export function onExportFormatChanged(
+  callback: (format: AnnotationExportFormat) => void
+): () => void {
+  const listener: Parameters<typeof chrome.storage.onChanged.addListener>[0] = (
+    changes,
+    area
+  ) => {
+    if (area !== 'local' || !changes[EXPORT_FORMAT_KEY]) {
+      return;
+    }
+    const next = changes[EXPORT_FORMAT_KEY].newValue;
+    if (isExportFormat(next)) {
       callback(next);
     }
   };

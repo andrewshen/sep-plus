@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import {
   onHighlightColorChanged,
   onThemeChanged,
@@ -14,7 +15,9 @@ import { SelectionToolbar } from './annotations/SelectionToolbar';
 import { useAnnotations } from './annotations/useAnnotations';
 import { BibliographyPreview } from './citations/BibliographyPreview';
 import { useBibliographyCitations } from './citations/useBibliographyCitations';
+import { SiteFooter } from './footer/SiteFooter';
 import { Header, type HeaderPopover } from './header/Header';
+import { Homepage } from './home/Homepage';
 import { Outline } from './outline/Outline';
 
 type AppProps = {
@@ -22,9 +25,21 @@ type AppProps = {
   initialTheme: ThemePreference;
   initialHighlightColor: HighlightColor;
   articleMode: boolean;
+  homeMode: boolean;
   articleSource?: string;
   articleTitle: string;
 };
+
+function getFlowMount(id: string): HTMLElement | null {
+  const host = document.getElementById(id);
+  return host?.shadowRoot?.getElementById(`${id}-mount`) ?? null;
+}
+
+function flowAppClassName(dark: boolean, extra?: string): string {
+  return ['sep-plus-app', 'sep-flow-app', extra, dark ? 'is-dark' : '']
+    .filter(Boolean)
+    .join(' ');
+}
 
 function bibliographyPreviewLabel(sections: readonly string[]): string {
   const unique = new Set(sections);
@@ -52,10 +67,17 @@ export function App({
   initialTheme,
   initialHighlightColor,
   articleMode,
+  homeMode,
   articleSource,
   articleTitle,
 }: AppProps) {
   const [openPopover, setOpenPopover] = useState<HeaderPopover | null>(null);
+  const [homeMount] = useState(() =>
+    homeMode ? getFlowMount('sep-plus-home') : null,
+  );
+  const [footerMount] = useState(() =>
+    !homeMode && !articleMode ? getFlowMount('sep-plus-footer') : null,
+  );
   const [theme, setTheme] = useState(initialTheme);
   const [highlightColor, setHighlightColor] = useState(initialHighlightColor);
   const [activeIndex, setActiveIndex] = useState(0);
@@ -174,27 +196,50 @@ export function App({
         .filter(Boolean)
         .join(' ')}
     >
-      <Header
-        articleMode={articleMode}
-        dark={dark}
-        openPopover={openPopover}
-        onOpenPopoverChange={setOpenPopover}
-        theme={theme}
-        onThemeChange={(next) => {
-          setTheme(next);
-          void storeTheme(next);
-        }}
-        highlightColor={highlightColor}
-        onHighlightColorChange={(next) => {
-          setHighlightColor(next);
-          void storeHighlightColor(next);
-        }}
-        annotations={annotationState.annotations}
-        annotationsLoading={annotationState.loading}
-        annotationsError={annotationState.error}
-        onScrollToAnnotation={annotationState.scrollToAnnotation}
-        onExportAnnotations={annotationState.exportAnnotations}
-      />
+      {homeMode ? (
+        homeMount ? (
+          createPortal(
+            <div className={flowAppClassName(dark)}>
+              <Homepage
+                searchOpen={openPopover === 'search'}
+                onSearchOpen={() => setOpenPopover('search')}
+                onSearchClose={() => setOpenPopover(null)}
+              />
+            </div>,
+            homeMount,
+          )
+        ) : null
+      ) : (
+        <Header
+          articleMode={articleMode}
+          dark={dark}
+          openPopover={openPopover}
+          onOpenPopoverChange={setOpenPopover}
+          theme={theme}
+          onThemeChange={(next) => {
+            setTheme(next);
+            void storeTheme(next);
+          }}
+          highlightColor={highlightColor}
+          onHighlightColorChange={(next) => {
+            setHighlightColor(next);
+            void storeHighlightColor(next);
+          }}
+          annotations={annotationState.annotations}
+          annotationsLoading={annotationState.loading}
+          annotationsError={annotationState.error}
+          onScrollToAnnotation={annotationState.scrollToAnnotation}
+          onExportAnnotations={annotationState.exportAnnotations}
+        />
+      )}
+      {footerMount
+        ? createPortal(
+            <div className={flowAppClassName(dark, 'sep-site-footer-page')}>
+              <SiteFooter />
+            </div>,
+            footerMount,
+          )
+        : null}
       {articleMode ? <Outline items={items} activeIndex={activeIndex} /> : null}
       <AnnotationMarks
         ranges={annotationState.markedRanges}

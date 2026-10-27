@@ -7,9 +7,11 @@ import {
 } from 'react';
 import {
   collectRelatedEntries,
+  MAX_RESULTS,
   filterEntries,
   getEntryIndex,
   searchResultsUrl,
+  warmSearchKeys,
 } from '../../lib/entryIndex';
 import { formatEntryTitle } from '../../lib/formatEntryTitle';
 import type { EntryIndexItem } from '../../lib/types';
@@ -18,6 +20,14 @@ import { Popover, POPOVER_EXIT_MS } from '../ui/Popover';
 import { useDismiss } from '../ui/useDismiss';
 
 type SearchProps = {
+  /** `header`: compact pill in the fixed header; `hero`: homepage search. */
+  variant?: 'header' | 'hero';
+  /**
+   * Default rows for an empty query, also ranked first when typing. Omit to
+   * use the current entry's Related Entries.
+   */
+  suggestions?: readonly EntryIndexItem[];
+  suggestionsLabel?: string;
   open: boolean;
   onOpen: () => void;
   onClose: () => void;
@@ -99,14 +109,25 @@ function clearDocumentPrefetches(): void {
   }
 }
 
-export function Search({ open, onOpen, onClose }: SearchProps) {
+export function Search({
+  variant = 'header',
+  suggestions,
+  suggestionsLabel = 'Related entries',
+  open,
+  onOpen,
+  onClose,
+}: SearchProps) {
   const anchorRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLUListElement>(null);
   const prefetchedUrlsRef = useRef(new Set<string>());
   const [query, setQuery] = useState('');
   const [entries, setEntries] = useState<EntryIndexItem[] | null>(null);
-  const [related, setRelated] = useState<EntryIndexItem[]>([]);
+  const [pageRelated, setPageRelated] = useState<EntryIndexItem[]>([]);
+  const related = useMemo(
+    () => (suggestions ?? pageRelated).slice(0, MAX_RESULTS),
+    [suggestions, pageRelated]
+  );
   const [loading, setLoading] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [activeIndex, setActiveIndex] = useState(0);
@@ -116,7 +137,9 @@ export function Search({ open, onOpen, onClose }: SearchProps) {
   useEffect(() => {
     const input = inputRef.current;
     if (open) {
-      setRelated(collectRelatedEntries());
+      if (!suggestions) {
+        setPageRelated(collectRelatedEntries());
+      }
       input?.focus();
       return;
     }
@@ -139,6 +162,7 @@ export function Search({ open, onOpen, onClose }: SearchProps) {
         .then((items) => {
           if (!cancelled) {
             setEntries(items);
+            warmSearchKeys(items);
           }
         })
         .catch(() => {
@@ -234,7 +258,7 @@ export function Search({ open, onOpen, onClose }: SearchProps) {
     : undefined;
 
   return (
-    <div className="sep-header-search" ref={anchorRef}>
+    <div className={`sep-search sep-search--${variant}`} ref={anchorRef}>
       <div
         className={['sep-search-field', open ? 'is-open' : '']
           .filter(Boolean)
@@ -300,7 +324,7 @@ export function Search({ open, onOpen, onClose }: SearchProps) {
             id={RESULTS_ID}
             className="sep-search-results"
             role="listbox"
-            aria-label={trimmed ? 'Search results' : 'Related entries'}
+            aria-label={trimmed ? 'Search results' : suggestionsLabel}
           >
             {rows.map((row, index) => (
               <li

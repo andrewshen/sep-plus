@@ -1,3 +1,4 @@
+import type { AnnotationExportFormat } from '../../lib/types';
 import {
   useCallback,
   useEffect,
@@ -60,7 +61,7 @@ export type ActiveAnnotationHighlight = {
   key: string;
 };
 
-export type AnnotationExportFormat = 'json' | 'md';
+export type { AnnotationExportFormat };
 export type AnnotationExportScope = 'entry' | 'all';
 
 const ARRIVAL_EMPHASIS_MS = 1200;

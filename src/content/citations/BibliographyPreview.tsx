@@ -3,6 +3,7 @@ import {
   buildPhilPapersSearchUrl,
   type BibliographyEntry,
 } from '../../host/bibliographyCitations';
+import { IconArrowUpRight } from '../icons';
 
 type BibliographyPreviewProps = {
   entries: readonly BibliographyEntry[];
@@ -84,13 +85,9 @@ function cloneChildren(source: Element, target: HTMLElement): void {
   target.append(...Array.from(source.childNodes, (node) => node.cloneNode(true)));
 }
 
-function createPreviewEntry(
-  entry: BibliographyEntry,
-  doc: Document,
-): HTMLElement {
-  const wrapper = doc.createElement('div');
-  wrapper.className = 'sep-bibliography-preview-entry';
-
+/** Fill `target` with a sanitized copy of the entry's bibliography markup. */
+function fillPreviewContent(target: HTMLElement, entry: BibliographyEntry): void {
+  const doc = target.ownerDocument;
   if (entry.element.tagName === 'TR') {
     const cells = Array.from(
       entry.element.querySelectorAll<HTMLElement>(':scope > th, :scope > td'),
@@ -102,52 +99,51 @@ function createPreviewEntry(
           ? 'sep-bibliography-preview-entry-key'
           : 'sep-bibliography-preview-entry-content';
       cloneChildren(cell, part);
-      wrapper.appendChild(part);
+      target.appendChild(part);
     }
   } else {
-    cloneChildren(entry.element, wrapper);
+    cloneChildren(entry.element, target);
   }
+  sanitizePreview(target);
+}
 
-  sanitizePreview(wrapper);
-  const searchLink = doc.createElement('a');
-  searchLink.className = 'sep-bibliography-preview-search';
-  searchLink.href = buildPhilPapersSearchUrl(entry);
-  searchLink.target = '_blank';
-  searchLink.rel = 'noreferrer noopener';
-  searchLink.setAttribute(
-    'aria-label',
-    `Search PhilPapers for ${entry.title || `${entry.author} ${entry.year}`}`,
+function PreviewEntry({ entry }: { entry: BibliographyEntry }) {
+  const contentRef = useRef<HTMLDivElement>(null);
+
+  useLayoutEffect(() => {
+    const content = contentRef.current;
+    if (!content) {
+      return;
+    }
+    fillPreviewContent(content, entry);
+    return () => content.replaceChildren();
+  }, [entry]);
+
+  return (
+    <div className="sep-bibliography-preview-entry">
+      <div ref={contentRef} className="sep-bibliography-preview-entry-body" />
+      <a
+        className="sep-bibliography-preview-search"
+        href={buildPhilPapersSearchUrl(entry)}
+        target="_blank"
+        rel="noreferrer noopener"
+        aria-label={`Search PhilPapers for ${entry.title || `${entry.author} ${entry.year}`}`}
+      >
+        Search PhilPapers
+        <IconArrowUpRight />
+      </a>
+    </div>
   );
-  searchLink.append('Search PhilPapers');
-  const arrow = doc.createElement('span');
-  arrow.setAttribute('aria-hidden', 'true');
-  arrow.textContent = '↗';
-  searchLink.appendChild(arrow);
-  wrapper.appendChild(searchLink);
-  return wrapper;
 }
 
 export function BibliographyPreview({
   entries,
 }: BibliographyPreviewProps) {
-  const rootRef = useRef<HTMLDivElement>(null);
-
-  useLayoutEffect(() => {
-    const root = rootRef.current;
-    if (!root) {
-      return;
-    }
-    const doc = root.ownerDocument;
-    const nodes = entries.map((entry) => createPreviewEntry(entry, doc));
-    root.replaceChildren(...nodes);
-    return () => root.replaceChildren();
-  }, [entries]);
-
   return (
-    <div
-      ref={rootRef}
-      className="sep-bibliography-preview"
-      data-sep-plus-bibliography-preview=""
-    />
+    <div className="sep-bibliography-preview" data-sep-plus-bibliography-preview="">
+      {entries.map((entry, index) => (
+        <PreviewEntry key={`${entry.authorKey}-${entry.year}-${index}`} entry={entry} />
+      ))}
+    </div>
   );
 }

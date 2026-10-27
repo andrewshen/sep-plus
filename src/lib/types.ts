@@ -2,6 +2,8 @@ export type ThemePreference = 'light' | 'dark' | 'auto';
 
 export type HighlightColor = 'yellow' | 'green' | 'blue' | 'pink' | 'purple';
 
+export type AnnotationExportFormat = 'json' | 'md';
+
 export type TocItem = {
   href: string;
   text: string;

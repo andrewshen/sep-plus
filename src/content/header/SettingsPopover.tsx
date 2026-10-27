@@ -1,13 +1,20 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   HIGHLIGHT_COLOR_OPTIONS,
   highlightColorValue,
 } from '../../lib/highlightColors';
-import type { HighlightColor, ThemePreference } from '../../lib/types';
+import {
+  DEFAULT_EXPORT_FORMAT,
+  getExportFormat,
+  onExportFormatChanged,
+  setExportFormat as storeExportFormat,
+} from '../../lib/storage';
 import type {
   AnnotationExportFormat,
-  AnnotationExportScope,
-} from '../annotations/useAnnotations';
+  HighlightColor,
+  ThemePreference,
+} from '../../lib/types';
+import type { AnnotationExportScope } from '../annotations/useAnnotations';
 import { IconMoon, IconSun } from '../icons';
 import { Popover } from '../ui/Popover';
 import { PopoverRow } from '../ui/PopoverRow';
@@ -18,19 +25,12 @@ const THEME_OPTIONS: ReadonlyArray<{ value: ThemePreference; label: string }> = 
   { value: 'auto', label: 'System' },
 ];
 
-type ExportChoice = `${AnnotationExportScope}:${AnnotationExportFormat}`;
-
-const EXPORT_GROUPS: Record<AnnotationExportScope, string> = {
-  entry: 'This entry',
-  all: 'All entries',
-};
-
-const EXPORT_FORMATS: ReadonlyArray<{
-  format: AnnotationExportFormat;
+const EXPORT_FORMAT_OPTIONS: ReadonlyArray<{
+  value: AnnotationExportFormat;
   label: string;
 }> = [
-  { format: 'json', label: 'JSON' },
-  { format: 'md', label: 'Markdown' },
+  { value: 'json', label: 'JSON' },
+  { value: 'md', label: 'Markdown' },
 ];
 
 const FEEDBACK_HREF = `mailto:me@andrewshen.net?subject=${encodeURIComponent(
@@ -52,7 +52,6 @@ type SettingsPopoverProps = {
   onThemeChange: (theme: ThemePreference) => void;
   highlightColor: HighlightColor;
   onHighlightColorChange: (color: HighlightColor) => void;
-  canExportEntry: boolean;
   onExport: (
     format: AnnotationExportFormat,
     scope: AnnotationExportScope,
@@ -68,28 +67,29 @@ export function SettingsPopover({
   onThemeChange,
   highlightColor,
   onHighlightColorChange,
-  canExportEntry,
   onExport,
   onClose,
 }: SettingsPopoverProps) {
   const [exportError, setExportError] = useState<string | null>(null);
+  const [exportFormat, setExportFormat] = useState(DEFAULT_EXPORT_FORMAT);
 
-  const exportOptions = (['entry', 'all'] as const).flatMap((scope) =>
-    EXPORT_FORMATS.map(({ format, label }) => ({
-      value: `${scope}:${format}` as ExportChoice,
-      label,
-      group: EXPORT_GROUPS[scope],
-      disabled: scope === 'entry' && !canExportEntry,
-    })),
-  );
+  useEffect(() => {
+    let cancelled = false;
+    void getExportFormat().then((format) => {
+      if (!cancelled) {
+        setExportFormat(format);
+      }
+    });
+    const unsubscribe = onExportFormatChanged(setExportFormat);
+    return () => {
+      cancelled = true;
+      unsubscribe();
+    };
+  }, []);
 
-  async function runExport(choice: ExportChoice): Promise<void> {
-    const [scope, format] = choice.split(':') as [
-      AnnotationExportScope,
-      AnnotationExportFormat,
-    ];
+  async function runExport(): Promise<void> {
     try {
-      await onExport(format, scope);
+      await onExport(exportFormat, 'all');
       setExportError(null);
       onClose();
     } catch (error: unknown) {
@@ -149,14 +149,22 @@ export function SettingsPopover({
         }}
       />
       <PopoverRow
-        label="Export annotations"
+        label="Annotations format"
+        trailing={optionLabel(EXPORT_FORMAT_OPTIONS, exportFormat)}
         select={{
-          value: '',
-          options: exportOptions,
-          ariaLabel: 'Export annotations',
-          placeholder: 'Choose',
-          onChange: (choice) => void runExport(choice),
+          value: exportFormat,
+          options: EXPORT_FORMAT_OPTIONS,
+          ariaLabel: 'Annotations format',
+          onChange: (format) => {
+            setExportFormat(format);
+            void storeExportFormat(format);
+          },
         }}
+      />
+      <PopoverRow
+        label="Export annotations"
+        trailing="Download"
+        onClick={() => void runExport()}
       />
       <PopoverRow
         label="Send feedback"

@@ -1,4 +1,11 @@
-/** Display-only TOC title sanitization. Search should keep using the raw title. */
+/**
+ * Display-only TOC title sanitization: `truth: coherence theory of` →
+ * `The Coherence Theory of Truth`. Search matches the raw title too.
+ *
+ * Every reorder keys off TOC conventions (lowercase topic heads, dangling
+ * prepositions, `Surname, Given`), so already-clean titles like
+ * `Kant’s Transcendental Arguments` pass through unchanged.
+ */
 
 const SMALL_WORDS = new Set([
   'a',
@@ -6,65 +13,166 @@ const SMALL_WORDS = new Set([
   'the',
   'and',
   'or',
+  'nor',
+  'but',
   'of',
   'on',
   'in',
   'for',
+  'from',
   'to',
+  'with',
+  'at',
+  'by',
+  'as',
+  'via',
   'vs',
-  'vs.',
+  'versus',
 ]);
 
-const NAME_PARTICLES = new Set(['de', 'du', 'van', 'von', "d'", 'd’', 'al']);
+/** Lowercase in SEP’s own headings; kept lowercase when the title already is one. */
+const LONG_PREPOSITIONS = new Set([
+  'about',
+  'after',
+  'against',
+  'among',
+  'before',
+  'between',
+  'into',
+  'over',
+  'since',
+  'through',
+  'toward',
+  'towards',
+  'under',
+  'upon',
+  'within',
+  'without',
+]);
 
-const TOPIC_TAIL_WORDS = new Set([
-  'ethics',
-  'philosophy',
-  'commentators',
-  'theories',
-  'principle',
-  'definition',
+const NAME_PARTICLES = new Set([
+  'de',
+  'du',
+  'da',
+  'di',
+  'della',
+  'la',
+  'van',
+  'von',
+  'der',
+  'y',
+  "d'",
+  'd’',
+  'al',
+]);
+
+/** A tail ending in one of these is the front half of the title: `X, theories of`. */
+const DANGLING_TAIL =
+  /\s(?:of|on|for|in|to|about|and|with|between|into)(?:\s+the)?$/;
+
+/** A tail opening with one of these continues the head: `freedom: of speech`. */
+const CONTINUING_TAIL =
+  /^(?:and|in|on|of|as|versus|vs\.|over|by|about|for|with|from|without|within)\s/;
+
+/** Singular `X of …` heads SEP titles with “The”: `The Problem of Evil`. */
+const THE_OF_HEADS = new Set([
+  'analysis',
+  'axiom',
   'concept',
-  'status',
+  'definition',
+  'development',
+  'ethics',
+  'grounds',
+  'logic',
+  'meaning',
+  'metaphysics',
+  'neuroscience',
+  'paradox',
   'problem',
-  'modeling',
-  'relation',
+  'psychology',
+  'structure',
+  'theory',
+  'unity',
+  'value',
 ]);
 
-/** Exact right-hand sides for topic comma inversion. */
-const TOPIC_OF_ALLOWLIST = new Set([
-  'philosophy of',
-  'ethics of',
-  'theories of',
-  'commentators on',
-  'principle of',
-  'definition of',
-  'concept of the',
-  'moral status of',
-  'status of',
-  'the problem of',
-  'problem of',
+/** Second words that keep `adj X of` singular: `The Coherence Theory of Truth`. */
+const THE_OF_SECOND = new Set(['theory', 'status']);
+
+/** Words used attributively in TOC tails without an adjectival suffix. */
+const ATTRIBUTIVE = new Set([
+  'ancient',
+  'backward',
+  'black',
+  'business',
+  'climate',
+  'dependence',
+  'divine',
+  'early',
+  'free',
+  'fuzzy',
+  'group',
+  'human',
+  'hybrid',
+  'justification',
+  'linear',
+  'medieval',
+  'modern',
+  'molecular',
+  'montague',
+  'narrow',
+  'population',
+  'preference',
+  'provability',
+  'relevance',
+  'rule',
+  'shared',
+  'singular',
+  'temporal',
+  'transworld',
+  'virtue',
 ]);
 
-/** Prefix "The" after topic-of invert for these right-hand sides. */
-const TOPIC_OF_THE_PREFIX = new Set([
-  'ethics of',
-  'the problem of',
-  'problem of',
-  'definition of',
-  'concept of the',
-  'axiom of',
+/** Nouns that happen to end in an adjectival suffix. */
+const NOT_QUALIFIER = new Set([
+  'agent',
+  'category',
+  'consent',
+  'content',
+  'covenant',
+  'event',
+  'history',
+  'intent',
+  'logic',
+  'meaning',
+  'memory',
+  'music',
+  'parent',
+  'patient',
+  'rhetoric',
+  'student',
+  'theory',
+  'topic',
 ]);
 
+/** `parent, label:` groupings in the TOC that are not part of the title. */
+const CATEGORY_LABEL = /^(?:general topics|special topics|interventions|topics|approaches)$/i;
+
+/** Single-word comma tails that are not modifiers: `X, in Y`. */
 const ADJ_FRONT_BLOCKED = new Set(['in', 'and', 'of', 'for', 'on', 'the']);
 
 /** Slugs that must not receive person-name inversion. */
 const DO_NOT_INVERT = new Set(['cusanus', 'montesquieu', 'novalis']);
 
-/** Fixed display titles for known idiosyncratic entries. */
+/**
+ * Fixed display titles for idiosyncratic TOC titles (bracket-stripped,
+ * lowercase). Keyed by title, not slug, so clean titles for the same entry
+ * (new.html, H1s) are left alone.
+ */
 const DISPLAY_OVERRIDES: Record<string, string> = {
-  ockham: 'William of Ockham',
-  'peter-spain': 'Peter of Spain',
+  'ockham, william': 'William of Ockham',
+  'george, eliot': 'George Eliot',
+  'many, problem of': 'The Problem of the Many',
 };
 
 function extractSlug(href?: string): string | null {
@@ -75,46 +183,33 @@ function extractSlug(href?: string): string | null {
   return match?.[1] ?? null;
 }
 
-/** Split on the first comma that is not inside […] or (…). */
-function splitTopLevelComma(text: string): [string, string] | null {
-  let depthSquare = 0;
-  let depthParen = 0;
+/** Split on the first `sep` that is not inside (…). */
+function splitTopLevel(text: string, sep: ',' | ':'): [string, string] | null {
+  let depth = 0;
   for (let i = 0; i < text.length; i++) {
     const ch = text[i];
-    if (ch === '[') {
-      depthSquare++;
-    } else if (ch === ']') {
-      depthSquare = Math.max(0, depthSquare - 1);
-    } else if (ch === '(') {
-      depthParen++;
+    if (ch === '(') {
+      depth++;
     } else if (ch === ')') {
-      depthParen = Math.max(0, depthParen - 1);
-    } else if (ch === ',' && depthSquare === 0 && depthParen === 0) {
+      depth = Math.max(0, depth - 1);
+    } else if (ch === sep && depth === 0) {
       const left = text.slice(0, i).trim();
       const right = text.slice(i + 1).trim();
-      if (!left || !right) {
-        return null;
-      }
-      return [left, right];
+      return left && right ? [left, right] : null;
     }
   }
   return null;
 }
 
-function countTopLevelCommas(text: string): number {
-  let depthSquare = 0;
-  let depthParen = 0;
+function countTopLevel(text: string, sep: ',' | ':'): number {
+  let depth = 0;
   let count = 0;
   for (const ch of text) {
-    if (ch === '[') {
-      depthSquare++;
-    } else if (ch === ']') {
-      depthSquare = Math.max(0, depthSquare - 1);
-    } else if (ch === '(') {
-      depthParen++;
+    if (ch === '(') {
+      depth++;
     } else if (ch === ')') {
-      depthParen = Math.max(0, depthParen - 1);
-    } else if (ch === ',' && depthSquare === 0 && depthParen === 0) {
+      depth = Math.max(0, depth - 1);
+    } else if (ch === sep && depth === 0) {
       count++;
     }
   }
@@ -128,52 +223,56 @@ function stripBrackets(text: string): string {
     .trim();
 }
 
+function words(text: string): string[] {
+  return text.split(/\s+/).filter(Boolean);
+}
+
+function startsLower(text: string): boolean {
+  return /^\p{Ll}/u.test(text);
+}
+
+/** Strip transliteration marks so `ʿAyn` / `‘Abd` test as capitalized. */
+function withoutLeadingMarks(text: string): string {
+  return text.replace(/^[‘’'ʿʾ]+/u, '');
+}
+
+// ---------------------------------------------------------------------------
+// People
+
 function looksLikeSurname(left: string): boolean {
-  const bare = stripBrackets(left);
-  if (!bare) {
-    return false;
-  }
-  // al-Farabi, Ibn Sina, Van Orman-style, or capitalized surname
-  if (/^(al-|ibn\b|van\b|von\b)/i.test(bare)) {
-    return true;
-  }
-  return /^\p{Lu}/u.test(bare);
+  return /^(?:al-|ibn\b)/i.test(left) || /^\p{Lu}/u.test(left);
 }
 
 function looksLikeGivenNames(right: string): boolean {
-  const bare = stripBrackets(right);
-  if (!bare) {
-    return false;
-  }
-  // Particle then capitalized name: de Beauvoir, du Châtelet, d’Holbach
-  if (/^(de|du|van|von|d['’])\s+\p{Lu}/iu.test(bare)) {
+  const bare = withoutLeadingMarks(right);
+  if (/^(?:de|du|van|von|d['’])\s+\p{Lu}/u.test(bare)) {
     return true;
   }
   if (!/^\p{Lu}/u.test(bare)) {
     return false;
   }
-  // Reject topic tails
-  if (/\b(of|on|for|the)$/i.test(bare)) {
+  if (CATEGORY_LABEL.test(bare)) {
     return false;
   }
-  const firstWord = bare.split(/\s+/)[0]?.toLowerCase() ?? '';
-  if (TOPIC_TAIL_WORDS.has(firstWord)) {
-    return false;
-  }
-  return true;
+  // `Princess of Bohemia`, `Full Abstraction and Full Completeness`: names
+  // only carry lowercase particles
+  return words(bare).every(
+    (word) =>
+      !startsLower(word) ||
+      NAME_PARTICLES.has(word.replace(/,$/, '')) ||
+      /^al-\p{Lu}/u.test(word)
+  );
 }
 
+/** `Ayer, Alfred Jules` → `Alfred Jules Ayer`. */
 function tryPersonInvert(title: string, slug: string | null): string | null {
   if (slug && DO_NOT_INVERT.has(slug)) {
     return null;
   }
-  if (title.includes(':')) {
+  if (countTopLevel(title, ',') !== 1) {
     return null;
   }
-  if (countTopLevelCommas(title) !== 1) {
-    return null;
-  }
-  const parts = splitTopLevelComma(title);
+  const parts = splitTopLevel(title, ',');
   if (!parts) {
     return null;
   }
@@ -181,246 +280,393 @@ function tryPersonInvert(title: string, slug: string | null): string | null {
   if (!looksLikeSurname(left) || !looksLikeGivenNames(right)) {
     return null;
   }
-  // Lowercase topic heads are not person surnames
-  if (/^\p{Ll}/u.test(stripBrackets(left)) && !/^(al-|ibn\b)/i.test(left)) {
-    return null;
+  // `Holbach, Paul-Henri Thiry (Baron) d’` → `… d’Holbach`
+  const glued = right.match(/^(.*\S)\s+(d['’])$/);
+  if (glued) {
+    return `${glued[1]} ${glued[2]!.replace("'", '’')}${left}`;
   }
   return `${right} ${left}`;
 }
 
-function tryTopicOfInvert(title: string): string | null {
-  if (title.includes(':')) {
-    return null;
+type Person = { surname: string };
+
+/** Person-like colon heads: `Hume, David`, `Plato`, `al-Farabi`, `Zeno of Elea`. */
+function personHead(head: string): Person | null {
+  const parts = splitTopLevel(head, ',');
+  if (parts) {
+    const [left, right] = parts;
+    return looksLikeSurname(left) &&
+      !startsLower(left) &&
+      looksLikeGivenNames(right)
+      ? { surname: left }
+      : null;
   }
-  const parts = splitTopLevelComma(title);
+  if (/^(?:al-|ibn\s)/i.test(head)) {
+    return { surname: head };
+  }
+  if (/^\p{Lu}[\p{L}’'-]*(?: of \p{Lu}[\p{L}-]*)?$/u.test(head)) {
+    // Schools and doctrines are not people: `Daoism`, `Confucianism`
+    return /(?:ism|ity|ics|logy|phy)$/.test(head) ? null : { surname: head };
+  }
+  return null;
+}
+
+function possessive(surname: string): string {
+  return /s$/i.test(surname) ? `${surname}’` : `${surname}’s`;
+}
+
+// ---------------------------------------------------------------------------
+// Topic phrases
+
+function isQualifierWord(word: string): boolean {
+  const lower = word.toLowerCase();
+  if (ATTRIBUTIVE.has(lower)) {
+    return true;
+  }
+  if (NOT_QUALIFIER.has(lower)) {
+    return false;
+  }
+  if (/\p{L}[’']s$/u.test(word)) {
+    return true;
+  }
+  if (/^\p{Lu}/u.test(word)) {
+    // Proper adjectives: Bayesian, Mexican, Russellian
+    return /(?:ian|an|ese|ish)$/.test(lower);
+  }
+  if (/-order$/.test(lower)) {
+    return true;
+  }
+  if (/ment$/.test(lower)) {
+    return false;
+  }
+  return /(?:al|ic|ive|ous|ary|ory|ent|ant|ist|ed|ing|able|ible|ful|less)$/.test(
+    lower
+  );
+}
+
+/** `fuzzy`, `positive and negative`, `intrinsic vs. extrinsic`, `dynamic epistemic`. */
+function isQualifierPhrase(text: string, maxWords = 3): boolean {
+  const parts = words(text);
+  if (parts.length === 0 || parts.length > maxWords) {
+    return false;
+  }
+  return parts.every((word, index) => {
+    const isEdge = index === 0 || index === parts.length - 1;
+    if (!isEdge && /^(?:and|vs\.|versus)$/.test(word)) {
+      return true;
+    }
+    return isQualifierWord(word);
+  });
+}
+
+/** Single-word adjectival heads read head-first: `animal: cognition`. */
+function isAdjectivalHead(head: string): boolean {
+  if (!/^\p{Ll}[\p{L}-]*$/u.test(head) || NOT_QUALIFIER.has(head)) {
+    return false;
+  }
+  return head === 'divine' || /(?:al|ive|ous)$/.test(head);
+}
+
+/** `ethics of abortion` → `the ethics of abortion`, per SEP’s own titles. */
+function withLeadingThe(phrase: string): string {
+  const [first = '', second = '', third = ''] = words(phrase.toLowerCase());
+  const singularOf =
+    (THE_OF_HEADS.has(first) && second === 'of') ||
+    (THE_OF_SECOND.has(second) && third === 'of');
+  return singularOf ? `the ${phrase}` : phrase;
+}
+
+/**
+ * Comma inversions within one phrase:
+ * `abortion, ethics of` → `the ethics of abortion`,
+ * `bias, implicit` → `implicit bias`, `Sophists, The` → `The Sophists`.
+ */
+function normalizeCommaPhrase(text: string, slug: string | null = null): string {
+  const person = tryPersonInvert(text, slug);
+  if (person) {
+    return person;
+  }
+  if (countTopLevel(text, ',') !== 1) {
+    return text;
+  }
+  const parts = splitTopLevel(text, ',');
   if (!parts) {
-    return null;
+    return text;
   }
   const [left, right] = parts;
-  const rightKey = right.toLowerCase();
-  if (!TOPIC_OF_ALLOWLIST.has(rightKey)) {
-    return null;
+  if (/^the$/i.test(right)) {
+    return `${right} ${left}`;
   }
-  const inverted = `${right} ${left}`;
-  if (TOPIC_OF_THE_PREFIX.has(rightKey) && !/^the\b/i.test(inverted)) {
-    return `the ${inverted}`;
+  if (DANGLING_TAIL.test(` ${right}`)) {
+    return withLeadingThe(`${right} ${left}`);
   }
-  return inverted;
+  if (!startsLower(right) && !isQualifierWord(right)) {
+    return text;
+  }
+  // `perfectionism, in moral and political philosophy`
+  if (startsLower(left) && /^(?:in|of)\s/.test(right)) {
+    return `${left} ${right}`;
+  }
+  // `social procedures, formal approaches`
+  if (/^\p{Ll}[\p{L}-]*\sapproaches$/u.test(right)) {
+    return `${right} to ${left}`;
+  }
+  // `bias, implicit` → `implicit bias`
+  if (/^\p{Ll}[\p{L}\d-]*$/u.test(right) && !ADJ_FRONT_BLOCKED.has(right)) {
+    return `${right} ${left}`;
+  }
+  if (isQualifierPhrase(right, 2)) {
+    return `${right} ${left}`;
+  }
+  return text;
 }
 
-function tryAdjFront(title: string): string | null {
-  if (title.includes(':')) {
-    return null;
-  }
-  const match = title.match(/^([a-z][a-z0-9 -]+), ([a-z][a-z0-9-]+)$/);
-  if (!match) {
-    return null;
-  }
-  const left = match[1];
-  const right = match[2];
-  if (!left || !right) {
-    return null;
-  }
-  if (ADJ_FRONT_BLOCKED.has(right)) {
-    return null;
-  }
-  // Single token (hyphenated ok)
-  if (/\s/.test(right)) {
-    return null;
-  }
-  return `${right} ${left}`;
+// ---------------------------------------------------------------------------
+// Colon titles
+
+function stem(word: string): string {
+  const lower = word.toLowerCase();
+  const stemmed = lower.replace(/(?:ism|s|y)$/, '');
+  return stemmed.length >= 4 ? stemmed : lower;
 }
 
-function surnameFromPersonLeft(left: string): string {
-  // Text before first comma/bracket already; left may include [variant]
-  const bare = left.trim();
-  const bracketIdx = bare.search(/[\[(]/);
-  const surname = (bracketIdx === -1 ? bare : bare.slice(0, bracketIdx)).trim();
-  return surname;
+function escapeRegExp(text: string): string {
+  return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
-function possessiveForm(surname: string): string {
-  if (/s$/i.test(surname)) {
-    return `${surname}’`;
+/** The tail already names the head: `quantum theory: quantum gravity`. */
+function isRedundantTail(head: string, tail: string): boolean {
+  const headWords = words(head);
+  const tailWords = words(tail);
+  if (headWords.length === 0 || tailWords.length === 0) {
+    return false;
   }
-  return `${surname}’s`;
-}
-
-function tryPossessiveColon(title: string): string | null {
-  if (!title.includes(':')) {
-    return null;
+  const phrase = new RegExp(
+    `(?:^|[^\\p{L}])${headWords
+      .map((word) => `${escapeRegExp(stem(word))}\\p{L}*`)
+      .join('\\s+')}(?:$|[^\\p{L}])`,
+    'iu'
+  );
+  if (phrase.test(tail)) {
+    return true;
   }
-  if (/General Topics:/i.test(title)) {
-    return null;
-  }
-
-  const colonIdx = title.indexOf(':');
-  const left = title.slice(0, colonIdx).trim();
-  const topic = title.slice(colonIdx + 1).trim();
-  if (!left || !topic) {
-    return null;
-  }
-  if (/^(and|in)\b/i.test(topic)) {
-    return null;
-  }
-  const topicWords = topic.split(/\s+/).filter(Boolean);
-  if (topicWords.length === 0 || topicWords.length > 4) {
-    return null;
-  }
-
-  // Must look like a person-ish left: capitalized, optionally "Last, First"
-  if (!/^\p{Lu}/u.test(left) && !/^(al-|ibn\b)/i.test(left)) {
-    return null;
-  }
-
-  let surname: string;
-  const commaParts = splitTopLevelComma(left);
-  if (commaParts) {
-    surname = surnameFromPersonLeft(commaParts[0]);
-  } else {
-    surname = surnameFromPersonLeft(left);
-  }
-  if (!surname) {
-    return null;
-  }
-
-  return `${possessiveForm(surname)} ${topic}`;
-}
-
-function tryAndInColon(title: string): string | null {
-  if (!/: and |: in /i.test(title)) {
-    return null;
-  }
-
-  const colonIdx = title.search(/: (and|in) /i);
-  if (colonIdx === -1) {
-    return null;
-  }
-  let left = title.slice(0, colonIdx).trim();
-  const rest = title.slice(colonIdx + 1).trim(); // "and …" or "in …"
-
-  // If left is Last, First — reduce to surname
-  if (!left.includes(':') && countTopLevelCommas(left) === 1) {
-    const parts = splitTopLevelComma(left);
-    if (parts && looksLikeSurname(parts[0]) && looksLikeGivenNames(parts[1])) {
-      left = surnameFromPersonLeft(parts[0]);
-    }
-  }
-
-  return `${left} ${rest}`;
-}
-
-/** Single-token qualifiers safe to front: `agency: shared` → `shared agency`. */
-function isFrontableQualifier(word: string): boolean {
+  const firstHead = headWords[0]!;
+  const firstTail = tailWords[0]!;
   if (
-    /(?:al|ic|ive|ous|ary|ory|ent|ant|ed|ing|able|ible|ful|less)$/i.test(word)
+    new RegExp(`^${escapeRegExp(firstHead)}[’']s$`, 'iu').test(firstTail)
   ) {
     return true;
   }
-  return ['shared', 'ancient', 'modern', 'medieval', 'temporal'].includes(
-    word.toLowerCase()
+  // Plain lowercase compounds only: `history of logic: modal logic` is not
+  // the same entry as `modal logic`.
+  if (!/^\p{Ll}[\p{L}-]*(?:\s\p{Ll}[\p{L}-]*)?$/u.test(head)) {
+    return false;
+  }
+  if (headWords.length === 1) {
+    return firstTail.toLowerCase().startsWith(stem(firstHead));
+  }
+  return (
+    firstTail.toLowerCase() === firstHead.toLowerCase() ||
+    tailWords.at(-1)!.toLowerCase() === headWords.at(-1)!.toLowerCase()
   );
 }
 
 /**
- * Tight topic colon reorder: `agency: shared` → `shared agency`.
- * Only lowercase topic heads with a single adjectival qualifier.
- * Skips noun qualifiers like `animal: cognition` (H1 keeps head-first order).
+ * `head: tail` → one natural phrase where TOC conventions make the order
+ * unambiguous; otherwise keep the colon.
  */
-function tryTopicColonReorder(title: string): string | null {
-  if (!title.includes(':')) {
-    return null;
+function formatColonTitle(rawHead: string, rawTail: string): string {
+  // Heading-style tails (`Darwin: From the Origin…`) are already clean.
+  const firstTailWord = (words(rawTail)[0] ?? '').toLowerCase();
+  if (
+    /^\p{Lu}/u.test(rawTail) &&
+    (SMALL_WORDS.has(firstTailWord) || LONG_PREPOSITIONS.has(firstTailWord))
+  ) {
+    return `${rawHead}: ${rawTail}`;
   }
-  if (/: (and|in) /i.test(title)) {
-    return null;
+
+  let head = rawHead;
+  let label: string | null = null;
+  const headParts =
+    countTopLevel(rawHead, ',') === 1 ? splitTopLevel(rawHead, ',') : null;
+  if (headParts && CATEGORY_LABEL.test(headParts[1])) {
+    [head, label] = headParts;
   }
-  const match = title.match(/^([a-z][a-z0-9 -]+): ([a-z][a-z0-9-]+)$/);
-  if (!match) {
-    return null;
+
+  // `feminist philosophy, topics: perspectives on X` → `feminist perspectives on X`
+  const field = label ? head.match(/^(\p{Ll}+?)(?:ist|ic|al)? philosophy$/u) : null;
+  if (field) {
+    const adjective = head.split(' ')[0]!;
+    return new RegExp(`\\b${field[1]}`, 'i').test(rawTail)
+      ? rawTail
+      : `${adjective} ${rawTail}`;
   }
-  const left = match[1];
-  const right = match[2];
-  if (!left || !right) {
-    return null;
+
+  // `Arabic and Islamic Philosophy, special topics in: mysticism`
+  const scope =
+    !label && headParts && startsLower(headParts[1]) && /\sin$/.test(headParts[1])
+      ? headParts[0]
+      : null;
+  if (scope) {
+    return isRedundantTail(scope, rawTail) ? rawTail : `${rawTail} in ${scope}`;
   }
-  if (/^(and|in)\b/i.test(right) || /\bof$/i.test(right)) {
-    return null;
+
+  const person = personHead(head);
+  const phrase = person ? head : normalizeCommaPhrase(head);
+  const short = person ? person.surname : phrase;
+
+  // `truth: coherence theory of` → `the coherence theory of truth`;
+  // `music: history of western philosophy of, since 1800` keeps its subtitle.
+  const tailParts = splitTopLevel(rawTail, ',');
+  const lead = tailParts && DANGLING_TAIL.test(` ${tailParts[0]}`) ? tailParts : null;
+  if (lead) {
+    return `${lead[0]} ${person ? short : phrase}: ${lead[1]}`;
   }
-  if (/\s/.test(right) || !isFrontableQualifier(right)) {
-    return null;
+  if (DANGLING_TAIL.test(` ${rawTail}`)) {
+    return withLeadingThe(`${rawTail} ${person ? short : phrase}`);
   }
-  return `${right} ${left}`;
+
+  if (CONTINUING_TAIL.test(rawTail)) {
+    return `${short} ${rawTail}`;
+  }
+
+  if (isRedundantTail(phrase, rawTail)) {
+    return rawTail;
+  }
+
+  if (person) {
+    // `Aristotle: textual transmission of Aristotelian corpus`
+    const mentionsPerson = new RegExp(
+      `(?:^|\\s)${escapeRegExp(person.surname.slice(0, 6))}`,
+      'iu'
+    ).test(rawTail);
+    return mentionsPerson
+      ? `${person.surname}: ${rawTail}`
+      : `${possessive(person.surname)} ${rawTail}`;
+  }
+
+  // `logic: fuzzy` → `fuzzy logic`, `semantics: Montague` → `Montague semantics`
+  const simpleHead =
+    !phrase.includes(',') &&
+    words(phrase).length <= 3 &&
+    !/\s(?:of|and|for|in|on)\s/.test(phrase);
+  if (simpleHead && (startsLower(phrase) || !phrase.includes(' '))) {
+    if (isQualifierPhrase(rawTail)) {
+      return `${rawTail} ${phrase}`;
+    }
+  } else if (simpleHead && /^\p{Ll}+$/u.test(rawTail) && isQualifierWord(rawTail)) {
+    // Capitalized heads only take one plain word: `Africana Philosophy: contemporary`
+    return `${rawTail} ${phrase}`;
+  }
+
+  if (!startsLower(rawTail)) {
+    return `${phrase}: ${rawTail}`;
+  }
+
+  // `mathematics, philosophy of: nominalism`
+  if (/^philosophy of\s/.test(phrase) && /^\p{L}+ism$/u.test(rawTail)) {
+    return `${rawTail} in the ${phrase}`;
+  }
+
+  if (simpleHead) {
+    if (/^[\p{Ll}\d][\p{L}\d-]*(?:\s[\p{Ll}][\p{L}-]*)?\sapproaches$/u.test(rawTail)) {
+      return `${rawTail} to ${phrase}`;
+    }
+    if (/^[\p{Ll}\d][\p{L}\d-]*(?:\s[\p{Ll}][\p{L}-]*)?\stheories$/u.test(rawTail)) {
+      return `${rawTail} of ${phrase}`;
+    }
+  }
+
+  if (isAdjectivalHead(phrase) && /^\p{Ll}[\p{L}-]*(?:\s\p{Ll}[\p{L}-]*)?$/u.test(rawTail)) {
+    return `${phrase} ${rawTail}`;
+  }
+
+  return `${phrase}: ${rawTail}`;
 }
+
+// ---------------------------------------------------------------------------
+// Casing
 
 function capitalizeWord(word: string): string {
   if (!word) {
     return word;
   }
-  // al-Farabi style
   if (/^al-/i.test(word)) {
-    return `al-${word.slice(3).charAt(0).toUpperCase()}${word.slice(4).toLowerCase()}`;
+    return `al-${capitalizeWord(word.slice(3))}`;
   }
-  // d' / d’ particles glued to next letter
   const particleMatch = word.match(/^(d['’])(.*)$/i);
   if (particleMatch) {
     const particle = particleMatch[1]!.toLowerCase().replace("'", '’');
-    const rest = particleMatch[2] ?? '';
-    if (!rest) {
-      return particle;
-    }
-    return (
-      particle + rest.charAt(0).toUpperCase() + rest.slice(1).toLowerCase()
-    );
+    return particle + capitalizeWord(particleMatch[2] ?? '');
   }
-  return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+  return word.replace(/^(\p{Lm}*)(\p{Ll})/u, (_, marks: string, letter: string) =>
+    marks + letter.toUpperCase()
+  );
 }
 
-/** Title case with small-word and name-particle handling. */
-export function toDisplayTitleCase(text: string): string {
-  const words = text.replace(/\s+/g, ' ').trim().split(' ');
-  if (words.length === 0) {
-    return '';
+/** Already a heading: capitalized, with only small words/particles in lowercase. */
+function isHeadingCased(parts: readonly string[]): boolean {
+  if (!/^[^\p{L}]*\p{Lu}/u.test(parts[0] ?? '')) {
+    return false;
   }
+  return parts.every((word) => {
+    const core = word.replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, '');
+    return (
+      !startsLower(core) ||
+      SMALL_WORDS.has(core) ||
+      LONG_PREPOSITIONS.has(core) ||
+      NAME_PARTICLES.has(core) ||
+      /^(?:al-|d[’'])\p{Lu}/u.test(core)
+    );
+  });
+}
 
-  return words
+/**
+ * Title case with small-word and name-particle handling. Never lowercases:
+ * source capitals carry names and acronyms (`McTaggart`, `W.E.B.`, `ZF`).
+ */
+export function toDisplayTitleCase(text: string): string {
+  const parts = text.replace(/\s+/g, ' ').trim().split(' ');
+  if (isHeadingCased(parts)) {
+    return parts.join(' ');
+  }
+  let startsClause = true;
+
+  return parts
     .map((word, index) => {
-      const isFirst = index === 0;
-      const isLast = index === words.length - 1;
+      const isFirst = startsClause;
+      const isLast = index === parts.length - 1;
+      startsClause = word.endsWith(':');
       const leading = word.match(/^[^\p{L}\p{N}]*/u)?.[0] ?? '';
       const trailing = word.match(/[^\p{L}\p{N}]*$/u)?.[0] ?? '';
       const core = word.slice(leading.length, word.length - trailing.length);
       if (!core) {
         return word;
       }
-
-      const lower = core.toLowerCase();
-
-      if (!isFirst && !isLast && SMALL_WORDS.has(lower)) {
-        const small = lower === 'vs.' ? 'vs.' : lower;
-        return leading + small + trailing;
+      if (/\p{Lu}/u.test(core)) {
+        // `neo-Kantianism` → `Neo-Kantianism`; `al-Farabi`, `d’Holbach` stay
+        return /^(?:al-|d[’'])/.test(core)
+          ? word
+          : leading + capitalizeWord(core) + trailing;
       }
-      if (!isFirst && NAME_PARTICLES.has(lower)) {
-        const particle = lower.startsWith('d')
-          ? lower.replace("'", '’')
-          : lower;
-        return leading + particle + trailing;
+      if (!isFirst && !isLast && SMALL_WORDS.has(core)) {
+        return word;
       }
-      // Hyphenated compounds: capitalize each side
-      if (core.includes('-') && !/^al-/i.test(core)) {
-        const cased = core
-          .split('-')
-          .map((part) => capitalizeWord(part))
-          .join('-');
-        return leading + cased + trailing;
+      if (!isFirst && NAME_PARTICLES.has(core)) {
+        return leading + core.replace("'", '’') + trailing;
       }
-      return leading + capitalizeWord(core) + trailing;
+      const cased = core
+        .split(/(?<=[-/])/)
+        .map((part) => capitalizeWord(part))
+        .join('');
+      return leading + cased + trailing;
     })
     .join(' ');
 }
 
 /**
- * Format a TOC entry title for search display.
- * Does not mutate search text — callers should keep matching against the raw title.
+ * Format a TOC entry title for display. Callers keep the raw title too: its
+ * bracketed aliases (`Abelard [Abailard]`) are search terms.
  */
 export function formatEntryTitle(title: string, href?: string): string {
   const trimmed = title.replace(/\s+/g, ' ').trim();
@@ -429,50 +675,15 @@ export function formatEntryTitle(title: string, href?: string): string {
   }
 
   const slug = extractSlug(href);
-
-  const override = slug ? DISPLAY_OVERRIDES[slug] : undefined;
+  const bare = stripBrackets(trimmed);
+  const override = DISPLAY_OVERRIDES[bare.toLowerCase()];
   if (override) {
-    return toDisplayTitleCase(override);
+    return override;
   }
 
-  let result = trimmed;
-
-  // #5 possessive colon OR #6 : and / : in OR tight topic colon reorder
-  const possessive = tryPossessiveColon(result);
-  if (possessive) {
-    result = possessive;
-  } else {
-    const andIn = tryAndInColon(result);
-    if (andIn) {
-      result = andIn;
-    } else {
-      const topicColon = tryTopicColonReorder(result);
-      if (topicColon) {
-        result = topicColon;
-      }
-    }
-  }
-
-  // #1 person invert
-  const person = tryPersonInvert(result, slug);
-  if (person) {
-    result = person;
-  } else {
-    // #3 topic of/on/for OR #4 adj-front
-    const topicOf = tryTopicOfInvert(result);
-    if (topicOf) {
-      result = topicOf;
-    } else {
-      const adj = tryAdjFront(result);
-      if (adj) {
-        result = adj;
-      }
-    }
-  }
-
-  // #2 strip brackets for display
-  result = stripBrackets(result);
-
-  // #7 title case
+  const colon = countTopLevel(bare, ':') === 1 ? splitTopLevel(bare, ':') : null;
+  const result = colon
+    ? formatColonTitle(colon[0], colon[1])
+    : normalizeCommaPhrase(bare, slug);
   return toDisplayTitleCase(result);
 }

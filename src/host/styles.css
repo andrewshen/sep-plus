@@ -125,6 +125,27 @@ body.sep-plus :focus-visible {
   outline: none !important;
 }
 
+/* The homepage is rendered entirely by SEP+ (#sep-plus-home). */
+body.sep-plus-home > :not(#sep-plus-home) {
+  display: none !important;
+}
+
+/* Other non-entry pages: #sep-plus-footer follows #container and sits at
+   the bottom of the window when the content is short. */
+body.sep-plus-site {
+  display: flex !important;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+body.sep-plus-site #container {
+  flex: 1 0 auto;
+}
+
+html body.sep-plus-site #content:not(:has(#article)) {
+  min-height: 0 !important;
+}
+
 /* Native SEP chrome — replaced by the React header on every page. */
 body.sep-plus #header-wrapper,
 body.sep-plus #article-sidebar,
@@ -205,7 +226,8 @@ body.sep-plus #article {
 
 @media print {
   #sep-plus-root,
-  #sep-plus-annotation-layer {
+  #sep-plus-annotation-layer,
+  #sep-plus-footer {
     display: none !important;
   }
 

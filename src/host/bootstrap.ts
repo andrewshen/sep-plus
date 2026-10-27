@@ -29,6 +29,7 @@ export function injectLocalFonts(): void {
   style.setAttribute('data-sep-plus-fonts', 'local');
   style.textContent = [
     fontFace('Public Sans', 'PublicSans-Regular.woff2', 400),
+    fontFace('Public Sans', 'PublicSans-Medium.woff2', 500),
     fontFace('Public Sans', 'PublicSans-Bold.woff2', 700),
     fontFace('Libre Baskerville', 'LibreBaskerville-Regular.woff2', 400),
     fontFace('Libre Baskerville', 'LibreBaskerville-Italic.woff2', 400, 'italic'),
@@ -54,6 +55,7 @@ export function injectLocalFonts(): void {
 export async function preloadLocalFonts(): Promise<void> {
   const fontsReady = Promise.all([
     document.fonts.load('400 1em "Public Sans"'),
+    document.fonts.load('500 1em "Public Sans"'),
     document.fonts.load('700 1em "Public Sans"'),
     document.fonts.load('400 1em "Libre Baskerville"'),
     document.fonts.load('italic 400 1em "Libre Baskerville"'),
@@ -245,6 +247,10 @@ export function reformatPubinfo(): void {
 
   pubinfo.replaceChildren(em);
   pubinfo.dataset.sepPlusPubinfo = '1';
+}
+
+export function isHomePage(): boolean {
+  return /^\/(index\.html?)?$/.test(location.pathname);
 }
 
 export function isArticlePage(): boolean {
