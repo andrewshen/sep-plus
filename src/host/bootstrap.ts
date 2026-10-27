@@ -265,15 +265,15 @@ export function parseSearchSummary(
   status: string,
   query: string,
   pageSize = 10,
-): { count: string; page: string } | null {
+): { count: string; page: string; current: number; totalPages: number } | null {
   const match = status
     .replace(/\u2013/g, '-')
     .match(/(\d[\d,]*)\s*-\s*(\d[\d,]*)\s+of\s+(\d[\d,]*)/i);
   if (!match || pageSize < 1) {
     return null;
   }
-  const start = Number(match[1].replace(/,/g, ''));
-  const total = Number(match[3].replace(/,/g, ''));
+  const start = Number((match[1] ?? '').replace(/,/g, ''));
+  const total = Number((match[3] ?? '').replace(/,/g, ''));
   if (!Number.isFinite(total) || total < 1 || !Number.isFinite(start) || start < 1) {
     return null;
   }
@@ -375,7 +375,7 @@ export function restyleSearchResults(): void {
   const query = new URLSearchParams(location.search).get('query') ?? '';
   const pageSize = Number(
     totalEl
-      .parentElement?.querySelector('a[href*="pagesize="]')
+      .parentElement?.querySelector<HTMLAnchorElement>('a[href*="pagesize="]')
       ?.href.match(/[?&]pagesize=(\d+)/)?.[1] ?? 10,
   );
   const parsed = parseSearchSummary(totalEl.textContent ?? '', query, pageSize);
@@ -389,10 +389,11 @@ export function restyleSearchResults(): void {
   count.className = 'sep-plus-search-summary-count';
   const labelMatch = parsed.count.match(/^(.*?)(results for)(.*)$/);
   if (labelMatch) {
+    const [, before = '', labelText = '', after = ''] = labelMatch;
     const label = document.createElement('span');
     label.className = 'sep-plus-search-summary-label';
-    label.textContent = labelMatch[2];
-    count.append(labelMatch[1], label, labelMatch[3]);
+    label.textContent = labelText;
+    count.append(before, label, after);
   } else {
     count.textContent = parsed.count;
   }

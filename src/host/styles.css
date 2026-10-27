@@ -950,7 +950,7 @@ body.sep-plus .sep-plus-search-pager-step {
   box-sizing: border-box;
   height: 36px;
   padding: 0 16px;
-  border: 1px solid var(--sep-border);
+  border: 1px solid var(--sep-divider);
   border-radius: 999px;
   background: transparent;
   color: var(--sep-text) !important;
