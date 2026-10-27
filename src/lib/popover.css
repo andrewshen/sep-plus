@@ -12,6 +12,9 @@
   --sep-popover-enter-scale: 0.98;
   --sep-popover-enter-transform: translateY(var(--sep-popover-enter-y))
     scale(var(--sep-popover-enter-scale));
+  /* Space under the title. Lists (settings, annotations) separate the title
+     from their first row; anchored notes read as one block, so tighter. */
+  --sep-popover-title-gap: 8px;
 
   box-sizing: border-box;
   display: flex;
@@ -49,6 +52,8 @@
  * the header dropdowns. `--sep-popover-origin-x` points at the anchor.
  */
 .sep-popover--anchored {
+  --sep-popover-title-gap: 0px;
+
   max-height: min(480px, calc(100vh - 24px));
   transform-origin: var(--sep-popover-origin-x, 50%) bottom;
   transition:
@@ -80,7 +85,7 @@
   align-items: center;
   flex-shrink: 0;
   gap: 8px;
-  padding: 8px 0;
+  padding: 8px 0 var(--sep-popover-title-gap);
   font-size: 14px;
   font-weight: 600;
   line-height: 20px;

@@ -201,6 +201,7 @@ export function App({
         emphasizedIds={annotationState.emphasizedIds}
         host={annotationState.articleRoot}
         color={highlightColor}
+        dark={dark}
       />
       <SelectionToolbar
         selection={annotationState.pendingSelection}

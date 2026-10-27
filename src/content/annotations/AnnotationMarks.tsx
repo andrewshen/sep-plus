@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { useHighlight, type HighlightOptions } from '@highlighters/react';
 import type { ResolvedAnnotationRange } from '../../host/annotationHighlights';
 import {
+  highlightDarkInkColor,
   highlightEmphasisColor,
   highlightSwatch,
 } from '../../lib/highlightColors';
@@ -12,6 +13,7 @@ type AnnotationMarksProps = {
   emphasizedIds: ReadonlySet<string>;
   host: HTMLElement | null;
   color: HighlightColor;
+  dark: boolean;
 };
 
 type AnnotationMarkProps = {
@@ -20,10 +22,19 @@ type AnnotationMarkProps = {
   emphasized: boolean;
   host: HTMLElement;
   color: HighlightColor;
+  dark: boolean;
 };
 
-const BASE_OPACITY = 0.6;
-const EMPHASIZED_OPACITY = 0.8;
+/*
+ * Light pages use the library's default multiply ink; emphasis swaps in a
+ * deeper shade of the same hue. Multiply can only darken, so on dark pages
+ * the band sinks toward black: there we use the library's `vivid: 'screen'`
+ * ink, which brightens instead. The pale resting swatch screens to a hueless
+ * gray, so dark mode inks with a deeper, more saturated shade and
+ * emphasizes by opacity.
+ */
+const LIGHT_OPACITY = { base: 0.6, emphasized: 0.8 };
+const DARK_OPACITY = { base: 0.4, emphasized: 0.6 };
 
 function seedFromId(id: string): number {
   let hash = 2166136261;
@@ -40,19 +51,23 @@ function AnnotationMark({
   emphasized,
   host,
   color,
+  dark,
 }: AnnotationMarkProps) {
-  const options = useMemo<HighlightOptions>(
-    () => ({
+  const options = useMemo<HighlightOptions>(() => {
+    const opacity = dark ? DARK_OPACITY : LIGHT_OPACITY;
+    return {
       seed: seedFromId(id),
-      color: emphasized
-        ? highlightEmphasisColor(color)
-        : highlightSwatch(color),
+      color: dark
+        ? highlightDarkInkColor(color)
+        : emphasized
+          ? highlightEmphasisColor(color)
+          : highlightSwatch(color),
+      vivid: dark ? 'screen' : false,
       tip: { type: 'fine' },
       animation: { draw: false },
-      opacity: emphasized ? EMPHASIZED_OPACITY : BASE_OPACITY,
-    }),
-    [color, emphasized, id],
-  );
+      opacity: emphasized ? opacity.emphasized : opacity.base,
+    };
+  }, [color, dark, emphasized, id]);
   useHighlight(range, options, host);
   return null;
 }
@@ -62,6 +77,7 @@ export function AnnotationMarks({
   emphasizedIds,
   host,
   color,
+  dark,
 }: AnnotationMarksProps) {
   if (!host) {
     return null;
@@ -76,6 +92,7 @@ export function AnnotationMarks({
           emphasized={emphasizedIds.has(id)}
           host={host}
           color={color}
+          dark={dark}
         />
       ))}
     </>

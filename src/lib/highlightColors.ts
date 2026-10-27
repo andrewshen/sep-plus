@@ -14,6 +14,8 @@ export const HIGHLIGHT_COLOR_OPTIONS: ReadonlyArray<{
 
 /** HSL lightness points the hover shade sits below its mild swatch. */
 const EMPHASIS_DARKEN = 14;
+/** Extra HSL saturation points for dark-mode ink, which screens toward gray. */
+const DARK_INK_SATURATE = 20;
 
 /** Marks and the settings swatch both read from the library's mild palette. */
 export function highlightSwatch(color: HighlightColor): PaletteSwatch {
@@ -29,14 +31,35 @@ export function highlightEmphasisColor(color: HighlightColor): string {
   return darkenHex(highlightColorValue(color), EMPHASIS_DARKEN);
 }
 
+/** Dark-mode ink: the hover shade with extra saturation. */
+export function highlightDarkInkColor(color: HighlightColor): string {
+  return adjustHex(highlightColorValue(color), {
+    lightness: -EMPHASIS_DARKEN,
+    saturation: DARK_INK_SATURATE,
+  });
+}
+
 export function darkenHex(hex: string, points: number): string {
+  return adjustHex(hex, { lightness: -points });
+}
+
+/** Shift HSL saturation/lightness by percentage points, clamped to 0–100. */
+export function adjustHex(
+  hex: string,
+  { lightness = 0, saturation = 0 }: { lightness?: number; saturation?: number },
+): string {
   const value = Number.parseInt(hex.replace('#', ''), 16);
   const [h, s, l] = rgbToHsl(
     (value >> 16) & 0xff,
     (value >> 8) & 0xff,
     value & 0xff,
   );
-  const [r, g, b] = hslToRgb(h, s, Math.max(0, l - points / 100));
+  const clamp = (n: number) => Math.min(1, Math.max(0, n));
+  const [r, g, b] = hslToRgb(
+    h,
+    clamp(s + saturation / 100),
+    clamp(l + lightness / 100),
+  );
   return `#${[r, g, b].map((channel) => channel.toString(16).padStart(2, '0')).join('')}`;
 }
 

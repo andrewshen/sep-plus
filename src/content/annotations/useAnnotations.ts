@@ -91,6 +91,15 @@ function isSepPlusUiEvent(event: Event): boolean {
   );
 }
 
+/** The entry title and byline aren't annotatable. */
+const ENTRY_HEADING_SELECTOR = 'h1, #pubinfo';
+
+function touchesEntryHeading(root: HTMLElement, range: Range): boolean {
+  return Array.from(root.querySelectorAll(ENTRY_HEADING_SELECTOR)).some(
+    (heading) => range.intersectsNode(heading),
+  );
+}
+
 function sameBoundaries(left: Range, right: Range): boolean {
   return (
     left.startContainer === right.startContainer &&
@@ -287,10 +296,13 @@ export function useAnnotations({
           );
           return;
         }
-        const anchor = createSelectionAnchor(
-          root,
-          selection.getRangeAt(0).cloneRange(),
-        );
+        const range = selection.getRangeAt(0);
+        if (touchesEntryHeading(root, range)) {
+          setPendingSelection(null);
+          setActiveAnnotation(null);
+          return;
+        }
+        const anchor = createSelectionAnchor(root, range.cloneRange());
         if (!anchor) {
           setPendingSelection(null);
           setActiveAnnotation(null);

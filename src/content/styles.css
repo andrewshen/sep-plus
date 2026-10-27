@@ -28,7 +28,7 @@
   --sep-border: var(--sand-6);
   --sep-border-subtle: var(--sand-4);
   --sep-divider: var(--sand-3);
-  --sep-outline-tick: var(--sand-5);
+  --sep-outline-tick: var(--sand-6);
   /* Halfway between sand-2 and sand-3. */
   --sep-hover: color-mix(in srgb, var(--sand-2), var(--sand-3));
   --sep-ease-out: cubic-bezier(0.23, 1, 0.32, 1);
@@ -181,6 +181,11 @@
   display: block;
   width: 19px;
   height: 28px;
+  transition: opacity var(--sep-duration-fast) var(--sep-ease);
+}
+
+.sep-header-logo:hover {
+  opacity: 0.5;
 }
 
 .sep-header-logo img {
@@ -719,6 +724,10 @@
    share one surface, button size, spacing, and icon size. */
 
 .sep-popover.sep-actions {
+  /* Small surfaces start smaller so their growth reads like the 400px
+     popovers' (~8px either way) instead of a plain fade. */
+  --sep-popover-enter-scale: 0.95;
+
   width: max-content;
   padding: 4px;
 }
@@ -820,7 +829,7 @@
 }
 
 .sep-annotation-note::placeholder {
-  color: var(--sep-muted);
+  color: var(--sand-10);
   opacity: 1;
 }
 
@@ -850,8 +859,22 @@
   --sep-border: var(--sand-7);
   --sep-border-subtle: var(--sand-5);
   --sep-divider: var(--sand-5);
-  --sep-outline-tick: var(--sand-5);
+  --sep-outline-tick: var(--sand-9);
   --sep-hover: var(--sand-5);
+}
+
+.sep-plus-app.is-dark .sep-outline-tick.is-active::before {
+  background: #fff;
+}
+
+.sep-plus-app.is-dark button.sep-icon-button,
+.sep-plus-app.is-dark .sep-search-field > svg {
+  color: var(--sep-muted);
+}
+
+.sep-plus-app.is-dark button.sep-icon-button:hover,
+.sep-plus-app.is-dark button.sep-icon-button.is-pressed {
+  color: #fff;
 }
 
 @supports (color: color(display-p3 1 1 1)) {

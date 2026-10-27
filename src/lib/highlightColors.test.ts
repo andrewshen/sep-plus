@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { darkenHex, highlightEmphasisColor } from './highlightColors';
+import {
+  adjustHex,
+  darkenHex,
+  highlightEmphasisColor,
+} from './highlightColors';
 
 describe('darkenHex', () => {
   it('lowers lightness while keeping the hue', () => {
@@ -18,5 +22,15 @@ describe('highlightEmphasisColor', () => {
       const hover = highlightEmphasisColor(color);
       expect(hover).toMatch(/^#[0-9a-f]{6}$/);
     }
+  });
+});
+
+describe('adjustHex', () => {
+  it('raises saturation without moving lightness', () => {
+    expect(adjustHex('#bf4040', { saturation: 25 })).toBe('#df2020');
+  });
+
+  it('clamps saturation at 100%', () => {
+    expect(adjustHex('#ff0000', { saturation: 40 })).toBe('#ff0000');
   });
 });
