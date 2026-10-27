@@ -1,16 +1,20 @@
 # SEP+
 
-SEP+ is a browser extension for the Stanford Encyclopedia of Philosophy that improves typography, adds dark mode, a collapsible contents sidebar, hover-preview footnotes, and a `⌘K` command palette for jumping between entries.
+SEP+ is a browser extension for the Stanford Encyclopedia of Philosophy that redesigns the reading experience: better typography, dark mode, a persistent contents sidebar, hover-preview footnotes and citations, highlights and notes, and a `⌘K` command palette for jumping between entries.
+
+**v2** is a ground-up rebuild on React + Vite and Manifest V3, with a redesigned header, homepage, and search, plus new annotation and citation features.
 
 Install the extension on the [Chrome Web Store](https://chrome.google.com/webstore/detail/sep%2B/falicmbacjghbjdmmnaagmbkpgiphbbg).
 
 ## Features
 
-- Improved typography and layout for better readability, with dark mode
+- Improved typography and layout for better readability, with light, dark, and system themes
+- Redesigned header, homepage, search page, and footer
 - Collapsible sidebar with the entry's table of contents and site navigation
-- `⌘K` / `Ctrl K` command palette to search and jump to any SEP entry (`/` also focuses search)
+- `⌘K` / `Ctrl K` command palette with typeahead search to jump to any SEP entry (`/` also focuses search)
 - Footnotes shown as hover/tap previews instead of jumping down the page
-- Local text highlights and notes with JSON or Markdown export
+- Bibliography citations shown as previews inline, with PhilPapers search links
+- Local text highlights and margin notes, with selectable highlight colors and JSON or Markdown export
 - Print-optimized styles (inlines footnotes, removes irrelevant sections)
 
 ## Development
