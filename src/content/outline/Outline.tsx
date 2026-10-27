@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { smoothScrollToHref } from '../../host/toc';
 import type { TocItem } from '../../lib/types';
 
@@ -8,34 +8,25 @@ type OutlineProps = {
   activeIndex: number;
 };
 
-type OutlineEntry = { item: TocItem; index: number };
-
 export function Outline({ items, activeIndex }: OutlineProps) {
+  const railRef = useRef<HTMLDivElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
   const [fade, setFade] = useState({ top: false, bottom: false });
+  const active = Math.min(Math.max(activeIndex, 0), items.length - 1);
 
-  const entries = useMemo((): OutlineEntry[] => {
-    const all = items.map((item, index) => ({ item, index }));
-    const topLevel = all.filter(({ item }) => item.level === 1);
-    return topLevel.length ? topLevel : all;
-  }, [items]);
-
-  const activeEntry = useMemo(() => {
-    let active = 0;
-    entries.forEach((entry, position) => {
-      if (entry.index <= activeIndex) {
-        active = position;
-      }
-    });
-    return active;
-  }, [entries, activeIndex]);
-
-  const updateFades = useCallback(() => {
+  // Ticks pack tighter than labels, so the rail follows the panel by scroll
+  // fraction rather than by pixel offset.
+  const syncScroll = useCallback(() => {
     const panel = panelRef.current;
     if (!panel) {
       return;
     }
     const maxScroll = panel.scrollHeight - panel.clientHeight;
+    const rail = railRef.current;
+    if (rail) {
+      const railMax = rail.scrollHeight - rail.clientHeight;
+      rail.scrollTop = maxScroll > 0 ? (panel.scrollTop / maxScroll) * railMax : 0;
+    }
     const canScroll = maxScroll > 1;
     setFade({
       top: canScroll && panel.scrollTop > 1,
@@ -45,9 +36,7 @@ export function Outline({ items, activeIndex }: OutlineProps) {
 
   useLayoutEffect(() => {
     const panel = panelRef.current;
-    const row = panel?.querySelector<HTMLElement>(
-      `[data-position="${activeEntry}"]`,
-    );
+    const row = panel?.querySelector<HTMLElement>(`[data-position="${active}"]`);
     if (panel && row) {
       if (row.offsetTop < panel.scrollTop) {
         panel.scrollTop = row.offsetTop;
@@ -58,15 +47,15 @@ export function Outline({ items, activeIndex }: OutlineProps) {
         panel.scrollTop = row.offsetTop + row.offsetHeight - panel.clientHeight;
       }
     }
-    updateFades();
-  }, [activeEntry, updateFades]);
+    syncScroll();
+  }, [active, syncScroll]);
 
   useEffect(() => {
-    window.addEventListener('resize', updateFades);
-    return () => window.removeEventListener('resize', updateFades);
-  }, [updateFades]);
+    window.addEventListener('resize', syncScroll);
+    return () => window.removeEventListener('resize', syncScroll);
+  }, [syncScroll]);
 
-  if (!entries.length) {
+  if (!items.length) {
     return null;
   }
 
@@ -81,32 +70,34 @@ export function Outline({ items, activeIndex }: OutlineProps) {
         .join(' ')}
       aria-label="Table of contents"
     >
-      <div className="sep-outline-rail" aria-hidden="true">
-        {entries.map(({ item }, position) => (
+      <div className="sep-outline-rail" ref={railRef} aria-hidden="true">
+        {items.map((item, position) => (
           <span
             key={item.href}
             className={[
               'sep-outline-tick',
-              position === activeEntry ? 'is-active' : '',
+              `sep-outline-tick--level-${item.level}`,
+              position === active ? 'is-active' : '',
             ]
               .filter(Boolean)
               .join(' ')}
           />
         ))}
       </div>
-      <div className="sep-outline-panel" ref={panelRef} onScroll={updateFades}>
-        {entries.map(({ item }, position) => (
+      <div className="sep-outline-panel" ref={panelRef} onScroll={syncScroll}>
+        {items.map((item, position) => (
           <button
             key={item.href}
             type="button"
             data-position={position}
             className={[
               'sep-outline-link',
-              position === activeEntry ? 'is-active' : '',
+              `sep-outline-link--level-${item.level}`,
+              position === active ? 'is-active' : '',
             ]
               .filter(Boolean)
               .join(' ')}
-            aria-current={position === activeEntry ? 'location' : undefined}
+            aria-current={position === active ? 'location' : undefined}
             onClick={(event) => {
               smoothScrollToHref(item.href);
               // Drop focus so :focus-within doesn't keep the panel open.

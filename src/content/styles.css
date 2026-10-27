@@ -28,7 +28,9 @@
   --sep-border: var(--sand-6);
   --sep-border-subtle: var(--sand-4);
   --sep-divider: var(--sand-3);
-  --sep-hover: var(--sand-2);
+  --sep-outline-tick: var(--sand-5);
+  /* Halfway between sand-2 and sand-3. */
+  --sep-hover: color-mix(in srgb, var(--sand-2), var(--sand-3));
   --sep-ease-out: cubic-bezier(0.23, 1, 0.32, 1);
   --sep-ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
   --sep-ease: cubic-bezier(0.25, 0.1, 0.25, 1);
@@ -533,6 +535,13 @@
 /* Outline */
 
 .sep-outline {
+  --sep-outline-row: 28px;
+  /* Ticks pack tighter than the labels they stand in for. */
+  --sep-outline-tick-row: 20px;
+  --sep-outline-max-height: calc(100vh - 160px);
+  --sep-outline-fade-top: 0px;
+  --sep-outline-fade-bottom: 0px;
+
   pointer-events: auto;
   position: fixed;
   top: 50%;
@@ -551,34 +560,62 @@
   transition-delay: 0s;
 }
 
+.sep-outline-rail,
+.sep-outline-panel {
+  max-height: var(--sep-outline-max-height);
+  mask-image: linear-gradient(
+    to bottom,
+    transparent 0,
+    #000 var(--sep-outline-fade-top),
+    #000 calc(100% - var(--sep-outline-fade-bottom)),
+    transparent 100%
+  );
+}
+
 .sep-outline-rail {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 12px;
-  max-height: calc(100vh - 220px);
   overflow: hidden;
   transition: opacity var(--sep-duration-drawer) var(--sep-ease);
 }
 
-/* Ticks are 36px boxes scaled to 20px so the active change animates on the
-   compositor instead of re-laying out the rail. */
+/* Tick length by depth: sections 20px, subsections 14px, sub-subsections
+   8px; the active tick runs 16px longer than its level. */
 .sep-outline-tick {
-  display: block;
+  --sep-outline-tick-length: 20;
+
+  display: flex;
   flex-shrink: 0;
+  align-items: center;
+  height: var(--sep-outline-tick-row);
+}
+
+.sep-outline-tick--level-2 {
+  --sep-outline-tick-length: 14;
+}
+
+.sep-outline-tick--level-3 {
+  --sep-outline-tick-length: 8;
+}
+
+/* 36px bars scaled down so length changes animate on the compositor
+   instead of re-laying out the rail. */
+.sep-outline-tick::before {
+  content: '';
   width: 36px;
   height: 2px;
-  background: var(--sep-divider);
-  transform: scaleX(calc(20 / 36));
+  background: var(--sep-outline-tick);
+  transform: scaleX(calc(var(--sep-outline-tick-length) / 36));
   transform-origin: left center;
   transition:
     transform var(--sep-duration-ui) var(--sep-ease-out),
     background-color var(--sep-duration-ui) var(--sep-ease);
 }
 
-.sep-outline-tick.is-active {
+.sep-outline-tick.is-active::before {
   background: var(--sand-9);
-  transform: none;
+  transform: scaleX(calc((var(--sep-outline-tick-length) + 16) / 36));
 }
 
 .sep-outline:hover .sep-outline-rail,
@@ -587,15 +624,11 @@
 }
 
 .sep-outline-panel {
-  --sep-outline-fade-top: 0px;
-  --sep-outline-fade-bottom: 0px;
-
   pointer-events: none;
   position: absolute;
   top: 50%;
   left: 24px;
   width: 360px;
-  max-height: calc(100vh - 160px);
   overflow-x: hidden;
   overflow-y: auto;
   scrollbar-width: none;
@@ -603,13 +636,6 @@
   opacity: 0;
   visibility: hidden;
   transform: translate(-8px, -50%);
-  mask-image: linear-gradient(
-    to bottom,
-    transparent 0,
-    #000 var(--sep-outline-fade-top),
-    #000 calc(100% - var(--sep-outline-fade-bottom)),
-    transparent 100%
-  );
   transition:
     opacity var(--sep-duration-drawer) var(--sep-ease),
     transform var(--sep-duration-drawer) var(--sep-ease),
@@ -620,11 +646,11 @@
   display: none;
 }
 
-.sep-outline.has-fade-top .sep-outline-panel {
+.sep-outline.has-fade-top {
   --sep-outline-fade-top: 40px;
 }
 
-.sep-outline.has-fade-bottom .sep-outline-panel {
+.sep-outline.has-fade-bottom {
   --sep-outline-fade-bottom: 40px;
 }
 
@@ -639,7 +665,7 @@
 .sep-plus-app button.sep-outline-link {
   display: block;
   width: 100%;
-  height: 28px;
+  height: var(--sep-outline-row);
   padding: 4px 24px 4px 8px;
   overflow: hidden;
   border: none;
@@ -653,6 +679,14 @@
   text-overflow: ellipsis;
   white-space: nowrap;
   transition: color var(--sep-duration-fast) var(--sep-ease);
+}
+
+.sep-plus-app button.sep-outline-link--level-2 {
+  padding-left: 22px;
+}
+
+.sep-plus-app button.sep-outline-link--level-3 {
+  padding-left: 36px;
 }
 
 .sep-plus-app button.sep-outline-link:hover,
@@ -676,7 +710,7 @@
       visibility var(--sep-duration-fast) var(--sep-ease);
   }
 
-  .sep-outline-tick {
+  .sep-outline-tick::before {
     transition: none;
   }
 }
@@ -710,8 +744,8 @@
   gap: 6px;
   padding: 6px 12px;
   border: 0;
-  /* Concentric with the 16px surface over its 4px padding. */
-  border-radius: 12px;
+  /* Concentric with the 12px surface over its 4px padding. */
+  border-radius: 8px;
   background: transparent;
   color: var(--sep-muted);
   cursor: pointer;
@@ -816,6 +850,7 @@
   --sep-border: var(--sand-7);
   --sep-border-subtle: var(--sand-5);
   --sep-divider: var(--sand-5);
+  --sep-outline-tick: var(--sand-5);
   --sep-hover: var(--sand-5);
 }
 

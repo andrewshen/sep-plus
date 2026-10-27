@@ -21,7 +21,7 @@
   padding: 8px 20px;
   overflow: clip;
   border: 1px solid var(--sep-divider);
-  border-radius: 16px;
+  border-radius: 12px;
   background: var(--sep-surface);
   box-shadow: 0 2px 20px -8px rgb(0 0 0 / 10%);
   color: var(--sep-text);
