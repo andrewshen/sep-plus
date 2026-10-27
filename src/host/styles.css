@@ -962,10 +962,6 @@ body.sep-plus .sep-plus-search-pager-step {
     background-color var(--sep-duration-fast) var(--sep-ease);
 }
 
-body.sep-plus .sep-plus-search-pager-step.is-disabled {
-  opacity: 0.5;
-}
-
 body.sep-plus .sep-plus-search-pager-page {
   display: inline-flex;
   align-items: center;

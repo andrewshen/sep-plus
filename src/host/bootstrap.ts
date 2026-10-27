@@ -410,7 +410,7 @@ function pageHref(template: string, page: number): string {
   return url.href;
 }
 
-/** Centered Previous / page window / Next. Keeps the native page hrefs. */
+/** Centered page window, with Previous and Next only when they can be used. */
 function restyleSearchPager(current: number, totalPages: number): void {
   const nav = document.querySelector<HTMLElement>('.PagingNav');
   if (!nav || totalPages < 1) {
@@ -426,13 +426,7 @@ function restyleSearchPager(current: number, totalPages: number): void {
   pager.className = 'sep-plus-search-pager';
   pager.setAttribute('aria-label', 'Search results pages');
 
-  const step = (label: string, page: number | null) => {
-    if (page == null) {
-      const disabled = document.createElement('span');
-      disabled.className = 'sep-plus-search-pager-step is-disabled';
-      disabled.textContent = label;
-      return disabled;
-    }
+  const step = (label: string, page: number) => {
     const link = document.createElement('a');
     link.className = 'sep-plus-search-pager-step';
     link.href = pageHref(template, page);
@@ -440,7 +434,9 @@ function restyleSearchPager(current: number, totalPages: number): void {
     return link;
   };
 
-  pager.append(step('Previous', current > 1 ? current - 1 : null));
+  if (current > 1) {
+    pager.append(step('Previous', current - 1));
+  }
 
   for (const item of searchPagerItems(current, totalPages)) {
     if (item === 'ellipsis') {
@@ -466,7 +462,9 @@ function restyleSearchPager(current: number, totalPages: number): void {
     pager.append(link);
   }
 
-  pager.append(step('Next', current < totalPages ? current + 1 : null));
+  if (current < totalPages) {
+    pager.append(step('Next', current + 1));
+  }
 
   nav.replaceWith(pager);
 }
