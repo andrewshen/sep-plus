@@ -64,6 +64,9 @@ function AnnotationMark({
           : highlightSwatch(color),
       vivid: dark ? 'screen' : false,
       tip: { type: 'fine' },
+      // The library defaults to word snapping, which paints past the stored
+      // range; clicks hit-test the exact range, so draw exactly that.
+      snap: 'none',
       animation: { draw: false },
       opacity: emphasized ? opacity.emphasized : opacity.base,
     };

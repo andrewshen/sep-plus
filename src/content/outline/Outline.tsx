@@ -11,13 +11,15 @@ type OutlineProps = {
 export function Outline({ items, activeIndex }: OutlineProps) {
   const railRef = useRef<HTMLDivElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
   const [fade, setFade] = useState({ top: false, bottom: false });
+  const [overlapping, setOverlapping] = useState(false);
   const active = Math.min(Math.max(activeIndex, 0), items.length - 1);
 
   // Ticks pack tighter than labels, so the rail follows the panel by scroll
   // fraction rather than by pixel offset.
   const syncScroll = useCallback(() => {
-    const panel = panelRef.current;
+    const panel = scrollRef.current;
     if (!panel) {
       return;
     }
@@ -34,8 +36,30 @@ export function Outline({ items, activeIndex }: OutlineProps) {
     });
   }, []);
 
-  useLayoutEffect(() => {
+  // The open panel is opaque; once it reaches the reading column it covers
+  // text, so it gets a border to read as a separate surface.
+  const syncOverlap = useCallback(() => {
     const panel = panelRef.current;
+    const nav = panel?.offsetParent;
+    const content = document.querySelector('#article-content');
+    if (!panel || !nav || !content) {
+      setOverlapping(false);
+      return;
+    }
+    // Layout offsets, not the rect: the closed panel is nudged by a transform.
+    const panelRight =
+      nav.getBoundingClientRect().left + panel.offsetLeft + panel.offsetWidth;
+    setOverlapping(panelRight > content.getBoundingClientRect().left);
+  }, []);
+
+  useLayoutEffect(() => {
+    syncOverlap();
+    window.addEventListener('resize', syncOverlap);
+    return () => window.removeEventListener('resize', syncOverlap);
+  }, [syncOverlap]);
+
+  useLayoutEffect(() => {
+    const panel = scrollRef.current;
     const row = panel?.querySelector<HTMLElement>(`[data-position="${active}"]`);
     if (panel && row) {
       if (row.offsetTop < panel.scrollTop) {
@@ -65,6 +89,7 @@ export function Outline({ items, activeIndex }: OutlineProps) {
         'sep-outline',
         fade.top ? 'has-fade-top' : '',
         fade.bottom ? 'has-fade-bottom' : '',
+        overlapping ? 'is-overlapping' : '',
       ]
         .filter(Boolean)
         .join(' ')}
@@ -84,29 +109,35 @@ export function Outline({ items, activeIndex }: OutlineProps) {
           />
         ))}
       </div>
-      <div className="sep-outline-panel" ref={panelRef} onScroll={syncScroll}>
-        {items.map((item, position) => (
-          <button
-            key={item.href}
-            type="button"
-            data-position={position}
-            className={[
-              'sep-outline-link',
-              `sep-outline-link--level-${item.level}`,
-              position === active ? 'is-active' : '',
-            ]
-              .filter(Boolean)
-              .join(' ')}
-            aria-current={position === active ? 'location' : undefined}
-            onClick={(event) => {
-              smoothScrollToHref(item.href);
-              // Drop focus so :focus-within doesn't keep the panel open.
-              event.currentTarget.blur();
-            }}
-          >
-            {item.text}
-          </button>
-        ))}
+      <div className="sep-outline-panel" ref={panelRef}>
+        <div
+          className="sep-outline-panel-scroll"
+          ref={scrollRef}
+          onScroll={syncScroll}
+        >
+          {items.map((item, position) => (
+            <button
+              key={item.href}
+              type="button"
+              data-position={position}
+              className={[
+                'sep-outline-link',
+                `sep-outline-link--level-${item.level}`,
+                position === active ? 'is-active' : '',
+              ]
+                .filter(Boolean)
+                .join(' ')}
+              aria-current={position === active ? 'location' : undefined}
+              onClick={(event) => {
+                smoothScrollToHref(item.href);
+                // Drop focus so :focus-within doesn't keep the panel open.
+                event.currentTarget.blur();
+              }}
+            >
+              {item.text}
+            </button>
+          ))}
+        </div>
       </div>
     </nav>
   );

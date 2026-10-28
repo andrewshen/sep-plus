@@ -22,7 +22,14 @@ export function AnnotationsPopover({
   onClose,
 }: AnnotationsPopoverProps) {
   return (
-    <Popover id={id} open={open} align="end" title="Annotations" ariaLabel="Annotations">
+    <Popover
+      id={id}
+      open={open}
+      align="end"
+      title="Annotations"
+      ariaLabel="Annotations"
+      className="sep-popover--tight-bottom"
+    >
       {error ? (
         <div className="sep-popover-message is-error" role="alert">
           {error}

@@ -107,6 +107,7 @@ export function SettingsPopover({
       align="end"
       title="Settings"
       ariaLabel="Settings"
+      className="sep-popover--tight-bottom"
       onExited={() => setExportError(null)}
     >
       {exportError ? (

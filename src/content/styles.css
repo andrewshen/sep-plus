@@ -263,7 +263,8 @@
   width: 100%;
 }
 
-/* Results span the field, whatever its size. */
+/* Results span the field, whatever its size. Vertical offset comes
+   from `.sep-popover--center` (4px under the trigger). */
 .sep-search > .sep-popover {
   width: 100%;
 }
@@ -454,6 +455,12 @@
     opacity: 0;
     transform: var(--sep-popover-enter-transform);
   }
+}
+
+/* Annotations and settings end in rows with their own spacing, so the
+   surface needs less underneath than the default 8px. */
+.sep-popover.sep-popover--tight-bottom {
+  padding-bottom: 4px;
 }
 
 /* Grow out of the 28px trigger button whose right edge this aligns with. */
@@ -671,7 +678,7 @@
 }
 
 .sep-outline-rail,
-.sep-outline-panel {
+.sep-outline-panel-scroll {
   max-height: var(--sep-outline-max-height);
   mask-image: linear-gradient(
     to bottom,
@@ -734,14 +741,12 @@
 }
 
 .sep-outline-panel {
+  box-sizing: border-box;
   pointer-events: none;
   position: absolute;
   top: 50%;
   left: 24px;
   width: 360px;
-  overflow-x: hidden;
-  overflow-y: auto;
-  scrollbar-width: none;
   background: var(--sep-page-bg);
   opacity: 0;
   visibility: hidden;
@@ -752,8 +757,30 @@
     visibility var(--sep-duration-drawer) var(--sep-ease);
 }
 
-.sep-outline-panel::-webkit-scrollbar {
+/* Scrolls and fades inside the panel, so the overlap border isn't masked. */
+.sep-outline-panel-scroll {
+  overflow-x: hidden;
+  overflow-y: auto;
+  scrollbar-width: none;
+}
+
+.sep-outline-panel-scroll::-webkit-scrollbar {
   display: none;
+}
+
+/* Over the reading column: same border, radius and shadow as `.sep-popover`
+   (popover.css). The surface grows outward by its 13px side inset (1px
+   border + 12px padding): 13px further left and 26px wider, so the content
+   box, and with it every label, sits exactly where it does without the
+   border. The panel is centered vertically, so extra top and bottom padding
+   grows it evenly in both directions. */
+.sep-outline.is-overlapping .sep-outline-panel {
+  left: 11px;
+  width: 386px;
+  padding: 14px 12px;
+  border: 1px solid var(--sep-divider);
+  border-radius: 12px;
+  box-shadow: 0 2px 20px -8px rgb(0 0 0 / 10%);
 }
 
 .sep-outline.has-fade-top {

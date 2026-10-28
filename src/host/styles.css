@@ -325,13 +325,12 @@ hr {
 
 /* In-page table of contents: no bullets, nested sections indent. */
 body.sep-plus #article #toc {
-  margin: 24px 0 !important;
-  padding: 24px 0 !important;
-  border-top: 1px solid var(--sep-divider) !important;
-  border-bottom: 1px solid var(--sep-divider) !important;
+  margin-top: 40px !important;
+  margin-bottom: 40px !important;
+  padding: 0 !important;
 }
 
-/* SEP draws its own rule after the TOC; #toc's bottom border replaces it. */
+/* SEP draws its own rule after the TOC. */
 body.sep-plus #article #toc > hr {
   display: none !important;
 }

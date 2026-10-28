@@ -37,10 +37,13 @@ export function SelectionToolbar({
   onAddNote,
   onDismiss,
 }: SelectionToolbarProps) {
-  const [saving, setSaving] = useState(false);
+  const [saving, setSaving] = useState<'highlight' | 'note' | null>(null);
+  // Add note swaps the toolbar for the note popover in place, so it stays
+  // undimmed while saving; `run` still ignores repeat clicks.
+  const dimmed = saving === 'highlight';
 
   useEffect(() => {
-    setSaving(false);
+    setSaving(null);
   }, [selection?.key]);
 
   if (!selection) {
@@ -65,17 +68,17 @@ export function SelectionToolbar({
     '--sep-popover-origin-x': `${halfWidth + selectionCenter - left}px`,
   } as CSSProperties;
 
-  async function run(action: () => Promise<void>) {
+  async function run(kind: 'highlight' | 'note', action: () => Promise<void>) {
     if (saving) {
       return;
     }
-    setSaving(true);
+    setSaving(kind);
     try {
       await action();
     } catch {
       // The shared annotation state exposes the actionable error in the annotations popover.
     } finally {
-      setSaving(false);
+      setSaving(null);
     }
   }
 
@@ -106,17 +109,17 @@ export function SelectionToolbar({
       >
         <ActionButton
           icon={<IconHighlight />}
-          disabled={saving}
+          disabled={dimmed}
           onPointerDown={keepSelection}
-          onClick={() => void run(onHighlight)}
+          onClick={() => void run('highlight', onHighlight)}
         >
           Highlight
         </ActionButton>
         <ActionButton
           icon={<IconAnnotations />}
-          disabled={saving}
+          disabled={dimmed}
           onPointerDown={keepSelection}
-          onClick={() => void run(onAddNote)}
+          onClick={() => void run('note', onAddNote)}
         >
           Add note
         </ActionButton>

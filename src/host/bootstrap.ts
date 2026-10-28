@@ -601,6 +601,10 @@ export function extractEntryCopyright(): HTMLElement | null {
     }
 
     for (const link of Array.from(line.querySelectorAll('a'))) {
+      if ((link.getAttribute('href') ?? '').startsWith('mailto:')) {
+        link.prepend('(');
+        link.append(')');
+      }
       link.removeAttribute('style');
       link.className = link.classList.contains('sep-entry-author')
         ? 'sep-fade-link sep-entry-author'
