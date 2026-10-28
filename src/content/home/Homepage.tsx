@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { getEntryIndex } from '../../lib/entryIndex';
 import { formatEntryTitle } from '../../lib/formatEntryTitle';
 import {
   formatRecentDate,
@@ -8,6 +9,7 @@ import {
 import { Search } from '../header/SearchPopover';
 import { SiteFooter } from '../footer/SiteFooter';
 import { IconArrowRight, SepLogo } from '../icons';
+import { useLogoPress } from './useLogoPress';
 
 type HomepageProps = {
   searchOpen: boolean;
@@ -98,7 +100,7 @@ function RecentlyUpdated({ entries }: { entries: RecentEntry[] | null }) {
     <section className="sep-site-section sep-home-recent" aria-label="Recently updated">
       <div className="sep-home-recent-header">
         <h2 className="sep-home-label">Recently updated</h2>
-        <a className="sep-home-label sep-fade-link sep-home-see-all" href="/new.html">
+        <a className="sep-home-label sep-link sep-home-see-all" href="/new.html">
           See all
           <IconArrowRight />
         </a>
@@ -124,12 +126,46 @@ function RecentlyUpdated({ entries }: { entries: RecentEntry[] | null }) {
   );
 }
 
+/** A random entry title from the contents index, for the search placeholder.
+ *  `undefined` until the first pick, so `Search` keeps its default. */
+function useRandomTopic(): [string | undefined, () => void] {
+  const [topic, setTopic] = useState<string>();
+  const indexRef = useRef<ReturnType<typeof getEntryIndex> | null>(null);
+
+  function pick(): void {
+    indexRef.current ??= getEntryIndex();
+    indexRef.current.then(
+      (entries) => {
+        if (!entries.length) {
+          return;
+        }
+        setTopic((current) => {
+          let next = current;
+          // Re-roll so every press visibly changes the placeholder.
+          for (let tries = 0; next === current && tries < 5; tries++) {
+            const entry = entries[Math.floor(Math.random() * entries.length)]!;
+            next = formatEntryTitle(entry.title, entry.href);
+          }
+          return next;
+        });
+      },
+      () => {
+        indexRef.current = null;
+      },
+    );
+  }
+
+  return [topic, pick];
+}
+
 export function Homepage({
   searchOpen,
   onSearchOpen,
   onSearchClose,
 }: HomepageProps) {
   const recentEntries = useRecentEntries();
+  const [topic, pickTopic] = useRandomTopic();
+  const logoPress = useLogoPress(pickTopic);
   // Empty-search suggestions: the same list as the carousel.
   const suggestions = useMemo(
     () => recentEntries?.map(({ title, href }) => ({ title, href })),
@@ -139,7 +175,7 @@ export function Homepage({
   return (
     <main className="sep-home">
       <section className="sep-home-hero">
-        <span className="sep-home-logo">
+        <span className="sep-home-logo" {...logoPress}>
           <SepLogo label="Stanford Encyclopedia of Philosophy" />
         </span>
         <p className="sep-home-mission">
@@ -150,6 +186,8 @@ export function Homepage({
           variant="hero"
           suggestions={suggestions}
           suggestionsLabel="Recently updated"
+          placeholder={topic}
+          emptyQuery={topic}
           open={searchOpen}
           onOpen={onSearchOpen}
           onClose={onSearchClose}

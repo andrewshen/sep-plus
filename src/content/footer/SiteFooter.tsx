@@ -61,7 +61,7 @@ function EntryCopyright({ line }: { line: HTMLElement }) {
     <div className="sep-site-section sep-site-footer-legal sep-site-footer-entry">
       <span ref={ref} />
       <a
-        className="sep-home-label sep-fade-link sep-home-see-all"
+        className="sep-home-label sep-link sep-home-see-all"
         href="https://plato.stanford.edu/fundraising/"
       >
         Support the SEP
@@ -81,7 +81,7 @@ export function SiteFooter({ entryCopyright }: { entryCopyright?: HTMLElement | 
           <div key={column.title} className="sep-site-footer-column">
             <h2 className="sep-site-footer-column-title">{column.title}</h2>
             {column.links.map((link) => (
-              <a key={link.href} className="sep-fade-link" href={link.href}>
+              <a key={link.href} className="sep-link" href={link.href}>
                 {link.label}
               </a>
             ))}

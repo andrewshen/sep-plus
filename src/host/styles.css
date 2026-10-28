@@ -582,7 +582,6 @@ select {
 .btn,
 .btn-group,
 #mission,
-#toc-nav,
 #article-banner-content {
   font-size: 14px !important;
   border-radius: 6px !important;
@@ -594,7 +593,6 @@ select {
 
 .btn,
 #mission a,
-#toc-nav a,
 #article-banner-content a {
   color: var(--sep-muted) !important;
 }
@@ -945,7 +943,6 @@ body.dark .dropdown-menu li a {
 body.dark .btn,
 body.dark .btn-group,
 body.dark #mission,
-body.dark #toc-nav,
 body.dark #article-banner-content {
   background: transparent !important;
   color: var(--sep-muted) !important;
@@ -953,7 +950,6 @@ body.dark #article-banner-content {
 
 body.dark .btn,
 body.dark #mission a,
-body.dark #toc-nav a,
 body.dark #article-banner-content a {
   color: var(--sep-muted) !important;
 }

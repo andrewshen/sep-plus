@@ -78,6 +78,45 @@ export function collectTocItems(): TocItem[] {
   return items;
 }
 
+/**
+ * contents.html: the A–Z button bar becomes the side outline, one item per
+ * letter. Detach the bar along with jQuery sticky's wrapper, which otherwise
+ * rewrites inline styles on every scroll.
+ */
+export function collectContentsTocItems(): TocItem[] {
+  const nav = document.querySelector('#toc-nav');
+  if (!nav) {
+    return [];
+  }
+
+  const items: TocItem[] = [];
+  for (const link of Array.from(nav.querySelectorAll('a[href^="#"]'))) {
+    const href = link.getAttribute('href') ?? '';
+    const text = (link.textContent || '').trim();
+    if (text && findHeading(href)) {
+      items.push({ href, text, level: 1 });
+    }
+  }
+
+  (nav.closest('.sticky-wrapper') ?? nav.closest('.sticky') ?? nav).remove();
+
+  // The side outline replaces the per-letter "[jump to top]" links.
+  for (const link of Array.from(
+    document.querySelectorAll('#content h2 a[href="#pagetopright"]'),
+  )) {
+    link.remove();
+  }
+
+  // ...and the <hr> divider above each letter heading.
+  for (const heading of Array.from(document.querySelectorAll('#content h2'))) {
+    const prev = heading.previousElementSibling;
+    if (prev?.tagName === 'HR') {
+      prev.remove();
+    }
+  }
+  return items;
+}
+
 function findHeading(href: string): Element | null {
   const id = href.startsWith('#') ? href.slice(1) : href;
   return document.querySelector(`[name="${id}"], [id="${id}"]`);

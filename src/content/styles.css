@@ -156,11 +156,6 @@
   flex-shrink: 0;
 }
 
-.sep-popover-body a.sep-bibliography-preview-search:hover {
-  color: var(--sep-text);
-  text-decoration: none;
-}
-
 .sep-bibliography-preview-entry a:focus-visible {
   border-radius: 2px;
   outline: 2px solid var(--sep-muted-soft);
@@ -176,10 +171,13 @@
   text-decoration: none;
 }
 
+/* Popover links fade on hover instead of changing color. */
+.sep-popover-body a.sep-bibliography-preview-search,
 .sep-bibliography-preview-entry-body a {
   transition: opacity var(--sep-duration-fast) var(--sep-ease);
 }
 
+.sep-popover-body a.sep-bibliography-preview-search:hover,
 .sep-bibliography-preview-entry-body a:hover {
   opacity: 0.5;
 }
@@ -311,6 +309,7 @@
   font-size: 14px;
   font-weight: 400;
   line-height: 20px;
+  text-overflow: ellipsis;
 }
 
 .sep-search-input::-webkit-search-decoration,
@@ -321,9 +320,71 @@
   -webkit-appearance: none;
 }
 
+.sep-search-input-wrap {
+  position: relative;
+  display: flex;
+  flex: 1;
+  min-width: 0;
+}
+
+/* The native placeholder stays for assistive tech; AnimatedPlaceholder draws
+   the visible one so changes can animate. */
 .sep-search-input::placeholder {
+  color: transparent;
+}
+
+.sep-search-placeholder {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
   color: var(--sep-muted-soft);
-  opacity: 1;
+  font-size: 14px;
+  line-height: 20px;
+}
+
+.sep-search-placeholder.is-hidden {
+  visibility: hidden;
+}
+
+.sep-search-placeholder-text {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  transition:
+    opacity var(--sep-duration-drawer) var(--sep-ease-out),
+    transform var(--sep-duration-drawer) var(--sep-ease-out),
+    filter var(--sep-duration-drawer) var(--sep-ease-out);
+}
+
+/* Exit is quicker than entry so the new text leads. Keep in sync with
+   EXIT_MS in AnimatedPlaceholder. */
+.sep-search-placeholder-text.is-exiting {
+  opacity: 0;
+  transform: translateY(-8px);
+  filter: blur(2px);
+  transition-duration: var(--sep-duration-ui);
+}
+
+@starting-style {
+  .sep-search-placeholder-text.is-entering {
+    opacity: 0;
+    transform: translateY(8px);
+    filter: blur(2px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sep-search-placeholder-text.is-exiting {
+    transform: none;
+  }
+
+  @starting-style {
+    .sep-search-placeholder-text.is-entering {
+      transform: none;
+    }
+  }
 }
 
 .sep-plus-app button.sep-search-clear {
@@ -898,6 +959,10 @@
   display: block;
   width: 28px;
   height: 42px;
+  cursor: pointer;
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .sep-home-mission-subject {
@@ -940,12 +1005,21 @@
   color: inherit;
 }
 
-.sep-plus-app a.sep-fade-link {
+/* Shared link behavior: gray links go to full text color on hover. Links
+   already at full text color have nowhere to go, so they fade instead.
+   Popover links fade too (see the popover rules near the top). */
+.sep-plus-app a.sep-link {
   text-decoration: none;
-  transition: opacity var(--sep-duration-fast) var(--sep-ease);
+  transition:
+    color var(--sep-duration-fast) var(--sep-ease),
+    opacity var(--sep-duration-fast) var(--sep-ease);
 }
 
-.sep-plus-app a.sep-fade-link:hover {
+.sep-plus-app a.sep-link:hover {
+  color: var(--sep-text);
+}
+
+.sep-plus-app a.sep-link.sep-entry-author:hover {
   opacity: 0.5;
 }
 
@@ -961,6 +1035,10 @@
   flex-shrink: 0;
 }
 
+.sep-home-recent {
+  border-top: none;
+}
+
 .sep-home-recent-header {
   display: flex;
   align-items: baseline;
@@ -973,7 +1051,7 @@
   --sep-home-fade-end: 0px;
 
   display: flex;
-  gap: 8px;
+  gap: 12px;
   overflow-x: auto;
   overscroll-behavior-x: contain;
   scroll-snap-type: x mandatory;
@@ -1094,7 +1172,7 @@
   line-height: 20px;
 }
 
-.sep-site-footer-column .sep-fade-link {
+.sep-site-footer-column .sep-link {
   color: var(--sep-muted);
 }
 

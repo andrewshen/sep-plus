@@ -41,7 +41,9 @@ export function Outline({ items, activeIndex }: OutlineProps) {
   const syncOverlap = useCallback(() => {
     const panel = panelRef.current;
     const nav = panel?.offsetParent;
-    const content = document.querySelector('#article-content');
+    const content = document.querySelector(
+      '#article-content, .sep-plus-content-column',
+    );
     if (!panel || !nav || !content) {
       setOverlapping(false);
       return;

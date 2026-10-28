@@ -16,6 +16,7 @@ import {
 import { formatEntryTitle } from '../../lib/formatEntryTitle';
 import type { EntryIndexItem } from '../../lib/types';
 import { IconClose, IconSearch } from '../icons';
+import { AnimatedPlaceholder } from './AnimatedPlaceholder';
 import { Popover, POPOVER_EXIT_MS } from '../ui/Popover';
 import { useDismiss } from '../ui/useDismiss';
 
@@ -28,8 +29,14 @@ type SearchProps = {
    */
   suggestions?: readonly EntryIndexItem[];
   suggestionsLabel?: string;
-  /** Pre-filled query, restored whenever the results close. */
+  /** Pre-filled query on mount. */
   initialQuery?: string;
+  placeholder?: string;
+  /**
+   * With an empty input, show results for this query instead of the
+   * suggestions. Suggestions still rank first once the user types.
+   */
+  emptyQuery?: string;
   open: boolean;
   onOpen: () => void;
   onClose: () => void;
@@ -116,6 +123,8 @@ export function Search({
   suggestions,
   suggestionsLabel = 'Related entries',
   initialQuery = '',
+  placeholder = 'Search',
+  emptyQuery,
   open,
   onOpen,
   onClose,
@@ -151,8 +160,11 @@ export function Search({
     clearDocumentPrefetches();
   }, [open]);
 
+  // An empty-state query needs the index before the results open, so load it
+  // right away rather than on first open.
+  const preload = Boolean(emptyQuery);
   useEffect(() => {
-    if (!open || entries) {
+    if ((!open && !preload) || entries) {
       return;
     }
     let cancelled = false;
@@ -179,19 +191,30 @@ export function Search({
             setLoading(false);
           }
         });
-    }, POPOVER_EXIT_MS);
+    }, open ? POPOVER_EXIT_MS : 0);
     return () => {
       cancelled = true;
       window.clearTimeout(timer);
     };
-  }, [open, entries]);
+  }, [open, preload, entries]);
 
   const trimmed = query.trim();
+  const emptyTrimmed = emptyQuery?.trim() ?? '';
   const matches = useMemo(
     () => (entries ? filterEntries(entries, query, related) : []),
     [entries, query, related]
   );
+  const emptyMatches = useMemo(
+    () => (entries && emptyTrimmed ? filterEntries(entries, emptyTrimmed) : []),
+    [entries, emptyTrimmed]
+  );
   const rows = useMemo((): SearchRow[] => {
+    if (!trimmed && emptyTrimmed) {
+      return [
+        ...emptyMatches.map((entry) => ({ kind: 'entry' as const, entry })),
+        { kind: 'search' as const, query: emptyTrimmed },
+      ];
+    }
     if (!trimmed) {
       return related.map((entry) => ({ kind: 'entry' as const, entry }));
     }
@@ -199,7 +222,7 @@ export function Search({
       ...matches.map((entry) => ({ kind: 'entry' as const, entry })),
       { kind: 'search' as const, query: trimmed },
     ];
-  }, [matches, related, trimmed]);
+  }, [matches, related, trimmed, emptyMatches, emptyTrimmed]);
 
   useEffect(() => {
     setActiveIndex(0);
@@ -274,27 +297,30 @@ export function Search({
         }}
       >
         <IconSearch />
-        <input
-          ref={inputRef}
-          className="sep-search-input"
-          type="search"
-          placeholder="Search"
-          aria-label="Search entries"
-          role="combobox"
-          aria-expanded={open}
-          aria-controls={RESULTS_ID}
-          aria-autocomplete="list"
-          aria-activedescendant={open ? activeOptionId : undefined}
-          autoComplete="off"
-          spellCheck={false}
-          value={query}
-          onFocus={onOpen}
-          onChange={(event) => {
-            setQuery(event.target.value);
-            onOpen();
-          }}
-          onKeyDown={onKeyDown}
-        />
+        <span className="sep-search-input-wrap">
+          <input
+            ref={inputRef}
+            className="sep-search-input"
+            type="search"
+            placeholder={placeholder}
+            aria-label="Search entries"
+            role="combobox"
+            aria-expanded={open}
+            aria-controls={RESULTS_ID}
+            aria-autocomplete="list"
+            aria-activedescendant={open ? activeOptionId : undefined}
+            autoComplete="off"
+            spellCheck={false}
+            value={query}
+            onFocus={onOpen}
+            onChange={(event) => {
+              setQuery(event.target.value);
+              onOpen();
+            }}
+            onKeyDown={onKeyDown}
+          />
+          <AnimatedPlaceholder text={placeholder} hidden={Boolean(query)} />
+        </span>
         {query ? (
           <button
             type="button"
@@ -321,7 +347,6 @@ export function Search({
         role="group"
         ariaLabel="Search results"
         onExited={() => {
-          setQuery(initialQuery);
           setActiveIndex(0);
           setLoadError(null);
         }}
@@ -343,7 +368,9 @@ export function Search({
             id={RESULTS_ID}
             className="sep-search-results"
             role="listbox"
-            aria-label={trimmed ? 'Search results' : suggestionsLabel}
+            aria-label={
+              trimmed || emptyTrimmed ? 'Search results' : suggestionsLabel
+            }
           >
             {rows.map((row, index) => (
               <li

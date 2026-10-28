@@ -607,8 +607,8 @@ export function extractEntryCopyright(): HTMLElement | null {
       }
       link.removeAttribute('style');
       link.className = link.classList.contains('sep-entry-author')
-        ? 'sep-fade-link sep-entry-author'
-        : 'sep-fade-link';
+        ? 'sep-link sep-entry-author'
+        : 'sep-link';
     }
   }
 

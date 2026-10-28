@@ -129,7 +129,7 @@ export function App({
   ]);
 
   useEffect(() => {
-    if (!articleMode) {
+    if (!items.length) {
       return;
     }
     let frame: number | null = null;
@@ -152,7 +152,7 @@ export function App({
       window.removeEventListener('scroll', scheduleUpdate);
       window.removeEventListener('resize', scheduleUpdate);
     };
-  }, [articleMode, items]);
+  }, [items]);
 
   useEffect(() => {
     const observer = new MutationObserver(() => {
@@ -286,7 +286,7 @@ export function App({
             footerMount,
           )
         : null}
-      {articleMode ? <Outline items={items} activeIndex={activeIndex} /> : null}
+      <Outline items={items} activeIndex={activeIndex} />
       <AnnotationMarks
         ranges={annotationState.markedRanges}
         emphasizedIds={annotationState.emphasizedIds}

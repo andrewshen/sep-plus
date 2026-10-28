@@ -15,6 +15,7 @@ import {
 } from '../host/bootstrap';
 import { initFootnotes } from '../host/footnotes';
 import {
+  collectContentsTocItems,
   collectTocItems,
   prepareArticleNav,
 } from '../host/toc';
@@ -214,6 +215,7 @@ async function main(): Promise<void> {
     styleRelatedEntries();
     entryCopyright = extractEntryCopyright();
   } else if (!homeMode) {
+    tocItems = collectContentsTocItems();
     wrapSiteContentColumn();
     restyleSearchResults();
   }
