@@ -394,6 +394,13 @@
   position: relative;
 }
 
+/* Homepage: the header's action slot on its own (the overlay root is fixed
+   and ignores pointer events, so re-enable them here). */
+.sep-header-actions.sep-home-actions {
+  pointer-events: auto;
+  z-index: 2;
+}
+
 .sep-plus-app button.sep-icon-button {
   display: flex;
   align-items: center;

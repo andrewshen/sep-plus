@@ -5,18 +5,17 @@ import type {
   AnnotationExportScope,
   AnnotationListItem,
 } from '../annotations/useAnnotations';
-import { IconAnnotations, IconMore, SepLogo } from '../icons';
+import { IconAnnotations, SepLogo } from '../icons';
 import { IconButton } from '../ui/IconButton';
 import { useDismiss } from '../ui/useDismiss';
 import { AnnotationsPopover } from './AnnotationsPopover';
 import { Search } from './SearchPopover';
-import { SettingsPopover } from './SettingsPopover';
+import { SettingsMenu } from './SettingsMenu';
 import { useHeaderBorder } from './useHeaderBorder';
 
 export type HeaderPopover = 'search' | 'annotations' | 'settings';
 
 const ANNOTATIONS_POPOVER_ID = 'sep-annotations-popover';
-const SETTINGS_POPOVER_ID = 'sep-settings-popover';
 
 type HeaderProps = {
   articleMode: boolean;
@@ -56,7 +55,6 @@ export function Header({
   onExportAnnotations,
 }: HeaderProps) {
   const annotationsRef = useRef<HTMLDivElement>(null);
-  const settingsRef = useRef<HTMLDivElement>(null);
   const scrolled = useHeaderBorder();
   function close(): void {
     onOpenPopoverChange(null);
@@ -67,7 +65,6 @@ export function Header({
   }
 
   useDismiss(annotationsRef, openPopover === 'annotations', close);
-  useDismiss(settingsRef, openPopover === 'settings', close);
 
   return (
     <header className={scrolled ? 'sep-header is-scrolled' : 'sep-header'}>
@@ -109,27 +106,16 @@ export function Header({
             />
           </div>
         ) : null}
-        <div className="sep-header-anchor" ref={settingsRef}>
-          <IconButton
-            label="Settings"
-            expanded={openPopover === 'settings'}
-            controls={SETTINGS_POPOVER_ID}
-            onClick={() => toggle('settings')}
-          >
-            <IconMore />
-          </IconButton>
-          <SettingsPopover
-            id={SETTINGS_POPOVER_ID}
-            open={openPopover === 'settings'}
-            dark={dark}
-            theme={theme}
-            onThemeChange={onThemeChange}
-            highlightColor={highlightColor}
-            onHighlightColorChange={onHighlightColorChange}
-            onExport={onExportAnnotations}
-            onClose={close}
-          />
-        </div>
+        <SettingsMenu
+          open={openPopover === 'settings'}
+          onOpenChange={(next) => onOpenPopoverChange(next ? 'settings' : null)}
+          dark={dark}
+          theme={theme}
+          onThemeChange={onThemeChange}
+          highlightColor={highlightColor}
+          onHighlightColorChange={onHighlightColorChange}
+          onExportAnnotations={onExportAnnotations}
+        />
       </div>
     </header>
   );

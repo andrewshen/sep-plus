@@ -18,6 +18,7 @@ import { useBibliographyCitations } from './citations/useBibliographyCitations';
 import { SiteFooter } from './footer/SiteFooter';
 import { Header, type HeaderPopover } from './header/Header';
 import { Search } from './header/SearchPopover';
+import { SettingsMenu } from './header/SettingsMenu';
 import { Homepage } from './home/Homepage';
 import { Outline } from './outline/Outline';
 
@@ -206,18 +207,39 @@ export function App({
         .join(' ')}
     >
       {homeMode ? (
-        homeMount ? (
-          createPortal(
-            <div className={flowAppClassName(dark)}>
-              <Homepage
-                searchOpen={openPopover === 'search'}
-                onSearchOpen={() => setOpenPopover('search')}
-                onSearchClose={() => setOpenPopover(null)}
-              />
-            </div>,
-            homeMount,
-          )
-        ) : null
+        <>
+          {homeMount
+            ? createPortal(
+                <div className={flowAppClassName(dark)}>
+                  <Homepage
+                    searchOpen={openPopover === 'search'}
+                    onSearchOpen={() => setOpenPopover('search')}
+                    onSearchClose={() => setOpenPopover(null)}
+                  />
+                </div>,
+                homeMount,
+              )
+            : null}
+          {/* No header on the homepage; just its settings button, in place. */}
+          <div className="sep-header-actions sep-home-actions">
+            <SettingsMenu
+              open={openPopover === 'settings'}
+              onOpenChange={(next) => setOpenPopover(next ? 'settings' : null)}
+              dark={dark}
+              theme={theme}
+              onThemeChange={(next) => {
+                setTheme(next);
+                void storeTheme(next);
+              }}
+              highlightColor={highlightColor}
+              onHighlightColorChange={(next) => {
+                setHighlightColor(next);
+                void storeHighlightColor(next);
+              }}
+              onExportAnnotations={annotationState.exportAnnotations}
+            />
+          </div>
+        </>
       ) : (
         <Header
           articleMode={articleMode}
