@@ -10,11 +10,22 @@ html:not(.sep-plus-ready) {
   background: #fff !important;
 }
 
+/* No theme known yet (first run): follow the system. */
 @media (prefers-color-scheme: dark) {
   html:not(.sep-plus-ready) {
     /* sand-3 dark */
     background: #222221 !important;
   }
+}
+
+/* The content script applies the cached theme before first paint; it wins
+   over the system preference so an explicit Light/Dark never flips. */
+html.sep-plus-theme-applied:not(.sep-plus-ready) {
+  background: #fff !important;
+}
+
+html.sep-plus-theme-applied.dark:not(.sep-plus-ready) {
+  background: #222221 !important;
 }
 
 html:not(.sep-plus-ready) > body,

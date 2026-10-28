@@ -24,10 +24,35 @@ export function isHighlightColor(value: unknown): value is HighlightColor {
   );
 }
 
+/**
+ * chrome.storage is async, so the theme can't be known before first paint
+ * from it alone. Mirror it in the page's localStorage for a synchronous read
+ * at document_start.
+ */
+const THEME_CACHE_KEY = 'sep-plus-theme';
+
+export function readCachedTheme(): ThemePreference | null {
+  try {
+    const cached = localStorage.getItem(THEME_CACHE_KEY);
+    return isTheme(cached) ? cached : null;
+  } catch {
+    return null;
+  }
+}
+
+function cacheTheme(theme: ThemePreference): void {
+  try {
+    localStorage.setItem(THEME_CACHE_KEY, theme);
+  } catch {
+    // Ignore restricted storage access.
+  }
+}
+
 export async function getTheme(): Promise<ThemePreference> {
   const result = await chrome.storage.local.get(THEME_KEY);
   const stored = result[THEME_KEY];
   if (isTheme(stored)) {
+    cacheTheme(stored);
     return stored;
   }
 
@@ -48,6 +73,7 @@ export async function getTheme(): Promise<ThemePreference> {
 }
 
 export async function setTheme(theme: ThemePreference): Promise<void> {
+  cacheTheme(theme);
   await chrome.storage.local.set({ [THEME_KEY]: theme });
 }
 
@@ -63,6 +89,7 @@ export function onThemeChanged(
     }
     const next = changes[THEME_KEY].newValue;
     if (isTheme(next)) {
+      cacheTheme(next);
       callback(next);
     }
   };

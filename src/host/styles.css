@@ -6,7 +6,12 @@
  */
 html:not(.sep-plus-ready) {
   min-height: 100%;
-  background: var(--sep-page-bg, #fff) !important;
+}
+
+/* Until the stored theme resolves, --sep-page-bg is the light default, so
+   leave the background to boot.css's prefers-color-scheme fallback. */
+html.sep-plus-theme-applied:not(.sep-plus-ready) {
+  background: var(--sep-page-bg) !important;
 }
 
 html:not(.sep-plus-ready) > body,

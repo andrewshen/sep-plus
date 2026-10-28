@@ -77,6 +77,7 @@ export function setDarkMode(dark: boolean): void {
 }
 
 export function applyTheme(theme: ThemePreference): void {
+  document.documentElement.classList.add('sep-plus-theme-applied');
   switch (theme) {
     case 'auto':
       setDarkMode(

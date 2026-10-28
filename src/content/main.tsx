@@ -19,7 +19,12 @@ import {
   collectTocItems,
   prepareArticleNav,
 } from '../host/toc';
-import { DEFAULT_HIGHLIGHT_COLOR, getHighlightColor, getTheme } from '../lib/storage';
+import {
+  DEFAULT_HIGHLIGHT_COLOR,
+  getHighlightColor,
+  getTheme,
+  readCachedTheme,
+} from '../lib/storage';
 import { normalizeEntryUrl } from '../lib/annotations';
 import type { HighlightColor, ThemePreference, TocItem } from '../lib/types';
 import { App } from './App';
@@ -248,6 +253,11 @@ async function main(): Promise<void> {
 // Ensure a prior ready state (e.g. bfcache) cannot skip the boot hide.
 document.documentElement.classList.remove(READY_CLASS);
 
+const cachedTheme = readCachedTheme();
+if (cachedTheme) {
+  applyTheme(cachedTheme);
+}
+
 injectLocalFonts();
 const fontsReadyPromise = preloadLocalFonts();
 const themePromise: Promise<ThemePreference> = getTheme().then(
@@ -257,8 +267,9 @@ const themePromise: Promise<ThemePreference> = getTheme().then(
   },
   (error: unknown) => {
     console.warn('SEP+ could not load the saved theme.', error);
-    applyTheme('light');
-    return 'light';
+    const fallback = cachedTheme ?? 'light';
+    applyTheme(fallback);
+    return fallback;
   }
 );
 
