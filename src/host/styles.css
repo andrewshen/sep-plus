@@ -183,8 +183,8 @@ body.sep-plus #content {
 /* Header + reading-column tokens (React chrome lives in Shadow DOM) */
 :root {
   --sep-plus-header-height: 60px;
-  /* Paper places the title 144px below the header. */
-  --sep-plus-page-padding: calc(var(--sep-plus-header-height) + 144px) 60px
+  /* The title sits 108px below the header. */
+  --sep-plus-page-padding: calc(var(--sep-plus-header-height) + 108px) 60px
     120px;
   --sep-plus-content-max-width: 585px;
 }
@@ -196,7 +196,7 @@ body.sep-plus :is(#article, #content:not(:has(#article))) {
   background: transparent !important;
 }
 
-/* Search results sit 100px below the fixed header, not the 144px entry offset. */
+/* Search results sit 100px below the fixed header, not the 108px entry offset. */
 body.sep-plus #content:has(.searchpage) {
   padding-top: calc(var(--sep-plus-header-height) + 100px) !important;
 }
@@ -789,9 +789,14 @@ body.sep-plus [data-sep-plus-bibliography-citation]:focus-visible {
     cursor: help;
     text-decoration-line: underline;
     text-decoration-style: dotted;
-    text-decoration-color: var(--sep-border);
+    /* One step past --sep-border (sand-6 light, sand-7 dark). */
+    text-decoration-color: var(--sand-7);
     text-decoration-thickness: 1px;
     text-underline-offset: 0.16em;
+  }
+
+  body.dark [data-sep-plus-bibliography-citation]:not(:hover) {
+    text-decoration-color: var(--sand-8);
   }
 
   [data-sep-plus-bibliography-citation]:hover {

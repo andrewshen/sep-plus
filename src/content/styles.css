@@ -353,9 +353,9 @@
   white-space: nowrap;
   text-overflow: ellipsis;
   transition:
-    opacity var(--sep-duration-drawer) var(--sep-ease-out),
-    transform var(--sep-duration-drawer) var(--sep-ease-out),
-    filter var(--sep-duration-drawer) var(--sep-ease-out);
+    opacity 300ms var(--sep-ease-out),
+    transform 300ms var(--sep-ease-out),
+    filter 300ms var(--sep-ease-out);
 }
 
 /* Exit is quicker than entry so the new text leads. Keep in sync with
@@ -364,7 +364,7 @@
   opacity: 0;
   transform: translateY(-8px);
   filter: blur(2px);
-  transition-duration: var(--sep-duration-ui);
+  transition-duration: 250ms;
 }
 
 @starting-style {
@@ -951,7 +951,7 @@
   justify-content: center;
   gap: 40px;
   width: 100%;
-  min-height: 480px;
+  min-height: 600px;
   padding-block: 80px;
 }
 

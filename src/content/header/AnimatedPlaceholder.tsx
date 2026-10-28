@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 type Layer = { id: number; text: string; entering: boolean; exiting: boolean };
 
 /** Exit transition length in `.sep-search-placeholder-text.is-exiting`. */
-const EXIT_MS = 150;
+const EXIT_MS = 250;
 
 /**
  * Search placeholder drawn over the input so a change can animate: the old
