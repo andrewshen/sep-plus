@@ -1076,6 +1076,14 @@
   line-height: 20px;
 }
 
+.sep-site-footer-entry .sep-entry-author {
+  color: var(--sep-text);
+}
+
+.sep-site-footer-legal.sep-site-footer-entry {
+  padding-bottom: 20px;
+}
+
 @media (max-width: 640px) {
   .sep-home-hero {
     min-height: 400px;

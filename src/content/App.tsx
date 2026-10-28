@@ -29,6 +29,7 @@ type AppProps = {
   homeMode: boolean;
   articleSource?: string;
   articleTitle: string;
+  entryCopyright?: HTMLElement | null;
 };
 
 function getFlowMount(id: string): HTMLElement | null {
@@ -71,13 +72,14 @@ export function App({
   homeMode,
   articleSource,
   articleTitle,
+  entryCopyright = null,
 }: AppProps) {
   const [openPopover, setOpenPopover] = useState<HeaderPopover | null>(null);
   const [homeMount] = useState(() =>
     homeMode ? getFlowMount('sep-plus-home') : null,
   );
   const [footerMount] = useState(() =>
-    !homeMode && !articleMode ? getFlowMount('sep-plus-footer') : null,
+    !homeMode ? getFlowMount('sep-plus-footer') : null,
   );
   const [searchMount] = useState(() =>
     !homeMode && !articleMode ? getFlowMount('sep-plus-search') : null,
@@ -257,7 +259,7 @@ export function App({
       {footerMount
         ? createPortal(
             <div className={flowAppClassName(dark, 'sep-site-footer-page')}>
-              <SiteFooter />
+              <SiteFooter entryCopyright={entryCopyright} />
             </div>,
             footerMount,
           )

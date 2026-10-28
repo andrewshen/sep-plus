@@ -8,7 +8,7 @@ import {
   type PointerEventHandler,
   type ReactNode,
 } from 'react';
-import { createPortal } from 'react-dom';
+import { createPortal, flushSync } from 'react-dom';
 import {
   computeMarginNotePlacement,
   type MarginNoteRect,
@@ -103,7 +103,9 @@ export function MarginNotePopover({
     }
     place();
     // Editable notes grow as you type; keep them clear of the highlight.
-    const observer = new ResizeObserver(place);
+    // Commit before paint: a deferred update shows one frame at the old top
+    // with the new height, which reads as a flicker.
+    const observer = new ResizeObserver(() => flushSync(place));
     observer.observe(element);
     return () => observer.disconnect();
   }, [anchorRect]);

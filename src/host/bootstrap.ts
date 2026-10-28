@@ -538,39 +538,81 @@ export function styleRelatedEntries(): void {
 }
 
 /**
- * Pull entry end-matter into #article so it lives in the reading column:
- * author copyright → fundraising banner → institutional credits.
+ * Remove SEP's entry end-matter (author copyright, fundraising banner,
+ * institutional credits); the site footer covers the last two. Returns the
+ * author copyright as a single line for the footer to show instead.
  */
-export function relocateArticleEndMatter(): void {
-  const article = document.querySelector<HTMLElement>('#article');
-  if (!article || article.dataset.sepPlusEndMatter === '1') {
-    return;
-  }
+export function extractEntryCopyright(): HTMLElement | null {
+  const paragraph = document.querySelector('#article-copyright p');
+  const line = paragraph ? (paragraph.cloneNode(true) as HTMLElement) : null;
 
-  const copyright = article.querySelector('#article-copyright');
+  if (line) {
+    for (const br of Array.from(line.querySelectorAll('br'))) {
+      br.replaceWith(' ');
+    }
+    // Drop the <> around the author email; the mailto link stands alone.
+    const walker = document.createTreeWalker(line, NodeFilter.SHOW_TEXT);
+    for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+      const text = node.textContent ?? '';
+      if (/[<>]/.test(text)) {
+        node.textContent = text.replace(/[<>]/g, '');
+      }
+    }
+    // Obfuscated emails wrap each @ and . in <abbr> inside an <em>, which
+    // renders italic with dotted underlines. Flatten them to plain text.
+    for (const el of Array.from(line.querySelectorAll('abbr, em'))) {
+      el.replaceWith(...Array.from(el.childNodes).map((child) =>
+        child.nodeType === Node.ELEMENT_NODE && (child as Element).tagName === 'ABBR'
+          ? (child.textContent ?? '')
+          : child,
+      ));
+    }
+    line.normalize();
 
-  const banner = document.querySelector<HTMLElement>('#article-banner');
-  if (banner) {
-    if (copyright) {
-      copyright.after(banner);
-    } else {
-      article.appendChild(banner);
+    // Mark author names (plain text or personal-site links after "by") so the
+    // footer can show them in the primary text color.
+    let afterBy = false;
+    for (const node of Array.from(line.childNodes)) {
+      if (node.nodeType === Node.TEXT_NODE) {
+        let text = node.textContent ?? '';
+        let prefix = '';
+        if (!afterBy) {
+          const match = text.match(/^[\s\S]*?\bby\b/i);
+          if (!match) {
+            continue;
+          }
+          afterBy = true;
+          prefix = match[0];
+          text = text.slice(prefix.length);
+        }
+        if (text.trim()) {
+          const span = document.createElement('span');
+          span.className = 'sep-entry-author';
+          span.textContent = text;
+          node.textContent = prefix;
+          node.after(span);
+        }
+      } else if (afterBy && node instanceof HTMLAnchorElement) {
+        const href = node.getAttribute('href') ?? '';
+        if (!href.startsWith('mailto:')) {
+          node.classList.add('sep-entry-author');
+        }
+      }
+    }
+
+    for (const link of Array.from(line.querySelectorAll('a'))) {
+      link.removeAttribute('style');
+      link.className = link.classList.contains('sep-entry-author')
+        ? 'sep-fade-link sep-entry-author'
+        : 'sep-fade-link';
     }
   }
 
-  const credits = document.querySelector<HTMLElement>('#site-credits');
-  if (credits) {
-    const bannerInArticle = article.querySelector('#article-banner');
-    if (bannerInArticle) {
-      bannerInArticle.after(credits);
-    } else if (copyright) {
-      copyright.after(credits);
-    } else {
-      article.appendChild(credits);
-    }
+  for (const selector of ['#article-copyright', '#article-banner', '#site-credits']) {
+    document.querySelector(selector)?.remove();
   }
 
-  article.dataset.sepPlusEndMatter = '1';
+  return line;
 }
 
 export function bootstrapHost(theme: ThemePreference): void {

@@ -3,12 +3,12 @@ import { createRoot } from 'react-dom/client';
 import {
   applyTheme,
   bootstrapHost,
+  extractEntryCopyright,
   injectLocalFonts,
   isArticlePage,
   isHomePage,
   preloadLocalFonts,
   reformatPubinfo,
-  relocateArticleEndMatter,
   styleRelatedEntries,
   restyleSearchResults,
   wrapSiteContentColumn,
@@ -97,6 +97,7 @@ function mountShell(
   homeMode: boolean,
   articleSource?: string,
   articleTitle = '',
+  entryCopyright: HTMLElement | null = null,
 ): void {
   const searchMode =
     !articleMode && !homeMode && location.pathname.startsWith('/search/');
@@ -151,7 +152,7 @@ function mountShell(
 
   if (homeMode) {
     createFlowHost('sep-plus-home', (homeHost) => document.body.prepend(homeHost));
-  } else if (!articleMode) {
+  } else {
     createFlowHost('sep-plus-footer', (footerHost) => document.body.append(footerHost));
     if (searchMode) {
       createFlowHost('sep-plus-search', insertSearchHost);
@@ -170,6 +171,7 @@ function mountShell(
         homeMode={homeMode}
         articleSource={articleSource}
         articleTitle={articleTitle}
+        entryCopyright={entryCopyright}
       />
     );
   });
@@ -203,13 +205,14 @@ async function main(): Promise<void> {
         .trim()
     : '';
   let tocItems: TocItem[] = [];
+  let entryCopyright: HTMLElement | null = null;
 
   if (articleMode) {
     prepareArticleNav();
     tocItems = collectTocItems();
     reformatPubinfo();
     styleRelatedEntries();
-    relocateArticleEndMatter();
+    entryCopyright = extractEntryCopyright();
   } else if (!homeMode) {
     wrapSiteContentColumn();
     restyleSearchResults();
@@ -224,6 +227,7 @@ async function main(): Promise<void> {
     homeMode,
     articleSource,
     articleTitle,
+    entryCopyright,
   );
 
   if (articleMode) {

@@ -1,3 +1,6 @@
+import { useLayoutEffect, useRef } from 'react';
+import { IconArrowRight } from '../icons';
+
 const LINK_COLUMNS: ReadonlyArray<{
   title: string;
   links: ReadonlyArray<{ label: string; href: string }>;
@@ -43,10 +46,36 @@ const LINK_COLUMNS: ReadonlyArray<{
   },
 ];
 
-/** Site links + copyright, shared by the homepage and other non-entry pages. */
-export function SiteFooter() {
+/** SEP's own markup for the entry's author copyright, moved in as-is. */
+function EntryCopyright({ line }: { line: HTMLElement }) {
+  const ref = useRef<HTMLSpanElement>(null);
+  useLayoutEffect(() => {
+    const container = ref.current;
+    if (!container) {
+      return;
+    }
+    container.replaceChildren(...Array.from(line.cloneNode(true).childNodes));
+    return () => container.replaceChildren();
+  }, [line]);
+  return (
+    <div className="sep-site-section sep-site-footer-legal sep-site-footer-entry">
+      <span ref={ref} />
+      <a
+        className="sep-home-label sep-fade-link sep-home-see-all"
+        href="https://plato.stanford.edu/fundraising/"
+      >
+        Support the SEP
+        <IconArrowRight />
+      </a>
+    </div>
+  );
+}
+
+/** Site links + copyright, shared by every page. Entries add their author copyright above. */
+export function SiteFooter({ entryCopyright }: { entryCopyright?: HTMLElement | null }) {
   return (
     <footer className="sep-site-footer">
+      {entryCopyright ? <EntryCopyright line={entryCopyright} /> : null}
       <nav className="sep-site-section sep-site-footer-columns" aria-label="Site">
         {LINK_COLUMNS.map((column) => (
           <div key={column.title} className="sep-site-footer-column">

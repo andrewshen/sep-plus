@@ -46,25 +46,17 @@ export function prepareArticleNav(): void {
       }
     }
   }
-
-  const toc = document.querySelector('#toc');
-  const navList = articleNav.querySelector('ul');
-  if (toc && navList) {
-    const fragment = document.createDocumentFragment();
-    for (const li of Array.from(toc.querySelectorAll('li'))) {
-      fragment.appendChild(li);
-    }
-    navList.insertBefore(fragment, navList.firstChild);
-    toc.remove();
-  }
 }
 
 export function collectTocItems(): TocItem[] {
   const items: TocItem[] = [];
   const seen = new Set<string>();
-  const links = document.querySelectorAll('#article-nav a, #toc a');
+  const links = [
+    ...Array.from(document.querySelectorAll('#toc a')),
+    ...Array.from(document.querySelectorAll('#article-nav a')),
+  ];
 
-  for (const link of Array.from(links)) {
+  for (const link of links) {
     const href = link.getAttribute('href');
     const text = (link.textContent || '').replace(/\s+/g, ' ').trim();
 
