@@ -468,6 +468,12 @@ describe('controller lifecycle and interactions', () => {
     );
     expect(document.activeElement).toBe(link);
     expect(preview.hidden).toBe(true);
+
+    link.dispatchEvent(
+      new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true, cancelable: true }),
+    );
+    expect(preview.hidden).toBe(false);
+    expect(shadow.activeElement).toBe(preview.querySelector('a[href]'));
     cleanup();
   });
 

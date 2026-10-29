@@ -113,6 +113,27 @@ describe('getEntryIndex', () => {
     await expect(getEntryIndex()).rejects.toThrow('503');
   });
 
+  it('keeps a stale cache when the refresh returns a page with no entries', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => new Response(CONTENTS, { status: 200 })),
+    );
+    await getEntryIndex();
+    const key = storageKey();
+    stored[key] = cache(Date.now() - 2 * WEEK);
+
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => new Response('<p>Sign in to Wi-Fi</p>', { status: 200 })),
+    );
+    await getEntryIndex();
+    await vi.waitFor(() => expect(fetch).toHaveBeenCalledTimes(1));
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect((stored[key] as { entries: unknown[] }).entries).toEqual(
+      cache(0).entries,
+    );
+  });
+
   it('serves a stale cache while refreshing, even if the refresh fails', async () => {
     vi.stubGlobal(
       'fetch',

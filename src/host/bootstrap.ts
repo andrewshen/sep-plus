@@ -380,7 +380,11 @@ function placeSearchAuthors(): void {
     if (!title || !author || title.nextElementSibling === author) {
       continue;
     }
+    const next = author.nextSibling;
     title.after(author);
+    onRollback(() => {
+      listing.insertBefore(author, next?.parentNode === listing ? next : null);
+    });
   }
 }
 

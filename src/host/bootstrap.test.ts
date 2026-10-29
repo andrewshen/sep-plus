@@ -6,6 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   extractEntryCopyright,
   reformatPubinfo,
+  restyleSearchResults,
   styleRelatedEntries,
   wrapSiteContentColumn,
 } from './bootstrap';
@@ -33,6 +34,25 @@ const COPYRIGHT = `
   </div>
   <div id="article-banner">Support SEP</div>
   <div id="site-credits">Credits</div>`;
+
+describe('restyleSearchResults', () => {
+  it('moves the author under the title and puts it back on rollback', () => {
+    document.body.innerHTML = `
+      <div class="result_listing">
+        <div class="result_title"><a class="l" href="/entries/kant/">Kant</a></div>
+        <div class="result_snippet">Snippet</div>
+        <div class="result_author">by Jane Doe</div>
+        <div class="result_url">url</div>
+      </div>`;
+    const order = () =>
+      Array.from(document.querySelector('.result_listing')!.children, (el) => el.className);
+    restyleSearchResults();
+    expect(order()).toEqual(['result_title', 'result_author', 'result_snippet', 'result_url']);
+
+    rollbackHost();
+    expect(order()).toEqual(['result_title', 'result_snippet', 'result_author', 'result_url']);
+  });
+});
 
 describe('reformatPubinfo', () => {
   it('shows authors and the latest revision date, and can be rolled back', () => {

@@ -154,7 +154,8 @@ export function smoothScrollToHref(
   const top = target.getBoundingClientRect().top + window.scrollY;
   scrollWindowTo(top - HEADER_HEIGHT - 24);
   // Like a native anchor: the address shows the section and Back returns.
-  if (href.startsWith('#') && location.hash !== href) {
+  // Compare encoded forms: `location.hash` is `#Kant%E2%80%99s`, not `#Kant’s`.
+  if (href.startsWith('#') && location.hash !== new URL(href, location.href).hash) {
     history.pushState(history.state, '', href);
   }
   if (options.focus) {

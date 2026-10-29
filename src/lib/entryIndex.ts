@@ -150,8 +150,13 @@ async function fetchEntryIndex(): Promise<EntryIndexItem[]> {
   if (!response.ok) {
     throw new Error(`Failed to load contents (${response.status})`);
   }
-  const html = await response.text();
-  return parseContentsHtml(html);
+  const entries = parseContentsHtml(await response.text());
+  // A 200 that isn't the contents page (captive portal, error page) mustn't
+  // replace a good cache.
+  if (!entries.length) {
+    throw new Error('Contents page had no entries');
+  }
+  return entries;
 }
 
 async function refreshEntryIndex(): Promise<EntryIndexItem[]> {

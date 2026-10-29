@@ -941,8 +941,15 @@ function createPreviewController(options: {
         return;
       }
       const link = findReference(event.target);
-      if (!link || link !== activeLink || preview.hidden) {
+      if (!link) {
         return;
+      }
+      // Escape or Tab back can leave the marker focused with the preview shut.
+      if (link !== activeLink || preview.hidden) {
+        showPreview(link, 'instant');
+        if (link !== activeLink) {
+          return;
+        }
       }
       event.preventDefault();
       const first = previewFocusables()[0];

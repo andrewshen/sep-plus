@@ -65,6 +65,15 @@ describe('smoothScrollToHref', () => {
     expect(location.hash).toBe('#Intro');
   });
 
+  it('does not stack history entries for repeat jumps to an encoded id', () => {
+    document.body.innerHTML = '<h2 id="Kant’s View">Kant’s view</h2>';
+    const push = vi.spyOn(history, 'pushState');
+    smoothScrollToHref('#Kant’s View');
+    smoothScrollToHref('#Kant’s View');
+    smoothScrollToHref('#Kant%E2%80%99s%20View');
+    expect(push).toHaveBeenCalledTimes(1);
+  });
+
   it('moves focus to the section heading when asked', () => {
     document.body.innerHTML = '<h2><a name="Intro">Introduction</a></h2>';
     smoothScrollToHref('#Intro', { focus: true });
