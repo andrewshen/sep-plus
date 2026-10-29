@@ -1217,7 +1217,7 @@ export function initBibliographyCitations(
   articleRoot.addEventListener(
     'keydown',
     (event) => {
-      if (event.key !== 'Enter' && event.key !== 'ArrowDown') {
+      if (event.key !== 'Enter' && event.key !== ' ' && event.key !== 'ArrowDown') {
         return;
       }
       const trigger = findTrigger(event.target);

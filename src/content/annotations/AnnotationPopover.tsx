@@ -6,6 +6,7 @@ import { IconButton } from '../ui/IconButton';
 import { Popover } from '../ui/Popover';
 import { useDismiss } from '../ui/useDismiss';
 import { MarginNotePopover } from './MarginNotePopover';
+import { stashPendingNote } from './pendingNotes';
 import {
   isContextInvalidated,
   type AnnotationListItem,
@@ -220,18 +221,22 @@ export function AnnotationPopover({
             }}
           />
           {saveError ? (
-            <button
-              type="button"
-              className="sep-annotation-save-error"
-              role="alert"
-              onClick={() =>
-                saveError.retryable
-                  ? save(draftRef.current.trim())
-                  : window.location.reload()
-              }
-            >
-              {saveError.message}
-            </button>
+            <div role="alert">
+              <button
+                type="button"
+                className="sep-annotation-save-error"
+                onClick={() => {
+                  if (saveError.retryable) {
+                    save(draftRef.current.trim());
+                    return;
+                  }
+                  stashPendingNote(annotation.id, draftRef.current);
+                  window.location.reload();
+                }}
+              >
+                {saveError.message}
+              </button>
+            </div>
           ) : null}
         </div>
       }

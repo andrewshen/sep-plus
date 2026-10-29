@@ -198,6 +198,12 @@ describe('citation keyboard access', () => {
     expect(document.activeElement).toBe(trigger);
     expect(trigger.getAttribute('aria-expanded')).toBe('false');
     expect(changes.at(-1)).toBeNull();
+
+    const space = new KeyboardEvent('keydown', { key: ' ', bubbles: true, cancelable: true });
+    trigger.dispatchEvent(space);
+    expect(space.defaultPrevented).toBe(true);
+    expect(trigger.getAttribute('aria-expanded')).toBe('true');
+    expect(onFocusPreview).toHaveBeenCalledTimes(2);
   });
 });
 

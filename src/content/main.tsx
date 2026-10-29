@@ -344,7 +344,6 @@ async function mount(): Promise<void> {
 
 const isHtmlDocument = document.contentType === 'text/html';
 if (isHtmlDocument) {
-  document.documentElement.classList.add(ALIVE_CLASS);
   // Ensure a prior ready state (e.g. bfcache) cannot skip the boot hide.
   document.documentElement.classList.remove(READY_CLASS);
 }
@@ -382,6 +381,11 @@ const highlightColorPromise: Promise<HighlightColor> = isHtmlDocument
     })
   : Promise.resolve(DEFAULT_HIGHLIGHT_COLOR);
 
+// Only now does boot() own the reveal; until here, a throw leaves boot.css's
+// failsafe in charge so the page can't stay hidden.
+if (isHtmlDocument) {
+  document.documentElement.classList.add(ALIVE_CLASS);
+}
 void boot({
   isHtmlDocument,
   waitForDomReady,

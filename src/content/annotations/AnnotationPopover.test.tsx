@@ -90,7 +90,7 @@ describe('AnnotationPopover', () => {
     expect(alert()?.textContent).toBe('Couldn’t save, click to retry');
     expect(textarea().value).toBe('Keep me');
 
-    fireEvent.click(alert()!);
+    fireEvent.click(alert()!.querySelector('button')!);
     await settle(0);
     expect(onSaveNote).toHaveBeenCalledTimes(2);
     expect(onSaveNote).toHaveBeenLastCalledWith('Keep me');
@@ -154,9 +154,11 @@ describe('AnnotationPopover', () => {
       ...window.location,
       reload,
     } as Location);
-    fireEvent.click(alert()!);
+    fireEvent.click(alert()!.querySelector('button')!);
     expect(reload).toHaveBeenCalledTimes(1);
     expect(onSaveNote).toHaveBeenCalledTimes(1);
+    expect(sessionStorage.getItem('sep-plus:pending-note:one')).toBe('Late');
+    sessionStorage.clear();
     vi.restoreAllMocks();
   });
 

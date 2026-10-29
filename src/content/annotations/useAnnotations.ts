@@ -38,6 +38,7 @@ import {
   type ResolvedAnnotationRange,
 } from '../../host/annotationHighlights';
 import { focusJumpTarget } from '../../host/scroll';
+import { clearPendingNote, pendingNotes } from './pendingNotes';
 
 export type AnnotationListItem = Annotation & {
   resolved: boolean;
@@ -189,6 +190,7 @@ export function useAnnotations({
           setEntry(stored);
           setLoading(false);
         }
+        restorePendingNotes(stored);
       })
       .catch((loadError: unknown) => {
         if (!cancelled) {
@@ -196,6 +198,20 @@ export function useAnnotations({
           setLoading(false);
         }
       });
+    // Drafts stashed by "Reload page to keep saving"; the storage listener
+    // picks up the result.
+    function restorePendingNotes(stored: EntryAnnotations | null): void {
+      if (!stored || !source) {
+        return;
+      }
+      const pending = pendingNotes(stored.annotations.map(({ id }) => id));
+      for (const [id, note] of pending) {
+        void updateAnnotationNote(source, id, note.trim()).then(
+          () => clearPendingNote(id),
+          () => undefined,
+        );
+      }
+    }
     const stopListening = onEntryAnnotationsChanged(
       source,
       (stored, changeError) => {
@@ -412,9 +428,12 @@ export function useAnnotations({
       scheduleHover();
     }
 
-    // Article reflow (images, fonts, window size) moves the highlights.
-    const resizeObserver = new ResizeObserver(() => renderer.invalidateLayout());
+    // Article reflow (images, fonts, window size) moves the highlights; so
+    // does a window resize that only re-centers the column.
+    const invalidateLayout = () => renderer.invalidateLayout();
+    const resizeObserver = new ResizeObserver(invalidateLayout);
     resizeObserver.observe(root);
+    window.addEventListener('resize', invalidateLayout);
 
     document.addEventListener('pointermove', onPointerMove, { passive: true });
     window.addEventListener('scroll', scheduleHover, { passive: true });
@@ -424,6 +443,7 @@ export function useAnnotations({
         window.cancelAnimationFrame(frame);
       }
       resizeObserver.disconnect();
+      window.removeEventListener('resize', invalidateLayout);
       document.removeEventListener('pointermove', onPointerMove);
       window.removeEventListener('scroll', scheduleHover);
       window.removeEventListener('blur', clearHover);
