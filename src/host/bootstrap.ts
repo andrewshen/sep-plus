@@ -295,6 +295,25 @@ export function parseSearchSummary(
   };
 }
 
+/** The current page size: the URL's own `pagesize`, else the one SEP puts
+ *  on every result link, else SEP's default of 10. */
+export function searchPageSize(doc: Document, search: string): number {
+  const candidates = [
+    new URLSearchParams(search).get('pagesize'),
+    doc
+      .querySelector<HTMLAnchorElement>('.result_listing a[href*="pagesize="]')
+      ?.getAttribute('href')
+      ?.match(/[?&]pagesize=(\d+)/)?.[1],
+  ];
+  for (const candidate of candidates) {
+    const size = Number(candidate);
+    if (Number.isInteger(size) && size > 0) {
+      return size;
+    }
+  }
+  return 10;
+}
+
 /** Nearby pages, plus the last page when it falls outside that window. */
 export function searchPagerItems(
   current: number,
@@ -381,11 +400,7 @@ export function restyleSearchResults(): void {
   }
 
   const query = new URLSearchParams(location.search).get('query') ?? '';
-  const pageSize = Number(
-    totalEl
-      .parentElement?.querySelector<HTMLAnchorElement>('a[href*="pagesize="]')
-      ?.href.match(/[?&]pagesize=(\d+)/)?.[1] ?? 10,
-  );
+  const pageSize = searchPageSize(document, location.search);
   const parsed = parseSearchSummary(totalEl.textContent ?? '', query, pageSize);
   if (!parsed) {
     return;

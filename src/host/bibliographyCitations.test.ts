@@ -198,6 +198,106 @@ describe('citation parsing across supplied SEP formats', () => {
     ]);
   });
 
+  it('links "X and Y (year)" to Y when X’s entry is a different work', () => {
+    setDocument(
+      '<p>Both Lewis and Kripke (1980) reject this.</p>',
+      `
+        <ul class="hanging">
+          <li>Kripke, Saul, 1980, <em>Naming and Necessity</em>.</li>
+          <li>Lewis, David, 1980, “Mad Pain and Martian Pain.”</li>
+        </ul>
+      `,
+    );
+    const text = 'Both Lewis and Kripke (1980) reject this.';
+    const matches = findBibliographyCitationMatches(
+      text,
+      collectBibliographyEntries(document),
+    );
+    expect(matches.map((match) => text.slice(match.start, match.end))).toEqual([
+      'Kripke (1980)',
+    ]);
+    expect(matches[0]?.entries[0]?.author).toBe('Kripke');
+  });
+
+  it('keeps trying later authors after an unresolved narrative match', () => {
+    setDocument(
+      '<p>As Lewis and Kripke (1980) argue.</p>',
+      `
+        <ul class="hanging">
+          <li>Kripke, Saul, 1980, <em>Naming and Necessity</em>.</li>
+          <li>Lewis, David, 1986, <em>Plurality</em>.</li>
+        </ul>
+      `,
+    );
+    const text = 'As Lewis and Kripke (1980) argue.';
+    const matches = findBibliographyCitationMatches(
+      text,
+      collectBibliographyEntries(document),
+    );
+    expect(matches[0]?.entries[0]?.author).toBe('Kripke');
+  });
+
+  it('links co-authored citations to the first author’s joint entry', () => {
+    setDocument(
+      '<p>See Heck and May (2006) and (Heck &amp; May 2011).</p>',
+      `
+        <ul class="hanging">
+          <li>Heck, R., and R. May, 2006, “Frege’s Contribution.”</li>
+          <li>–––, 2011, “The Composition of Thoughts.”</li>
+          <li>May, R., 2006, “The Invariance of Sense.”</li>
+        </ul>
+      `,
+    );
+    const text = 'See Heck and May (2006) and (Heck & May 2011).';
+    const matches = findBibliographyCitationMatches(
+      text,
+      collectBibliographyEntries(document),
+    );
+    expect(matches.map((match) => text.slice(match.start, match.end))).toEqual([
+      'Heck and May (2006)',
+      'Heck & May 2011',
+    ]);
+    expect(matches.map((match) => match.entries[0]?.title)).toEqual([
+      'Frege’s Contribution.',
+      'The Composition of Thoughts.',
+    ]);
+  });
+
+  it('cites the author nearest the year inside parentheses', () => {
+    setDocument(
+      '<p>(Kripke’s reply to Lewis 1973)</p>',
+      `
+        <ul class="hanging">
+          <li>Kripke, Saul, 1973, “Unrelated.”</li>
+          <li>Lewis, David, 1973, <em>Counterfactuals</em>.</li>
+        </ul>
+      `,
+    );
+    const text = '(Kripke’s reply to Lewis 1973)';
+    const matches = findBibliographyCitationMatches(
+      text,
+      collectBibliographyEntries(document),
+    );
+    expect(matches.map((match) => text.slice(match.start, match.end))).toEqual([
+      'Lewis 1973',
+    ]);
+    expect(matches[0]?.entries[0]?.author).toBe('Lewis');
+  });
+
+  it('labels each entry with the heading before it, nested or not', () => {
+    setDocument(
+      '<p>(Alpha 2001; Beta 2002)</p>',
+      `
+        <div><h3>Primary</h3><ul><li>Alpha, A., 2001, “One.”</li></ul></div>
+        <div><h3>Secondary</h3></div>
+        <ul><li>Beta, B., 2002, “Two.”</li></ul>
+      `,
+    );
+    expect(
+      collectBibliographyEntries(document).entries.map((entry) => entry.section),
+    ).toEqual(['Primary', 'Secondary']);
+  });
+
   it('groups suffixed and repeated years in the Grounding format', () => {
     setDocument(
       '<p>(Audi 2012a; Schaffer 2009, 2012, 2016a; Trogdon 2013a)</p>',

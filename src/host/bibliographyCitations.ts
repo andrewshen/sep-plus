@@ -57,7 +57,8 @@ type YearOccurrence = {
 };
 
 type PendingCitationGroup = {
-  authorKey: string;
+  /** Co-authors as cited, e.g. ["heck", "may"] for "Heck & May 2006". */
+  chain: string[];
   start: number;
   end: number;
   entries: BibliographyEntry[];
@@ -224,6 +225,10 @@ function parseExplicitAuthor(authorText: string): string | null {
   return firstAuthor;
 }
 
+/** The author list as printed before the year. "–––" entries inherit the
+ *  previous entry's list, co-authors included. */
+const entryAuthorsText = new WeakMap<BibliographyEntry, string>();
+
 function isRepeatedAuthorEntry(text: string): boolean {
   return /^[\s]*[‐‑‒–—−]{2,}\s*,?/u.test(text);
 }
@@ -232,27 +237,28 @@ function entryGroup(element: HTMLElement, bibliography: HTMLElement): Element {
   return element.closest('ul, ol, table, dl') ?? bibliography;
 }
 
-function precedingSectionLabel(
-  element: HTMLElement,
+/** Each entry's label is the last h2–h4 before it in the bibliography. One
+ *  document-order pass instead of a backwards search per entry. */
+function sectionLabels(
   bibliography: HTMLElement,
-): string {
-  let cursor: Element | null = element;
-  while (cursor && cursor !== bibliography) {
-    let sibling = cursor.previousElementSibling;
-    while (sibling) {
-      if (/^H[2-4]$/.test(sibling.tagName)) {
-        return cleanText(sibling.textContent) || 'Bibliography';
-      }
-      const nestedHeadings = sibling.querySelectorAll<HTMLElement>('h2, h3, h4');
-      const nested = nestedHeadings.item(nestedHeadings.length - 1);
-      if (nested) {
-        return cleanText(nested.textContent) || 'Bibliography';
-      }
-      sibling = sibling.previousElementSibling;
+  elements: readonly HTMLElement[],
+): Map<HTMLElement, string> {
+  const wanted = new Set(elements);
+  const labels = new Map<HTMLElement, string>();
+  const walker = bibliography.ownerDocument.createTreeWalker(
+    bibliography,
+    bibliography.ownerDocument.defaultView?.NodeFilter.SHOW_ELEMENT ?? 1,
+  );
+  let current = 'Bibliography';
+  for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+    const element = node as HTMLElement;
+    if (/^H[2-4]$/.test(element.tagName)) {
+      current = cleanText(element.textContent) || 'Bibliography';
+    } else if (wanted.has(element)) {
+      labels.set(element, current);
     }
-    cursor = cursor.parentElement;
   }
-  return 'Bibliography';
+  return labels;
 }
 
 function collectEntryElements(bibliography: HTMLElement): HTMLElement[] {
@@ -294,11 +300,13 @@ export function collectBibliographyEntries(
 
   const previousAuthorByGroup = new Map<
     Element,
-    { author: string; authorKey: string }
+    { author: string; authorKey: string; authorsText: string }
   >();
   const yearPattern = new RegExp(`\\b(${YEAR_SOURCE})\\b`, 'iu');
+  const elements = collectEntryElements(bibliography);
+  const labels = sectionLabels(bibliography, elements);
 
-  for (const element of collectEntryElements(bibliography)) {
+  for (const element of elements) {
     const text = entryText(element);
     const yearMatch = yearPattern.exec(text);
     if (!yearMatch || yearMatch.index > 180) {
@@ -308,6 +316,7 @@ export function collectBibliographyEntries(
     const group = entryGroup(element, bibliography);
     let author: string;
     let authorKey: string;
+    let authorsText: string;
 
     if (isRepeatedAuthorEntry(text)) {
       const previous = previousAuthorByGroup.get(group);
@@ -316,6 +325,7 @@ export function collectBibliographyEntries(
       }
       author = previous.author;
       authorKey = previous.authorKey;
+      authorsText = previous.authorsText;
     } else {
       if (startsWithTitleMarkup(element)) {
         continue;
@@ -329,7 +339,8 @@ export function collectBibliographyEntries(
       if (!authorKey) {
         continue;
       }
-      previousAuthorByGroup.set(group, { author, authorKey });
+      authorsText = text.slice(0, yearMatch.index);
+      previousAuthorByGroup.set(group, { author, authorKey, authorsText });
       if (!authorNames.has(authorKey)) {
         authorNames.set(authorKey, author);
       }
@@ -345,9 +356,10 @@ export function collectBibliographyEntries(
         yearMatch.index + (yearMatch[1]?.length ?? 0),
       ),
       element,
-      section: precedingSectionLabel(element, bibliography),
+      section: labels.get(element) ?? 'Bibliography',
     };
     entries.push(entry);
+    entryAuthorsText.set(entry, authorsText);
     const key = authorYearKey(authorKey, year);
     const indexed = mutableIndex.get(key) ?? [];
     indexed.push(entry);
@@ -382,26 +394,52 @@ function authorNamePattern(value: string): string {
     .join('');
 }
 
-function buildAuthorPattern(index: BibliographyIndex): string | null {
+type CompiledPatterns = {
+  /** Any indexed author name, longest first. */
+  author: RegExp;
+  /** `Author ... (years)` in running prose. */
+  narrative: RegExp;
+};
+
+/** Compiling the author alternation is the expensive part of matching, and
+ *  the index doesn't change while an entry is scanned. */
+const compiledPatterns = new WeakMap<BibliographyIndex, CompiledPatterns | null>();
+
+function patternsFor(index: BibliographyIndex): CompiledPatterns | null {
+  if (compiledPatterns.has(index)) {
+    return compiledPatterns.get(index) ?? null;
+  }
   const names = Array.from(index.authorNames.values()).sort(
     (left, right) => right.length - left.length,
   );
-  return names.length
+  const authorPattern = names.length
     ? names.map((name) => authorNamePattern(name)).join('|')
     : null;
+  const connector =
+    "(?:and|&|et\\s+al\\.?|himself|herself|[\\p{Lu}][\\p{L}\\p{M}.'’‘-]*)";
+  const compiled = authorPattern
+    ? {
+        author: new RegExp(
+          `(?<![\\p{L}\\p{N}])(?:${authorPattern})(?![\\p{L}\\p{N}])`,
+          'giu',
+        ),
+        narrative: new RegExp(
+          `(?<![\\p{L}\\p{N}])(?<author>${authorPattern})(?:['’]s)?(?:\\s+${connector}){0,8}\\s*\\((?<years>[^()]*)\\)`,
+          'gu',
+        ),
+      }
+    : null;
+  compiledPatterns.set(index, compiled);
+  return compiled;
 }
 
 function findAuthorOccurrences(
   text: string,
-  authorPattern: string,
+  patterns: CompiledPatterns,
   index: BibliographyIndex,
 ): AuthorOccurrence[] {
-  const pattern = new RegExp(
-    `(?<![\\p{L}\\p{N}])(?:${authorPattern})(?![\\p{L}\\p{N}])`,
-    'giu',
-  );
   const occurrences: AuthorOccurrence[] = [];
-  for (const match of text.matchAll(pattern)) {
+  for (const match of text.matchAll(patterns.author)) {
     const matched = match[0];
     const start = match.index;
     if (start === undefined) {
@@ -447,6 +485,77 @@ function resolveEntry(
   return candidates?.length === 1 ? (candidates[0] ?? null) : null;
 }
 
+const CO_AUTHOR_JOIN = /^\s*(?:,|&|and|,\s*(?:and|&))\s*$/iu;
+
+/** The run of co-authors that ends with the last author ("Heck & May"). */
+function lastAuthorChain(
+  text: string,
+  authors: readonly AuthorOccurrence[],
+): AuthorOccurrence[] {
+  const last = authors.at(-1);
+  if (!last) {
+    return [];
+  }
+  const chain = [last];
+  for (let index = authors.length - 2; index >= 0; index -= 1) {
+    const previous = authors[index];
+    const head = chain[0];
+    if (!previous || !head || !CO_AUTHOR_JOIN.test(text.slice(previous.end, head.start))) {
+      break;
+    }
+    chain.unshift(previous);
+  }
+  return chain;
+}
+
+const entryAuthorKeys = new WeakMap<BibliographyEntry, ReadonlySet<string>>();
+
+function authorsListedIn(
+  entry: BibliographyEntry,
+  patterns: CompiledPatterns,
+  index: BibliographyIndex,
+): ReadonlySet<string> {
+  let keys = entryAuthorKeys.get(entry);
+  if (!keys) {
+    keys = new Set(
+      findAuthorOccurrences(entryAuthorsText.get(entry) ?? '', patterns, index).map(
+        (occurrence) => occurrence.authorKey,
+      ),
+    );
+    entryAuthorKeys.set(entry, keys);
+  }
+  return keys;
+}
+
+/**
+ * Bibliographies file co-authored works under the first author, so "Heck &
+ * May 2006" is Heck's entry if it names May. Otherwise "Lewis and Kripke
+ * (1980)" names two people and cites the one nearest the year.
+ */
+function resolveChainEntry(
+  chain: readonly string[],
+  year: string,
+  patterns: CompiledPatterns,
+  index: BibliographyIndex,
+): { entry: BibliographyEntry; author: number } | null {
+  const head = chain[0];
+  if (!head) {
+    return null;
+  }
+  const headEntry = resolveEntry(index, head, year);
+  if (chain.length === 1) {
+    return headEntry ? { entry: headEntry, author: 0 } : null;
+  }
+  if (headEntry) {
+    const listed = authorsListedIn(headEntry, patterns, index);
+    if (chain.slice(1).every((key) => listed.has(key))) {
+      return { entry: headEntry, author: 0 };
+    }
+  }
+  const lastEntry = resolveEntry(index, chain.at(-1) ?? head, year);
+  return lastEntry ? { entry: lastEntry, author: chain.length - 1 } : null;
+}
+
 function uniqueEntries(
   entries: readonly BibliographyEntry[],
 ): BibliographyEntry[] {
@@ -478,7 +587,7 @@ function finalizeGroup(
 function parentheticalSegmentMatches(
   segment: string,
   absoluteOffset: number,
-  authorPattern: string,
+  patterns: CompiledPatterns,
   index: BibliographyIndex,
 ): BibliographyCitationTextMatch[] {
   const matches: BibliographyCitationTextMatch[] = [];
@@ -488,13 +597,17 @@ function parentheticalSegmentMatches(
 
   for (const year of years) {
     const prefix = segment.slice(cursor, year.start);
-    const authors = findAuthorOccurrences(prefix, authorPattern, index);
-    const author = authors[0];
-    if (author) {
+    // "Kripke's reply to Lewis 1973" cites Lewis: the authors nearest the year.
+    const chain = lastAuthorChain(
+      prefix,
+      findAuthorOccurrences(prefix, patterns, index),
+    );
+    const head = chain[0];
+    if (head) {
       finalizeGroup(group, absoluteOffset, matches);
       group = {
-        authorKey: author.authorKey,
-        start: cursor + author.start,
+        chain: chain.map((author) => author.authorKey),
+        start: cursor + head.start,
         end: year.end,
         entries: [],
         valid: true,
@@ -502,9 +615,9 @@ function parentheticalSegmentMatches(
     }
 
     if (group) {
-      const entry = resolveEntry(index, group.authorKey, year.year);
-      if (entry) {
-        group.entries.push(entry);
+      const resolved = resolveChainEntry(group.chain, year.year, patterns, index);
+      if (resolved) {
+        group.entries.push(resolved.entry);
       } else {
         group.valid = false;
       }
@@ -519,7 +632,7 @@ function parentheticalSegmentMatches(
 
 function findParentheticalMatches(
   text: string,
-  authorPattern: string,
+  patterns: CompiledPatterns,
   index: BibliographyIndex,
 ): BibliographyCitationTextMatch[] {
   const matches: BibliographyCitationTextMatch[] = [];
@@ -541,7 +654,7 @@ function findParentheticalMatches(
         ...parentheticalSegmentMatches(
           segment,
           contentsStart + segmentStart,
-          authorPattern,
+          patterns,
           index,
         ),
       );
@@ -553,52 +666,76 @@ function findParentheticalMatches(
 
 function findNarrativeMatches(
   text: string,
-  authorPattern: string,
+  patterns: CompiledPatterns,
   index: BibliographyIndex,
 ): BibliographyCitationTextMatch[] {
   const matches: BibliographyCitationTextMatch[] = [];
-  const connector =
-    "(?:and|&|et\\s+al\\.?|himself|herself|[\\p{Lu}][\\p{L}\\p{M}.'’‘-]*)";
-  const narrativePattern = new RegExp(
-    `(?<![\\p{L}\\p{N}])(?<author>${authorPattern})(?:['’]s)?(?:\\s+${connector}){0,8}\\s*\\((?<years>[^()]*)\\)`,
-    'gu',
-  );
+  const narrativePattern = new RegExp(patterns.narrative);
 
-  for (const match of text.matchAll(narrativePattern)) {
+  for (
+    let match = narrativePattern.exec(text);
+    match;
+    match = narrativePattern.exec(text)
+  ) {
     const start = match.index;
     const authorText = match.groups?.author;
     const contents = match.groups?.years;
-    if (start === undefined || !authorText || contents === undefined) {
+    if (!authorText || contents === undefined) {
       continue;
     }
-    if (findAuthorOccurrences(contents, authorPattern, index).length > 0) {
+    const resolved = resolveNarrative(
+      match[0],
+      contents,
+      patterns,
+      index,
+    );
+    if (resolved) {
+      matches.push({
+        start: start + resolved.offset,
+        end: start + match[0].length,
+        entries: resolved.entries,
+      });
       continue;
     }
-    const authorKey = normalizeAuthor(authorText);
-    const years = findYearOccurrences(contents);
-    if (years.length === 0) {
-      continue;
-    }
-    const entries: BibliographyEntry[] = [];
-    let valid = true;
-    for (const year of years) {
-      const entry = resolveEntry(index, authorKey, year.year);
-      if (!entry) {
-        valid = false;
-        break;
-      }
-      entries.push(entry);
-    }
-    if (!valid) {
-      continue;
-    }
-    matches.push({
-      start,
-      end: start + match[0].length,
-      entries: uniqueEntries(entries),
-    });
+    // Connectors can swallow a later author ("Lewis and Kripke (1980)"), so
+    // a failed match retries from just past its first author.
+    narrativePattern.lastIndex = start + authorText.length;
   }
   return matches;
+}
+
+/** The authors nearest the parenthesis are the ones cited, and every year in
+ *  the parenthesis must resolve to one of their entries. */
+function resolveNarrative(
+  matched: string,
+  contents: string,
+  patterns: CompiledPatterns,
+  index: BibliographyIndex,
+): { offset: number; entries: BibliographyEntry[] } | null {
+  if (findAuthorOccurrences(contents, patterns, index).length > 0) {
+    return null;
+  }
+  const lead = matched.slice(0, matched.lastIndexOf('('));
+  const chain = lastAuthorChain(lead, findAuthorOccurrences(lead, patterns, index));
+  const keys = chain.map((author) => author.authorKey);
+  const years = findYearOccurrences(contents);
+  if (chain.length === 0 || years.length === 0) {
+    return null;
+  }
+  const entries: BibliographyEntry[] = [];
+  let firstAuthor = chain.length - 1;
+  for (const year of years) {
+    const resolved = resolveChainEntry(keys, year.year, patterns, index);
+    if (!resolved) {
+      return null;
+    }
+    entries.push(resolved.entry);
+    firstAuthor = Math.min(firstAuthor, resolved.author);
+  }
+  return {
+    offset: chain[firstAuthor]?.start ?? 0,
+    entries: uniqueEntries(entries),
+  };
 }
 
 function nonOverlappingMatches(
@@ -623,13 +760,13 @@ export function findBibliographyCitationMatches(
   text: string,
   index: BibliographyIndex,
 ): BibliographyCitationTextMatch[] {
-  const authorPattern = buildAuthorPattern(index);
-  if (!authorPattern) {
+  const patterns = patternsFor(index);
+  if (!patterns) {
     return [];
   }
   return nonOverlappingMatches([
-    ...findParentheticalMatches(text, authorPattern, index),
-    ...findNarrativeMatches(text, authorPattern, index),
+    ...findParentheticalMatches(text, patterns, index),
+    ...findNarrativeMatches(text, patterns, index),
   ]);
 }
 

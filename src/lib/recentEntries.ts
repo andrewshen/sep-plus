@@ -1,3 +1,5 @@
+import { normalizeEntryHref } from './entryIndex';
+
 export type RecentEntry = {
   title: string;
   href: string;
@@ -75,9 +77,9 @@ export function parseNewHtml(
     if (!link || !status?.[1] || !status[2]) {
       continue;
     }
-    const href = new URL(link.getAttribute('href') ?? '', base).href;
+    const href = normalizeEntryHref(link.getAttribute('href') ?? '', base);
     const title = clean(link.textContent ?? '');
-    if (!title || seen.has(href)) {
+    if (!href || !title || seen.has(href)) {
       continue;
     }
     // Authors are the parenthesized text right after the link.

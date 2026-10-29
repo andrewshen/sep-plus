@@ -43,6 +43,20 @@ describe('parseNewHtml', () => {
   });
 });
 
+describe('parseNewHtml link safety', () => {
+  it('skips malformed, off-site, and non-http links without aborting', () => {
+    const html = `<ul>
+      <li><a href="http://[bad/entries/x/">Broken</a> (A) [NEW: <em>May 1, 2026</em>]</li>
+      <li><a href="javascript:alert(1)//entries/x/">Script</a> (B) [NEW: <em>May 1, 2026</em>]</li>
+      <li><a href="https://evil.example/entries/x/">Elsewhere</a> (C) [NEW: <em>May 1, 2026</em>]</li>
+      <li><a href="entries/kant/index.html#top">Kant</a> (D) [REVISED: <em>May 1, 2026</em>]</li>
+    </ul>`;
+    expect(
+      parseNewHtml(html, 'https://plato.stanford.edu/').map((entry) => entry.href),
+    ).toEqual(['https://plato.stanford.edu/entries/kant/']);
+  });
+});
+
 describe('splitAuthors', () => {
   it('splits comma and "and" separated names', () => {
     expect(splitAuthors('A. One and B. Two')).toEqual(['A. One', 'B. Two']);

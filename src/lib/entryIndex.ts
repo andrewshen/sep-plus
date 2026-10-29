@@ -28,12 +28,17 @@ function isEntryIndexCache(value: unknown): value is EntryIndexCache {
   );
 }
 
-function normalizeEntryHref(
+/** Canonical same-origin entry URL, or null for anything else (other sites,
+ *  `javascript:` and other non-http schemes, non-entry pages). */
+export function normalizeEntryHref(
   href: string,
   base = `${window.location.origin}/`
 ): string | null {
   try {
     const url = new URL(href, base);
+    if (url.origin !== new URL(base).origin) {
+      return null;
+    }
     const match = url.pathname.match(/\/entries\/([^/]+)\/?/);
     if (!match?.[1]) {
       return null;
