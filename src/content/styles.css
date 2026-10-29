@@ -53,12 +53,18 @@
   box-sizing: border-box;
 }
 
-/* Shadow DOM doesn’t inherit document focus resets. */
-:host :focus,
-:host :focus-visible,
-.sep-plus-app :focus,
-.sep-plus-app :focus-visible {
+/* Shadow DOM doesn’t inherit document focus resets. Pointer focus shows no
+   ring; keyboard focus gets the same ring as citations in the article. Text
+   fields draw their own focus state. */
+:host :focus:not(:focus-visible),
+.sep-plus-app :focus:not(:focus-visible),
+.sep-plus-app :is(input[type='search'], input[type='text'], textarea):focus-visible {
   outline: none;
+}
+
+.sep-plus-app :focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--sep-text) 32%, transparent);
+  outline-offset: 2px;
 }
 
 @supports (color: color(display-p3 1 1 1)) {
@@ -816,13 +822,13 @@
   left: 24px;
   width: 360px;
   background: var(--sep-page-bg);
+  /* Hidden by opacity, not visibility, so its links stay in the tab order
+     and tabbing to one opens the panel via :focus-within. */
   opacity: 0;
-  visibility: hidden;
   transform: translate(-8px, -50%);
   transition:
     opacity var(--sep-duration-drawer) var(--sep-ease),
-    transform var(--sep-duration-drawer) var(--sep-ease),
-    visibility var(--sep-duration-drawer) var(--sep-ease);
+    transform var(--sep-duration-drawer) var(--sep-ease);
 }
 
 /* Scrolls and fades inside the panel, so the overlap border isn't masked. */
@@ -863,7 +869,6 @@
 .sep-outline:focus-within .sep-outline-panel {
   pointer-events: auto;
   opacity: 1;
-  visibility: visible;
   transform: translate(0, -50%);
 }
 
@@ -899,6 +904,12 @@
   color: var(--sep-text);
 }
 
+/* The scroll area clips overflow, so draw the ring inside the row. */
+.sep-plus-app button.sep-outline-link:focus-visible {
+  border-radius: 6px;
+  outline-offset: -2px;
+}
+
 @media (max-width: 899px) {
   .sep-outline {
     display: none;
@@ -910,9 +921,7 @@
   .sep-outline:hover .sep-outline-panel,
   .sep-outline:focus-within .sep-outline-panel {
     transform: translate(0, -50%);
-    transition:
-      opacity var(--sep-duration-fast) var(--sep-ease),
-      visibility var(--sep-duration-fast) var(--sep-ease);
+    transition: opacity var(--sep-duration-fast) var(--sep-ease);
   }
 
   .sep-outline-tick::before {

@@ -100,12 +100,16 @@ export type BibliographyCitationController = {
   previewPointerLeave: () => void;
   previewFocusEnter: () => void;
   previewFocusLeave: () => void;
+  /** Close the preview and put focus back on its citation. */
+  returnFocus: () => void;
 };
 
 export type BibliographyCitationControllerOptions = {
   document?: Document;
   window?: Window;
   onActiveChange?: (target: BibliographyCitationTarget | null) => void;
+  /** Enter or ↓ on a focused citation: move focus into its open preview. */
+  onFocusPreview?: () => void;
 };
 
 function cleanText(value: string | null | undefined): string {
@@ -913,6 +917,7 @@ function createNoopController(): BibliographyCitationController {
     previewPointerLeave: () => undefined,
     previewFocusEnter: () => undefined,
     previewFocusLeave: () => undefined,
+    returnFocus: () => undefined,
   };
 }
 
@@ -963,6 +968,8 @@ export function initBibliographyCitations(
         const trigger = doc.createElement('span');
         trigger.dataset.sepPlusBibliographyCitation = key;
         trigger.tabIndex = 0;
+        trigger.setAttribute('role', 'button');
+        trigger.setAttribute('aria-expanded', 'false');
         trigger.setAttribute(
           'aria-label',
           `${range.toString()}, bibliography citation`,
@@ -1003,7 +1010,27 @@ export function initBibliographyCitations(
   let pointerFocusFrame: number | null = null;
   let previewPointerInside = false;
   let previewFocusInside = false;
+  /** A trigger we're refocusing on purpose; its focusin shouldn't reopen. */
+  let refocusingTrigger: HTMLElement | null = null;
   let cleaned = false;
+
+  function setActiveTarget(
+    next: { trigger: HTMLElement; entries: readonly BibliographyEntry[] } | null,
+  ): void {
+    activeTarget?.trigger.setAttribute('aria-expanded', 'false');
+    activeTarget = next;
+    next?.trigger.setAttribute('aria-expanded', 'true');
+  }
+
+  function returnFocus(): void {
+    const trigger = activeTarget?.trigger;
+    dismiss();
+    if (trigger?.isConnected) {
+      refocusingTrigger = trigger;
+      trigger.focus();
+      refocusingTrigger = null;
+    }
+  }
 
   function findTrigger(target: EventTarget | null): HTMLElement | null {
     if (!(target instanceof Element)) {
@@ -1050,7 +1077,7 @@ export function initBibliographyCitations(
     if (!activeTarget) {
       return;
     }
-    activeTarget = null;
+    setActiveTarget(null);
     previewPointerInside = false;
     previewFocusInside = false;
     options.onActiveChange?.(null);
@@ -1069,7 +1096,7 @@ export function initBibliographyCitations(
       return;
     }
     activeMode = mode;
-    activeTarget = target;
+    setActiveTarget(target);
     emitActive();
   }
 
@@ -1171,10 +1198,33 @@ export function initBibliographyCitations(
     'focusin',
     (event) => {
       const trigger = findTrigger(event.target);
-      if (!trigger || trigger === pointerFocusTrigger) {
+      if (
+        !trigger ||
+        trigger === pointerFocusTrigger ||
+        trigger === refocusingTrigger
+      ) {
         return;
       }
       show(trigger, 'keyboard');
+    },
+    { signal: lifecycle.signal },
+  );
+
+  articleRoot.addEventListener(
+    'keydown',
+    (event) => {
+      if (event.key !== 'Enter' && event.key !== 'ArrowDown') {
+        return;
+      }
+      const trigger = findTrigger(event.target);
+      if (!trigger) {
+        return;
+      }
+      event.preventDefault();
+      if (activeTarget?.trigger !== trigger) {
+        show(trigger, 'keyboard');
+      }
+      options.onFocusPreview?.();
     },
     { signal: lifecycle.signal },
   );
@@ -1198,11 +1248,10 @@ export function initBibliographyCitations(
         return;
       }
       event.preventDefault();
-      const returnTarget = activeTarget.trigger;
-      const shouldReturnFocus = previewFocusInside;
-      dismiss();
-      if (shouldReturnFocus) {
-        returnTarget.focus();
+      if (previewFocusInside) {
+        returnFocus();
+      } else {
+        dismiss();
       }
     },
     { capture: true, signal: lifecycle.signal },
@@ -1269,5 +1318,6 @@ export function initBibliographyCitations(
       previewFocusInside = false;
       scheduleClose();
     },
+    returnFocus,
   };
 }

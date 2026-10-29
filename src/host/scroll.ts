@@ -10,6 +10,31 @@ function easeOutCubic(t: number): number {
   return 1 - (1 - t) ** 3;
 }
 
+const FOCUS_TARGET_ATTR = 'data-sep-plus-focus-target';
+
+/**
+ * After a keyboard jump, move focus to where the page scrolled so the next
+ * Tab continues from there. Non-focusable targets get a temporary tabindex.
+ */
+export function focusJumpTarget(element: Element | null | undefined): void {
+  if (!(element instanceof HTMLElement)) {
+    return;
+  }
+  if (!element.hasAttribute('tabindex')) {
+    element.setAttribute('tabindex', '-1');
+    element.setAttribute(FOCUS_TARGET_ATTR, '');
+    element.addEventListener(
+      'blur',
+      () => {
+        element.removeAttribute('tabindex');
+        element.removeAttribute(FOCUS_TARGET_ATTR);
+      },
+      { once: true },
+    );
+  }
+  element.focus({ preventScroll: true });
+}
+
 /** Animated window scroll, faster than native `behavior: 'smooth'`. */
 export function scrollWindowTo(top: number): void {
   cancelActive?.();

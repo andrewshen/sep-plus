@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type RefObject } from 'react';
 import {
   HIGHLIGHT_COLOR_OPTIONS,
   highlightColorValue,
@@ -62,6 +62,7 @@ type SettingsPopoverProps = {
     scope: AnnotationExportScope,
   ) => Promise<AnnotationExportResult>;
   onClose: () => void;
+  returnFocusRef?: RefObject<HTMLElement | null>;
 };
 
 export function SettingsPopover({
@@ -74,6 +75,7 @@ export function SettingsPopover({
   onHighlightColorChange,
   onExport,
   onClose,
+  returnFocusRef,
 }: SettingsPopoverProps) {
   const [exportError, setExportError] = useState<string | null>(null);
   const [exportNotice, setExportNotice] = useState<string | null>(null);
@@ -122,6 +124,7 @@ export function SettingsPopover({
       title="Settings"
       ariaLabel="Settings"
       className="sep-popover--tight-bottom"
+      returnFocusRef={returnFocusRef}
       onExited={() => {
         setExportError(null);
         setExportNotice(null);

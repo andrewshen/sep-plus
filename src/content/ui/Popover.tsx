@@ -6,6 +6,7 @@ import {
   type HTMLAttributes,
   type ReactNode,
   type Ref,
+  type RefObject,
 } from 'react';
 
 export const POPOVER_EXIT_MS = 150;
@@ -77,7 +78,15 @@ type PopoverProps = {
   className?: string;
   children: ReactNode;
   onExited?: () => void;
+  /** Where focus goes if it was inside the popover when it closed. */
+  returnFocusRef?: RefObject<HTMLElement | null>;
 };
+
+function containsActiveElement(container: HTMLElement): boolean {
+  const root = container.getRootNode() as Document | ShadowRoot;
+  const active = root.activeElement;
+  return Boolean(active && container.contains(active));
+}
 
 /**
  * Header dropdown: a PopoverSurface that fades and scales in from its trigger
@@ -94,8 +103,10 @@ export function Popover({
   className,
   children,
   onExited,
+  returnFocusRef,
 }: PopoverProps) {
   const [mounted, setMounted] = useState(open);
+  const surfaceRef = useRef<HTMLDivElement>(null);
   const onExitedRef = useRef(onExited);
   onExitedRef.current = onExited;
 
@@ -103,6 +114,12 @@ export function Popover({
     if (open) {
       setMounted(true);
       return;
+    }
+    // Closing with focus inside (Escape from a select, say) would otherwise
+    // drop focus to <body> when the popover unmounts.
+    const surface = surfaceRef.current;
+    if (surface && containsActiveElement(surface)) {
+      returnFocusRef?.current?.focus();
     }
     const timer = window.setTimeout(() => {
       setMounted(false);
@@ -117,6 +134,7 @@ export function Popover({
 
   return (
     <PopoverSurface
+      ref={surfaceRef}
       id={id}
       role={role}
       aria-label={ariaLabel}

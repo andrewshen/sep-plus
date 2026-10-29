@@ -1,6 +1,6 @@
 import type { TocItem } from '../lib/types';
 import { detachNative } from './rollback';
-import { scrollWindowTo } from './scroll';
+import { focusJumpTarget, scrollWindowTo } from './scroll';
 
 /** Height of the fixed SEP+ header; keep in sync with `.sep-header`. */
 export const HEADER_HEIGHT = 60;
@@ -129,13 +129,20 @@ function headingsFor(items: readonly TocItem[]): (Element | null)[] {
   return headings;
 }
 
-export function smoothScrollToHref(href: string): void {
+export function smoothScrollToHref(
+  href: string,
+  options: { focus?: boolean } = {},
+): boolean {
   const target = findHeading(href);
   if (!target) {
-    return;
+    return false;
   }
   const top = target.getBoundingClientRect().top + window.scrollY;
   scrollWindowTo(top - HEADER_HEIGHT - 24);
+  if (options.focus) {
+    focusJumpTarget(target.closest('h1, h2, h3, h4, h5, h6') ?? target);
+  }
+  return true;
 }
 
 export function getActiveTocIndex(

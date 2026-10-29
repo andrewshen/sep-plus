@@ -432,6 +432,45 @@ describe('controller lifecycle and interactions', () => {
     cleanup();
   });
 
+  it('moves keyboard focus into the preview and back to the marker', async () => {
+    setDocument(`
+      <article id="article">
+        <div id="article-content">
+          <p>Text <sup><a id="ref-1" href="notes.html#note-1">1</a></sup> more.</p>
+        </div>
+        <div id="bibliography"></div>
+      </article>
+    `);
+    const linkedNotes = `
+      <div id="aueditable"><div id="note-1">
+        <p><a href="index.html#ref-1">1.</a> See <a href="https://plato.stanford.edu/entries/kant/">Kant</a>.</p>
+      </div></div>`;
+    const cleanup = initFootnotes({
+      document,
+      window,
+      fetch: async () => new Response(linkedNotes, { status: 200 }),
+    });
+    await waitForFootnotes();
+    const link = document.querySelector<HTMLAnchorElement>('#ref-1')!;
+    const shadow = document.querySelector<HTMLElement>('#sep-plus-footnote-layer')!
+      .shadowRoot!;
+    const preview = shadow.querySelector<HTMLElement>('.sep-footnote-preview')!;
+
+    link.focus();
+    expect(preview.hidden).toBe(false);
+    link.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true }));
+    const inner = preview.querySelector<HTMLAnchorElement>('a[href]');
+    expect(inner).not.toBeNull();
+    expect(shadow.activeElement).toBe(inner);
+
+    inner!.dispatchEvent(
+      new KeyboardEvent('keydown', { key: 'Tab', bubbles: true, cancelable: true }),
+    );
+    expect(document.activeElement).toBe(link);
+    expect(preview.hidden).toBe(true);
+    cleanup();
+  });
+
   it('opens pointer previews only when fine hover is available', async () => {
     mockMatchMedia({ hover: true });
     articleFixture();

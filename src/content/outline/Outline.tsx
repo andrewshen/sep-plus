@@ -131,9 +131,14 @@ export function Outline({ items, activeIndex }: OutlineProps) {
                 .join(' ')}
               aria-current={position === active ? 'location' : undefined}
               onClick={(event) => {
-                smoothScrollToHref(item.href);
-                // Drop focus so :focus-within doesn't keep the panel open.
-                event.currentTarget.blur();
+                // detail is 0 for Enter/Space: send keyboard focus to the
+                // section. Pointer clicks drop focus so :focus-within doesn't
+                // keep the panel open.
+                const fromKeyboard = event.detail === 0;
+                if (!fromKeyboard) {
+                  event.currentTarget.blur();
+                }
+                smoothScrollToHref(item.href, { focus: fromKeyboard });
               }}
             >
               {item.text}

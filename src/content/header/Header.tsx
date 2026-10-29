@@ -32,7 +32,10 @@ type HeaderProps = {
   annotations: AnnotationListItem[];
   annotationsLoading: boolean;
   annotationsError: string | null;
-  onScrollToAnnotation: (annotationId: string) => boolean;
+  onScrollToAnnotation: (
+    annotationId: string,
+    options?: { focus?: boolean },
+  ) => boolean;
   onExportAnnotations: (
     format: AnnotationExportFormat,
     scope: AnnotationExportScope,
@@ -56,6 +59,7 @@ export function Header({
   onExportAnnotations,
 }: HeaderProps) {
   const annotationsRef = useRef<HTMLDivElement>(null);
+  const annotationsButtonRef = useRef<HTMLButtonElement>(null);
   const scrolled = useHeaderBorder();
   function close(): void {
     onOpenPopoverChange(null);
@@ -89,6 +93,7 @@ export function Header({
         {articleMode ? (
           <div className="sep-header-anchor" ref={annotationsRef}>
             <IconButton
+              ref={annotationsButtonRef}
               label="Annotations"
               expanded={openPopover === 'annotations'}
               controls={ANNOTATIONS_POPOVER_ID}
@@ -104,6 +109,7 @@ export function Header({
               error={annotationsError}
               onScrollTo={onScrollToAnnotation}
               onClose={close}
+              returnFocusRef={annotationsButtonRef}
             />
           </div>
         ) : null}

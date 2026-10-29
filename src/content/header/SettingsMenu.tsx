@@ -38,6 +38,7 @@ export function SettingsMenu({
   onExportAnnotations,
 }: SettingsMenuProps) {
   const anchorRef = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
   const close = () => onOpenChange(false);
 
   useDismiss(anchorRef, open, close);
@@ -45,6 +46,7 @@ export function SettingsMenu({
   return (
     <div className="sep-header-anchor" ref={anchorRef}>
       <IconButton
+        ref={buttonRef}
         label="Settings"
         expanded={open}
         controls={SETTINGS_POPOVER_ID}
@@ -62,6 +64,7 @@ export function SettingsMenu({
         onHighlightColorChange={onHighlightColorChange}
         onExport={onExportAnnotations}
         onClose={close}
+        returnFocusRef={buttonRef}
       />
     </div>
   );

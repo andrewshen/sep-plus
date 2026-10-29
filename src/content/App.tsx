@@ -333,6 +333,9 @@ export function App({
           onDismiss={citationState.dismiss}
           onPointerEnter={citationState.previewPointerEnter}
           onPointerLeave={citationState.previewPointerLeave}
+          focusRequested={citationState.focusRequested}
+          onFocusHandled={citationState.focusHandled}
+          onTabOut={citationState.returnFocus}
           onFocusCapture={citationState.previewFocusEnter}
           onBlurCapture={(event) => {
             const next = event.relatedTarget;

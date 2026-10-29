@@ -51,6 +51,7 @@ export function AnnotationPopover({
   const [saveError, setSaveError] = useState<SaveError | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const menuAnchorRef = useRef<HTMLDivElement>(null);
+  const menuButtonRef = useRef<HTMLButtonElement>(null);
   /** Last note text storage confirmed; only advances on success. */
   const savedRef = useRef(annotation.note.trim());
   const draftRef = useRef(draft);
@@ -152,6 +153,7 @@ export function AnnotationPopover({
   const accessory = (
     <div className="sep-annotation-menu-anchor" ref={menuAnchorRef}>
       <IconButton
+        ref={menuButtonRef}
         label="Annotation actions"
         expanded={menuOpen}
         controls={MENU_ID}
@@ -170,6 +172,7 @@ export function AnnotationPopover({
         variant="menu"
         role="menu"
         ariaLabel="Annotation actions"
+        returnFocusRef={menuButtonRef}
         className="sep-actions sep-actions--vertical"
       >
         <ActionButton

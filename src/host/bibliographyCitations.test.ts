@@ -167,6 +167,40 @@ describe('bibliography indexing', () => {
   });
 });
 
+describe('citation keyboard access', () => {
+  it('exposes citations as buttons and moves focus into the preview on Enter', () => {
+    setDocument(
+      '<p>See (Kripke 1980).</p>',
+      '<ul class="hanging"><li>Kripke, Saul, 1980, <em>Naming and Necessity</em>.</li></ul>',
+    );
+    const onFocusPreview = vi.fn();
+    const changes: Array<string | null> = [];
+    const controller = initBibliographyCitations({
+      document,
+      window,
+      onActiveChange: (target) => changes.push(target?.key ?? null),
+      onFocusPreview,
+    });
+    controllers.push(controller);
+    const trigger = triggerAt();
+    expect(trigger.getAttribute('role')).toBe('button');
+    expect(trigger.getAttribute('aria-expanded')).toBe('false');
+
+    trigger.focus();
+    expect(trigger.getAttribute('aria-expanded')).toBe('true');
+    trigger.dispatchEvent(
+      new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }),
+    );
+    expect(onFocusPreview).toHaveBeenCalledTimes(1);
+
+    controller.previewFocusEnter();
+    controller.returnFocus();
+    expect(document.activeElement).toBe(trigger);
+    expect(trigger.getAttribute('aria-expanded')).toBe('false');
+    expect(changes.at(-1)).toBeNull();
+  });
+});
+
 describe('citation parsing across supplied SEP formats', () => {
   it('splits Hume-style semicolon citations into independent matches', () => {
     setDocument(

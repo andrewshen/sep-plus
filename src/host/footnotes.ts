@@ -661,6 +661,8 @@ function createPreviewController(options: {
   let closeTimer: number | null = null;
   let hideTimer: number | null = null;
   let activeMotion: 'pointer' | 'instant' = 'instant';
+  /** A marker we're refocusing on purpose; its focusin shouldn't reopen. */
+  let refocusingMarker: HTMLAnchorElement | null = null;
 
   function clearCloseTimer(): void {
     if (closeTimer !== null) {
@@ -847,7 +849,7 @@ function createPreviewController(options: {
     'focusin',
     (event) => {
       const link = findReference(event.target);
-      if (link) {
+      if (link && link !== refocusingMarker) {
         showPreview(link, 'instant');
       }
     },
@@ -914,6 +916,65 @@ function createPreviewController(options: {
     { signal }
   );
 
+  /** Close and put focus back on the marker without reopening the preview. */
+  function returnFocusToMarker(): void {
+    const marker = activeLink;
+    hidePreview(false);
+    if (marker?.isConnected) {
+      refocusingMarker = marker;
+      marker.focus();
+      refocusingMarker = null;
+    }
+  }
+
+  function previewFocusables(): HTMLElement[] {
+    return Array.from(
+      preview.querySelectorAll<HTMLElement>('a[href], button:not(:disabled)')
+    );
+  }
+
+  // Enter follows the marker to the note below; ↓ reads it in place.
+  article.addEventListener(
+    'keydown',
+    (event) => {
+      if ((event as KeyboardEvent).key !== 'ArrowDown') {
+        return;
+      }
+      const link = findReference(event.target);
+      if (!link || link !== activeLink || preview.hidden) {
+        return;
+      }
+      event.preventDefault();
+      const first = previewFocusables()[0];
+      if (first) {
+        first.focus({ preventScroll: true });
+      } else {
+        preview.tabIndex = -1;
+        preview.focus({ preventScroll: true });
+      }
+    },
+    { signal }
+  );
+
+  // The preview lives at the end of the document, so Tab past either end
+  // would jump out of the article; go back to the marker instead.
+  preview.addEventListener(
+    'keydown',
+    (event) => {
+      if (event.key !== 'Tab') {
+        return;
+      }
+      const focusables = previewFocusables();
+      const edge = event.shiftKey ? focusables[0] : focusables.at(-1);
+      const active = shadow.activeElement;
+      if (!edge || active === edge || active === preview) {
+        event.preventDefault();
+        returnFocusToMarker();
+      }
+    },
+    { signal }
+  );
+
   doc.addEventListener(
     'keydown',
     (event) => {
@@ -921,11 +982,10 @@ function createPreviewController(options: {
         return;
       }
       event.preventDefault();
-      const returnTarget = activeLink;
-      const shouldReturnFocus = focusIsWithinPreview();
-      hidePreview(false);
-      if (shouldReturnFocus) {
-        returnTarget.focus();
+      if (focusIsWithinPreview()) {
+        returnFocusToMarker();
+      } else {
+        hidePreview(false);
       }
     },
     { capture: true, signal }

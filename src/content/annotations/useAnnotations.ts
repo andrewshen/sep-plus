@@ -37,6 +37,7 @@ import {
   AnnotationHighlightRenderer,
   type ResolvedAnnotationRange,
 } from '../../host/annotationHighlights';
+import { focusJumpTarget } from '../../host/scroll';
 
 export type AnnotationListItem = Annotation & {
   resolved: boolean;
@@ -113,6 +114,9 @@ function isSepPlusUiEvent(event: Event): boolean {
         Boolean(target.closest('[data-sep-plus-annotation-ui]'))),
   );
 }
+
+/** Where keyboard focus lands after jumping to an annotation. */
+const JUMP_TARGET_SELECTOR = 'p, li, blockquote, dd, dt, td, th, h2, h3, h4, h5, h6';
 
 /** The entry title and byline aren't annotatable. */
 const ENTRY_HEADING_SELECTOR = 'h1, #pubinfo';
@@ -598,9 +602,15 @@ export function useAnnotations({
   );
 
   const scrollToAnnotation = useCallback(
-    (annotationId: string): boolean => {
+    (annotationId: string, options: { focus?: boolean } = {}): boolean => {
       if (!renderer.scrollTo(annotationId)) {
         return false;
+      }
+      if (options.focus) {
+        const start = renderer.getRange(annotationId)?.startContainer;
+        const element =
+          start instanceof Element ? start : start?.parentElement;
+        focusJumpTarget(element?.closest(JUMP_TARGET_SELECTOR) ?? element);
       }
       setArrivedId(annotationId);
       return true;

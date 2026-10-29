@@ -48,6 +48,8 @@ export function useBibliographyCitations({
   onPreviewOpen,
 }: UseBibliographyCitationsOptions) {
   const [active, setActive] = useState<ActiveBibliographyPreview | null>(null);
+  /** Key of the preview the keyboard asked to move focus into, until done. */
+  const [focusRequestKey, setFocusRequestKey] = useState<string | null>(null);
   const controllerRef = useRef<BibliographyCitationController | null>(null);
   const activeKeyRef = useRef<string | null>(null);
   const onPreviewOpenRef = useRef(onPreviewOpen);
@@ -78,6 +80,11 @@ export function useBibliographyCitations({
           ...target,
           rect: documentRect(target.rect, target.trigger),
         });
+      },
+      onFocusPreview: () => {
+        if (!disposed) {
+          setFocusRequestKey(activeKeyRef.current);
+        }
       },
     });
     controllerRef.current = controller;
@@ -117,8 +124,17 @@ export function useBibliographyCitations({
     controllerRef.current?.previewFocusLeave();
   }, []);
 
+  const returnFocus = useCallback(() => {
+    controllerRef.current?.returnFocus();
+  }, []);
+
+  const focusHandled = useCallback(() => setFocusRequestKey(null), []);
+
   return {
     active,
+    focusRequested: Boolean(active && focusRequestKey === active.key),
+    focusHandled,
+    returnFocus,
     dismiss,
     previewPointerEnter,
     previewPointerLeave,

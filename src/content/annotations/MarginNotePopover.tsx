@@ -1,4 +1,5 @@
 import {
+  useEffect,
   useLayoutEffect,
   useRef,
   useState,
@@ -33,7 +34,14 @@ export type MarginNotePopoverProps = {
   onPointerLeave?: PointerEventHandler<HTMLDivElement>;
   onFocusCapture?: FocusEventHandler<HTMLDivElement>;
   onBlurCapture?: FocusEventHandler<HTMLDivElement>;
+  /** Move focus into the popover (keyboard request), then call onFocusHandled. */
+  focusRequested?: boolean;
+  onFocusHandled?: () => void;
+  /** Tab or Shift+Tab past either end; return focus to where it came from. */
+  onTabOut?: () => void;
 };
+
+const FOCUSABLE = 'a[href], button:not(:disabled), input, textarea, select, [tabindex]:not([tabindex="-1"])';
 
 function getAnnotationMount(): HTMLElement | null {
   const layer = document.getElementById('sep-plus-annotation-layer');
@@ -57,8 +65,26 @@ export function MarginNotePopover({
   onPointerLeave,
   onFocusCapture,
   onBlurCapture,
+  focusRequested = false,
+  onFocusHandled,
+  onTabOut,
 }: MarginNotePopoverProps) {
   const noteRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!focusRequested) {
+      return;
+    }
+    const node = noteRef.current;
+    const first = node?.querySelector<HTMLElement>(FOCUSABLE);
+    if (first) {
+      first.focus({ preventScroll: true });
+    } else if (node) {
+      node.tabIndex = -1;
+      node.focus({ preventScroll: true });
+    }
+    onFocusHandled?.();
+  }, [focusRequested, onFocusHandled]);
   const [placement, setPlacement] = useState<'above' | 'below'>('above');
   const [style, setStyle] = useState<CSSProperties>({
     position: 'absolute',
@@ -141,6 +167,18 @@ export function MarginNotePopover({
           if (event.key === 'Escape') {
             event.stopPropagation();
             onDismiss();
+            return;
+          }
+          if (event.key === 'Tab' && onTabOut && noteRef.current) {
+            const focusable = Array.from(
+              noteRef.current.querySelectorAll<HTMLElement>(FOCUSABLE),
+            );
+            const edge = event.shiftKey ? focusable[0] : focusable.at(-1);
+            const root = noteRef.current.getRootNode() as ShadowRoot | Document;
+            if (!edge || root.activeElement === edge || root.activeElement === noteRef.current) {
+              event.preventDefault();
+              onTabOut();
+            }
           }
         }}
       >

@@ -111,10 +111,17 @@ body.sep-plus {
   background: var(--sep-page-bg) !important;
 }
 
-/* Kill sticky click / keyboard focus rings site-wide (replaces one-off overrides). */
-body.sep-plus :focus,
-body.sep-plus :focus-visible {
+/* No sticky rings after clicks; keyboard focus gets one consistent ring
+   (same as citations). Jump targets (headings, paragraphs) take focus only
+   so Tab continues from there; they don't need a ring. */
+body.sep-plus :focus:not(:focus-visible),
+body.sep-plus [data-sep-plus-focus-target]:focus {
   outline: none !important;
+}
+
+body.sep-plus :focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--sep-text) 32%, transparent) !important;
+  outline-offset: 2px !important;
 }
 
 /* The homepage is rendered entirely by SEP+ (#sep-plus-home). */

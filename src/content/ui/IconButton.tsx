@@ -1,6 +1,7 @@
-import type { ReactNode } from 'react';
+import type { ReactNode, Ref } from 'react';
 
 type IconButtonProps = {
+  ref?: Ref<HTMLButtonElement>;
   label: string;
   expanded: boolean;
   controls?: string;
@@ -10,6 +11,7 @@ type IconButtonProps = {
 };
 
 export function IconButton({
+  ref,
   label,
   expanded,
   controls,
@@ -19,6 +21,7 @@ export function IconButton({
 }: IconButtonProps) {
   return (
     <button
+      ref={ref}
       type="button"
       className={['sep-icon-button', expanded ? 'is-pressed' : '']
         .filter(Boolean)
