@@ -14,7 +14,7 @@ export default defineManifest({
   },
   // WithHostAccess (not declarativeNetRequest) so install only shows Plato
   // host access — no "Block content on any page you visit" warning.
-  permissions: ['storage', 'declarativeNetRequestWithHostAccess'],
+  permissions: ['storage', 'unlimitedStorage', 'declarativeNetRequestWithHostAccess'],
   host_permissions: [
     'http://plato.stanford.edu/*',
     'https://plato.stanford.edu/*',
