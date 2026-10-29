@@ -583,6 +583,8 @@ export function styleRelatedEntries(): void {
   section.dataset.sepPlusRelated = '1';
 }
 
+const LINE_BREAK = '\u2028';
+
 /**
  * Remove SEP's entry end-matter (author copyright, fundraising banner,
  * institutional credits); the site footer covers the last two. Returns the
@@ -594,7 +596,7 @@ export function extractEntryCopyright(): HTMLElement | null {
 
   if (line) {
     for (const br of Array.from(line.querySelectorAll('br'))) {
-      br.replaceWith(' ');
+      br.replaceWith(LINE_BREAK);
     }
     // Drop the <> around the author email; the mailto link stands alone.
     const walker = document.createTreeWalker(line, NodeFilter.SHOW_TEXT);
@@ -631,12 +633,22 @@ export function extractEntryCopyright(): HTMLElement | null {
           prefix = match[0];
           text = text.slice(prefix.length);
         }
-        if (text.trim()) {
-          const span = document.createElement('span');
-          span.className = 'sep-entry-author';
-          span.textContent = text;
+        // SEP puts each author on its own line, so a plain-text run can hold
+        // several names separated by line breaks.
+        const names = text.split(LINE_BREAK).map((name) => name.trim()).filter(Boolean);
+        if (names.length) {
+          const parts: (string | HTMLElement)[] = [];
+          names.forEach((name, i) => {
+            const span = document.createElement('span');
+            span.className = 'sep-entry-author';
+            span.textContent = name;
+            parts.push(i ? ', ' : ' ', span);
+          });
+          if (/\s$/.test(text)) {
+            parts.push(' ');
+          }
           node.textContent = prefix;
-          node.after(span);
+          node.after(...parts);
         }
       } else if (afterBy && node instanceof HTMLAnchorElement) {
         const href = node.getAttribute('href') ?? '';
@@ -646,10 +658,23 @@ export function extractEntryCopyright(): HTMLElement | null {
       }
     }
 
+    const lineBreaks = document.createTreeWalker(line, NodeFilter.SHOW_TEXT);
+    for (let node = lineBreaks.nextNode(); node; node = lineBreaks.nextNode()) {
+      node.textContent = (node.textContent ?? '').replaceAll(LINE_BREAK, ' ');
+    }
+
     for (const link of Array.from(line.querySelectorAll('a'))) {
       if ((link.getAttribute('href') ?? '').startsWith('mailto:')) {
         link.prepend('(');
         link.append(')');
+        // Separate this author from the next one with a comma.
+        let rest = '';
+        for (let n = link.nextSibling; n; n = n.nextSibling) {
+          rest += n.textContent ?? '';
+        }
+        if (rest.trim()) {
+          link.after(',');
+        }
       }
       link.removeAttribute('style');
       link.className = link.classList.contains('sep-entry-author')

@@ -107,7 +107,7 @@ describe('extractEntryCopyright', () => {
     document.body.innerHTML = `<div id="article">${COPYRIGHT}</div>`;
     const line = extractEntryCopyright();
     expect(line?.textContent?.replace(/\s+/g, ' ').trim()).toBe(
-      'Copyright © 2024 by Michael Rohlf (rohlf@example.edu) Jane Doe',
+      'Copyright © 2024 by Michael Rohlf (rohlf@example.edu), Jane Doe',
     );
     expect(line?.querySelector('em, abbr')).toBeNull();
     expect(line?.querySelectorAll('.sep-entry-author')).toHaveLength(2);
@@ -118,6 +118,24 @@ describe('extractEntryCopyright', () => {
     expect(document.getElementById('article-copyright')).not.toBeNull();
     expect(document.getElementById('article-banner')).not.toBeNull();
     expect(document.getElementById('site-credits')).not.toBeNull();
+  });
+
+  it('splits plain-text authors on separate lines', () => {
+    document.body.innerHTML = `<div id="article"><div id="article-copyright">
+      <p><a href="../../info.html#c">Copyright &copy; 2025</a> by
+      <br />
+      Jeremy Gray
+      <br />
+      Jos&eacute; Ferreir&oacute;s
+      &lt;<a href="mailto:josef@us.es"><em>josef<abbr>@</abbr>us<abbr>.</abbr>es</em></a>&gt;
+      </p></div></div>`;
+    const line = extractEntryCopyright();
+    expect(line?.textContent?.replace(/\s+/g, ' ').trim()).toBe(
+      'Copyright © 2025 by Jeremy Gray, José Ferreirós (josef@us.es)',
+    );
+    expect(
+      Array.from(line?.querySelectorAll('.sep-entry-author') ?? [], (el) => el.textContent),
+    ).toEqual(['Jeremy Gray', 'José Ferreirós']);
   });
 });
 

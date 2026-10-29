@@ -18,14 +18,14 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         {
           id: tabId,
           priority: 2,
-          action: { type: chrome.declarativeNetRequest.RuleActionType.ALLOW },
+          // String literals: Firefox doesn't expose the RuleActionType or
+          // ResourceType enums.
+          action: { type: 'allow' },
           condition: {
             tabIds: [tabId],
             requestDomains: ['plato.stanford.edu'],
             urlFilter: 'font-awesome',
-            resourceTypes: [
-              chrome.declarativeNetRequest.ResourceType.STYLESHEET,
-            ],
+            resourceTypes: ['stylesheet'],
           },
         },
       ],

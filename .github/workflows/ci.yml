@@ -33,4 +33,8 @@ jobs:
 
       # Catches manifest and bundling errors that typecheck and tests miss.
       - name: Build
-        run: npx vite build
+        run: npm run build:chrome && npm run build:firefox
+
+      # Catches APIs and manifest keys Firefox doesn't support.
+      - name: Lint Firefox build
+        run: npm run lint:firefox

@@ -35,6 +35,8 @@ beforeEach(() => {
 afterEach(() => {
   cleanup();
   vi.useRealTimers();
+  vi.unstubAllGlobals();
+  vi.restoreAllMocks();
   document.body.innerHTML = '';
 });
 
@@ -70,6 +72,79 @@ describe('AnnotationPopover', () => {
     expect(props.onSaveNote).not.toHaveBeenCalled();
     await settle();
     expect(props.onSaveNote).toHaveBeenCalledWith('A note');
+  });
+
+  // happy-dom returns a fresh `CSS` object per access, so stub the global.
+  it('grows the note to its content when field-sizing is unsupported', () => {
+    vi.stubGlobal('CSS', { supports: () => false });
+    const scrollHeight = vi
+      .spyOn(HTMLTextAreaElement.prototype, 'scrollHeight', 'get')
+      .mockReturnValue(20);
+    const { textarea } = renderPopover();
+    expect(textarea().style.height).toBe('20px');
+
+    scrollHeight.mockReturnValue(60);
+    fireEvent.change(textarea(), { target: { value: 'Line one\nLine two\nLine three' } });
+    expect(textarea().style.height).toBe('60px');
+  });
+
+  it('fits a saved multi-line note before the popover first measures itself', () => {
+    vi.stubGlobal('CSS', { supports: () => false });
+    vi.spyOn(HTMLTextAreaElement.prototype, 'scrollHeight', 'get').mockReturnValue(60);
+    const heightsAtPlacement: string[] = [];
+    const offsetHeight = Object.getOwnPropertyDescriptor(HTMLElement.prototype, 'offsetHeight')!;
+    vi.spyOn(HTMLElement.prototype, 'offsetHeight', 'get').mockImplementation(function (
+      this: HTMLElement,
+    ) {
+      if (this.classList.contains('sep-annotation-popover')) {
+        heightsAtPlacement.push(this.querySelector('textarea')!.style.height);
+      }
+      return offsetHeight.get!.call(this) as number;
+    });
+    renderPopover({ annotation: { ...ANNOTATION, note: 'One\nTwo\nThree' } });
+    expect(heightsAtPlacement[0]).toBe('60px');
+  });
+
+  it('refits the note when its width changes, not on its own height changes', () => {
+    vi.stubGlobal('CSS', { supports: () => false });
+    const observers: ResizeObserverCallback[] = [];
+    vi.stubGlobal(
+      'ResizeObserver',
+      class {
+        constructor(callback: ResizeObserverCallback) {
+          observers.push(callback);
+        }
+        observe(): void {}
+        disconnect(): void {}
+      },
+    );
+    const scrollHeight = vi
+      .spyOn(HTMLTextAreaElement.prototype, 'scrollHeight', 'get')
+      .mockReturnValue(20);
+    const clientWidth = vi
+      .spyOn(HTMLTextAreaElement.prototype, 'clientWidth', 'get')
+      .mockReturnValue(360);
+    const { textarea } = renderPopover();
+    const notify = () =>
+      act(() => {
+        for (const callback of observers) {
+          callback([], {} as ResizeObserver);
+        }
+      });
+
+    scrollHeight.mockReturnValue(40);
+    notify();
+    expect(textarea().style.height).toBe('20px');
+
+    clientWidth.mockReturnValue(300);
+    notify();
+    expect(textarea().style.height).toBe('40px');
+  });
+
+  it('leaves the note to field-sizing when supported', () => {
+    vi.stubGlobal('CSS', { supports: () => true });
+    const { textarea } = renderPopover();
+    expect(textarea().style.height).toBe('');
   });
 
   it('flushes an unsaved edit when it closes mid-debounce', () => {

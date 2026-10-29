@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { MarginNoteRect } from '../../lib/marginNotePlacement';
 import { IconCopy, IconMore, IconTrash } from '../icons';
 import { ActionButton } from '../ui/ActionButton';
@@ -33,6 +33,11 @@ function clipboardText(annotation: AnnotationListItem): string {
   const quote = `“${annotation.selector.quote.exact}”`;
   const note = annotation.note.trim();
   return note ? `${quote}\n\n${note}` : quote;
+}
+
+function fitToContent(textarea: HTMLTextAreaElement): void {
+  textarea.style.height = 'auto';
+  textarea.style.height = `${textarea.scrollHeight}px`;
 }
 
 /**
@@ -97,6 +102,37 @@ export function AnnotationPopover({
     });
     return () => window.cancelAnimationFrame(frame);
   }, []);
+
+  // The note grows with `field-sizing: content`. Without it (older Firefox)
+  // the rows={1}, overflow-hidden textarea would clip, so fit it by hand: on
+  // attach (refs land before the popover's first placement), when its width
+  // changes (window resize, popover scrollbar), and on every edit.
+  const attachNote = useCallback((textarea: HTMLTextAreaElement | null) => {
+    textareaRef.current = textarea;
+    if (!textarea || CSS.supports('field-sizing', 'content')) {
+      return;
+    }
+    fitToContent(textarea);
+    let width = textarea.clientWidth;
+    const observer = new ResizeObserver(() => {
+      if (textarea.clientWidth !== width) {
+        width = textarea.clientWidth;
+        fitToContent(textarea);
+      }
+    });
+    observer.observe(textarea);
+    return () => {
+      observer.disconnect();
+      textareaRef.current = null;
+    };
+  }, []);
+
+  useLayoutEffect(() => {
+    const textarea = textareaRef.current;
+    if (textarea && !CSS.supports('field-sizing', 'content')) {
+      fitToContent(textarea);
+    }
+  }, [draft]);
 
   useEffect(() => {
     if (draft.trim() === savedRef.current) {
@@ -205,7 +241,7 @@ export function AnnotationPopover({
       body={
         <div className="sep-annotation-note-field">
           <textarea
-            ref={textareaRef}
+            ref={attachNote}
             className="sep-annotation-note"
             value={draft}
             rows={1}
