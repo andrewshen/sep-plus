@@ -1339,10 +1339,10 @@
   align-items: baseline;
   justify-content: space-between;
   gap: 12px;
-  margin-top: 8px;
+  margin-top: 12px;
   color: #8f2d36;
-  font-size: 13px;
-  line-height: 18px;
+  font-size: 14px;
+  line-height: 20px;
 }
 
 .sep-plus-app.is-dark .sep-annotation-save-error {
@@ -1350,6 +1350,9 @@
 }
 
 .sep-plus-app .sep-annotation-save-retry {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   flex-shrink: 0;
   margin: 0;
   padding: 0;
@@ -1360,6 +1363,12 @@
   font-weight: 500;
   cursor: pointer;
   transition: opacity var(--sep-duration-fast) var(--sep-ease);
+}
+
+.sep-plus-app .sep-annotation-save-retry svg {
+  width: 12px;
+  height: 12px;
+  flex-shrink: 0;
 }
 
 .sep-plus-app .sep-annotation-save-retry:hover {

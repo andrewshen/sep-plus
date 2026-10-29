@@ -66,10 +66,6 @@ export type ActiveAnnotationHighlight = {
 
 export type { AnnotationExportFormat };
 export type AnnotationExportScope = 'entry' | 'all';
-export type AnnotationExportResult = {
-  /** Stored records that couldn't be read and were left out of the file. */
-  skipped: number;
-};
 
 const ARRIVAL_EMPHASIS_MS = 1200;
 /** Clear even if `scrollend` never fires (e.g. already in view). */
@@ -95,7 +91,7 @@ export function isContextInvalidated(error: unknown): boolean {
 
 export function annotationErrorMessage(error: unknown): string {
   if (isContextInvalidated(error)) {
-    return 'SEP+ was updated. Reload the page to keep saving notes.';
+    return 'Reload page to keep saving';
   }
   return error instanceof Error ? error.message : 'Unknown annotation error.';
 }
@@ -646,7 +642,7 @@ export function useAnnotations({
     async (
       format: AnnotationExportFormat,
       scope: AnnotationExportScope,
-    ): Promise<AnnotationExportResult> => {
+    ): Promise<void> => {
       try {
         const { entries, skipped } =
           scope === 'all'
@@ -683,7 +679,6 @@ export function useAnnotations({
           );
         }
         setError(null);
-        return { skipped: skipped.length };
       } catch (exportError: unknown) {
         setError(errorMessage(exportError));
         throw exportError;

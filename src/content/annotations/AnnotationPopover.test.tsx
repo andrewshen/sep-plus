@@ -118,7 +118,7 @@ describe('AnnotationPopover', () => {
     const { textarea, alert } = renderPopover({ onSaveNote });
     fireEvent.change(textarea(), { target: { value: 'Late' } });
     await settle();
-    expect(alert()?.textContent).toContain('Reload the page');
+    expect(alert()?.textContent).toBe('Reload page to keep saving');
     expect(alert()?.querySelector('button')).toBeNull();
   });
 

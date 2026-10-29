@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import type { MarginNoteRect } from '../../lib/marginNotePlacement';
-import { IconCopy, IconMore, IconTrash } from '../icons';
+import { IconCopy, IconMore, IconRefresh, IconTrash } from '../icons';
 import { ActionButton } from '../ui/ActionButton';
 import { IconButton } from '../ui/IconButton';
 import { Popover } from '../ui/Popover';
@@ -236,6 +236,7 @@ export function AnnotationPopover({
                   className="sep-annotation-save-retry"
                   onClick={() => save(draftRef.current.trim())}
                 >
+                  <IconRefresh />
                   Retry
                 </button>
               ) : null}

@@ -14,11 +14,7 @@ import type {
   HighlightColor,
   ThemePreference,
 } from '../../lib/types';
-import {
-  skippedLabel,
-  type AnnotationExportResult,
-  type AnnotationExportScope,
-} from '../annotations/useAnnotations';
+import type { AnnotationExportScope } from '../annotations/useAnnotations';
 import { IconMoon, IconSun } from '../icons';
 import { Popover } from '../ui/Popover';
 import { PopoverRow } from '../ui/PopoverRow';
@@ -60,7 +56,7 @@ type SettingsPopoverProps = {
   onExport: (
     format: AnnotationExportFormat,
     scope: AnnotationExportScope,
-  ) => Promise<AnnotationExportResult>;
+  ) => Promise<void>;
   onClose: () => void;
   returnFocusRef?: RefObject<HTMLElement | null>;
 };
@@ -78,7 +74,6 @@ export function SettingsPopover({
   returnFocusRef,
 }: SettingsPopoverProps) {
   const [exportError, setExportError] = useState<string | null>(null);
-  const [exportNotice, setExportNotice] = useState<string | null>(null);
   const [exportFormat, setExportFormat] = useState(DEFAULT_EXPORT_FORMAT);
 
   useEffect(() => {
@@ -100,19 +95,10 @@ export function SettingsPopover({
 
   async function runExport(): Promise<void> {
     try {
-      const { skipped } = await onExport(exportFormat, 'all');
+      await onExport(exportFormat, 'all');
       setExportError(null);
-      if (skipped) {
-        // Keep the popover open so the partial export doesn't go unnoticed.
-        setExportNotice(
-          `Exported, but skipped ${skippedLabel(skipped)} that couldn’t be read.`,
-        );
-        return;
-      }
-      setExportNotice(null);
       onClose();
     } catch (error: unknown) {
-      setExportNotice(null);
       setExportError(
         error instanceof Error ? error.message : 'Could not export annotations.',
       );
@@ -128,19 +114,11 @@ export function SettingsPopover({
       ariaLabel="Settings"
       className="sep-popover--tight-bottom"
       returnFocusRef={returnFocusRef}
-      onExited={() => {
-        setExportError(null);
-        setExportNotice(null);
-      }}
+      onExited={() => setExportError(null)}
     >
       {exportError ? (
         <div className="sep-popover-message is-error" role="alert">
           {exportError}
-        </div>
-      ) : null}
-      {exportNotice ? (
-        <div className="sep-popover-message" role="status">
-          {exportNotice}
         </div>
       ) : null}
       <PopoverRow

@@ -2,7 +2,6 @@ import { useRef } from 'react';
 import type { HighlightColor, ThemePreference } from '../../lib/types';
 import type {
   AnnotationExportFormat,
-  AnnotationExportResult,
   AnnotationExportScope,
   AnnotationListItem,
 } from '../annotations/useAnnotations';
@@ -39,7 +38,7 @@ type HeaderProps = {
   onExportAnnotations: (
     format: AnnotationExportFormat,
     scope: AnnotationExportScope,
-  ) => Promise<AnnotationExportResult>;
+  ) => Promise<void>;
 };
 
 export function Header({
