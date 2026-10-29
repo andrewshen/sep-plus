@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { getEntryIndex } from '../../lib/entryIndex';
 import { formatEntryTitle } from '../../lib/formatEntryTitle';
 import {
   formatRecentDate,
@@ -126,33 +125,57 @@ function RecentlyUpdated({ entries }: { entries: RecentEntry[] | null }) {
   );
 }
 
-/** A random entry title from the contents index, for the search placeholder.
- *  `undefined` until the first pick, so `Search` keeps its default. */
+/** Broad subjects that each match many entries, so searching one is useful. */
+const TOPICS = [
+  'Ethics',
+  'Epistemology',
+  'Metaphysics',
+  'Aesthetics',
+  'Logic',
+  'Political Philosophy',
+  'Philosophy of Mind',
+  'Philosophy of Language',
+  'Philosophy of Science',
+  'Philosophy of Religion',
+  'Consciousness',
+  'Free Will',
+  'Justice',
+  'Truth',
+  'Causation',
+  'Identity',
+  'Knowledge',
+  'Virtue',
+  'Feminism',
+  'Existentialism',
+  'Phenomenology',
+  'Pragmatism',
+  'Ancient Philosophy',
+  'Medieval Philosophy',
+  'Chinese Philosophy',
+  'Plato',
+  'Aristotle',
+  'Kant',
+  'Hume',
+  'Descartes',
+  'Hegel',
+  'Nietzsche',
+  'Wittgenstein',
+  'Spinoza',
+  'Leibniz',
+  'Locke',
+];
+
+/** A random broad topic for the search placeholder. `undefined` until the
+ *  first pick, so `Search` keeps its default. */
 function useRandomTopic(): [string | undefined, () => void] {
   const [topic, setTopic] = useState<string>();
-  const indexRef = useRef<ReturnType<typeof getEntryIndex> | null>(null);
 
   function pick(): void {
-    indexRef.current ??= getEntryIndex();
-    indexRef.current.then(
-      (entries) => {
-        if (!entries.length) {
-          return;
-        }
-        setTopic((current) => {
-          let next = current;
-          // Re-roll so every press visibly changes the placeholder.
-          for (let tries = 0; next === current && tries < 5; tries++) {
-            const entry = entries[Math.floor(Math.random() * entries.length)]!;
-            next = formatEntryTitle(entry.title, entry.href);
-          }
-          return next;
-        });
-      },
-      () => {
-        indexRef.current = null;
-      },
-    );
+    setTopic((current) => {
+      // Never repeat, so every press visibly changes the placeholder.
+      const pool = TOPICS.filter((candidate) => candidate !== current);
+      return pool[Math.floor(Math.random() * pool.length)];
+    });
   }
 
   return [topic, pick];
