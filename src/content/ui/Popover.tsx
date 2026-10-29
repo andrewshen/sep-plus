@@ -9,6 +9,8 @@ import {
   type RefObject,
 } from 'react';
 
+import { trackScrollFade } from '../../lib/scrollFade';
+
 export const POPOVER_EXIT_MS = 150;
 
 type PopoverSurfaceProps = Omit<HTMLAttributes<HTMLDivElement>, 'title'> & {
@@ -56,6 +58,7 @@ export function PopoverSurface({
       ) : null}
       {children ? (
         <div
+          ref={(body) => (body ? trackScrollFade(body) : undefined)}
           className={['sep-popover-body', prose ? 'sep-popover-prose' : '']
             .filter(Boolean)
             .join(' ')}

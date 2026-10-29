@@ -1,4 +1,5 @@
 import { computeMarginNotePlacement } from '../lib/marginNotePlacement';
+import { trackScrollFade } from '../lib/scrollFade';
 import footnoteStyles from './footnotes.css?inline';
 
 const FOOTNOTE_LAYER_ID = 'sep-plus-footnote-layer';
@@ -1148,6 +1149,7 @@ export function initFootnotes(
   header.append(label);
   const content = doc.createElement('div');
   content.className = 'sep-popover-body sep-popover-prose';
+  const stopScrollFade = trackScrollFade(content);
   preview.append(header, content);
   shadow.append(style, preview);
   doc.body.appendChild(layer);
@@ -1158,6 +1160,7 @@ export function initFootnotes(
     }
     cleaned = true;
     lifecycle.abort();
+    stopScrollFade();
     previewCleanup?.();
     previewCleanup = null;
     for (const restore of restores) {

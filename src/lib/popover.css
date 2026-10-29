@@ -112,6 +112,47 @@
   padding-inline: 0;
 }
 
+/*
+ * Scrolled content fades out instead of being cut off, like the outline.
+ * Under a pinned title, the fade also keeps clear the same 8px the title has
+ * above it, so the header reads as evenly padded once content scrolls beneath
+ * it. Nothing changes until the body actually overflows (data attributes come
+ * from lib/scrollFade.ts).
+ */
+.sep-popover-body {
+  --sep-popover-fade-clear: 0px;
+  --sep-popover-fade-top: 0px;
+  --sep-popover-fade-bottom: 0px;
+  --sep-popover-fade-bottom-clear: 0px;
+}
+
+.sep-popover-body[data-fade-top] {
+  --sep-popover-fade-top: 20px;
+}
+
+.sep-popover-title + .sep-popover-body[data-fade-top] {
+  --sep-popover-fade-clear: max(0px, calc(8px - var(--sep-popover-title-gap)));
+}
+
+.sep-popover-body[data-fade-bottom] {
+  /* The fade ends 8px early, so the last 8px are empty like bottom padding. */
+  --sep-popover-fade-bottom-clear: 8px;
+  --sep-popover-fade-bottom: 24px;
+}
+
+.sep-popover-body:is([data-fade-top], [data-fade-bottom]) {
+  mask-image: linear-gradient(
+    to bottom,
+    transparent 0,
+    transparent var(--sep-popover-fade-clear),
+    #000 calc(var(--sep-popover-fade-clear) + var(--sep-popover-fade-top)),
+    #000
+      calc(100% - var(--sep-popover-fade-bottom) - var(--sep-popover-fade-bottom-clear)),
+    transparent calc(100% - var(--sep-popover-fade-bottom-clear)),
+    transparent 100%
+  );
+}
+
 /* Free-form text (notes, footnotes) sits on the same 12px rhythm as rows. */
 .sep-popover-prose {
   padding-block: 12px;
