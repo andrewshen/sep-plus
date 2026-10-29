@@ -146,31 +146,6 @@ export function IconTrash() {
   );
 }
 
-/** 1.25px at the 12px render size of a 256-unit viewBox (1.25 × 256 / 12). */
-const STROKE_256 = 26.6667;
-
-/** Refresh, Phosphor "arrow-clockwise" (256 grid); stroke is set by the caller. */
-export function IconRefresh() {
-  return (
-    <svg viewBox="0 0 256 256" aria-hidden="true" fill="none">
-      <polyline
-        points="184 104 232 104 232 56"
-        stroke="currentColor"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth={STROKE_256}
-      />
-      <path
-        d="M188.4,192a88,88,0,1,1,1.83-126.23L232,104"
-        stroke="currentColor"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth={STROKE_256}
-      />
-    </svg>
-  );
-}
-
 /** Right arrow, 16×16 — Phosphor "arrow-right" redrawn at 1.25 stroke. */
 export function IconArrowRight() {
   return (

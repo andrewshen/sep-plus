@@ -1,18 +1,20 @@
 import { useEffect, useRef, useState } from 'react';
 import type { MarginNoteRect } from '../../lib/marginNotePlacement';
-import { IconCopy, IconMore, IconRefresh, IconTrash } from '../icons';
+import { IconCopy, IconMore, IconTrash } from '../icons';
 import { ActionButton } from '../ui/ActionButton';
 import { IconButton } from '../ui/IconButton';
 import { Popover } from '../ui/Popover';
 import { useDismiss } from '../ui/useDismiss';
 import { MarginNotePopover } from './MarginNotePopover';
 import {
-  annotationErrorMessage,
   isContextInvalidated,
   type AnnotationListItem,
 } from './useAnnotations';
 
 type SaveError = { message: string; retryable: boolean };
+
+const RETRY_MESSAGE = 'Couldn’t save, click to retry';
+const RELOAD_MESSAGE = 'Reload page to keep saving';
 
 type AnnotationPopoverProps = {
   annotation: AnnotationListItem;
@@ -71,9 +73,10 @@ export function AnnotationPopover({
       },
       (error: unknown) => {
         if (mountedRef.current) {
+          const stale = isContextInvalidated(error);
           setSaveError({
-            message: annotationErrorMessage(error),
-            retryable: !isContextInvalidated(error),
+            message: stale ? RELOAD_MESSAGE : RETRY_MESSAGE,
+            retryable: !stale,
           });
         }
       },
@@ -228,19 +231,18 @@ export function AnnotationPopover({
             }}
           />
           {saveError ? (
-            <div className="sep-annotation-save-error" role="alert">
-              <span>{saveError.message}</span>
-              {saveError.retryable ? (
-                <button
-                  type="button"
-                  className="sep-annotation-save-retry"
-                  onClick={() => save(draftRef.current.trim())}
-                >
-                  <IconRefresh />
-                  Retry
-                </button>
-              ) : null}
-            </div>
+            <button
+              type="button"
+              className="sep-annotation-save-error"
+              role="alert"
+              onClick={() =>
+                saveError.retryable
+                  ? save(draftRef.current.trim())
+                  : window.location.reload()
+              }
+            >
+              {saveError.message}
+            </button>
           ) : null}
         </div>
       }

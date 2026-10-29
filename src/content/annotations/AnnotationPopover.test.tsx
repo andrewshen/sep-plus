@@ -79,7 +79,7 @@ describe('AnnotationPopover', () => {
     expect(props.onSaveNote).toHaveBeenCalledWith('Quick');
   });
 
-  it('shows an inline error with Retry when a save fails', async () => {
+  it('shows a clickable inline error that retries when a save fails', async () => {
     const onSaveNote = vi
       .fn<(note: string) => Promise<void>>()
       .mockRejectedValueOnce(new Error('QUOTA_BYTES exceeded'))
@@ -87,12 +87,10 @@ describe('AnnotationPopover', () => {
     const { textarea, alert } = renderPopover({ onSaveNote });
     fireEvent.change(textarea(), { target: { value: 'Keep me' } });
     await settle();
-    expect(alert()?.textContent).toContain('QUOTA_BYTES exceeded');
+    expect(alert()?.textContent).toBe('Couldn’t save, click to retry');
     expect(textarea().value).toBe('Keep me');
 
-    const retry = alert()?.querySelector('button');
-    expect(retry?.textContent).toBe('Retry');
-    fireEvent.click(retry!);
+    fireEvent.click(alert()!);
     await settle(0);
     expect(onSaveNote).toHaveBeenCalledTimes(2);
     expect(onSaveNote).toHaveBeenLastCalledWith('Keep me');
@@ -111,7 +109,7 @@ describe('AnnotationPopover', () => {
     expect(onSaveNote).toHaveBeenCalledTimes(2);
   });
 
-  it('asks for a reload, without Retry, after the extension updates', async () => {
+  it('offers a reload after the extension updates', async () => {
     const onSaveNote = vi.fn(() =>
       Promise.reject(new Error('Extension context invalidated.')),
     );
@@ -119,7 +117,15 @@ describe('AnnotationPopover', () => {
     fireEvent.change(textarea(), { target: { value: 'Late' } });
     await settle();
     expect(alert()?.textContent).toBe('Reload page to keep saving');
-    expect(alert()?.querySelector('button')).toBeNull();
+    const reload = vi.fn();
+    vi.spyOn(window, 'location', 'get').mockReturnValue({
+      ...window.location,
+      reload,
+    } as Location);
+    fireEvent.click(alert()!);
+    expect(reload).toHaveBeenCalledTimes(1);
+    expect(onSaveNote).toHaveBeenCalledTimes(1);
+    vi.restoreAllMocks();
   });
 
   it('does not save a pending edit once delete starts', async () => {

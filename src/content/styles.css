@@ -1334,45 +1334,27 @@
 }
 
 /* Same colors as .sep-popover-message.is-error (popover.css). */
-.sep-annotation-save-error {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 12px;
-  margin-top: 12px;
-  color: #8f2d36;
-  font-size: 14px;
-  line-height: 20px;
-}
-
-.sep-plus-app.is-dark .sep-annotation-save-error {
-  color: #f1a7ad;
-}
-
-.sep-plus-app .sep-annotation-save-retry {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  flex-shrink: 0;
-  margin: 0;
+.sep-plus-app .sep-annotation-save-error {
+  display: block;
+  margin: 12px 0 0;
   padding: 0;
   border: none;
   background: none;
-  color: var(--sep-text);
+  color: #8f2d36;
   font: inherit;
-  font-weight: 500;
+  font-size: 14px;
+  line-height: 20px;
+  text-align: left;
   cursor: pointer;
   transition: opacity var(--sep-duration-fast) var(--sep-ease);
 }
 
-.sep-plus-app .sep-annotation-save-retry svg {
-  width: 12px;
-  height: 12px;
-  flex-shrink: 0;
+.sep-plus-app .sep-annotation-save-error:hover {
+  opacity: 0.6;
 }
 
-.sep-plus-app .sep-annotation-save-retry:hover {
-  opacity: 0.5;
+.sep-plus-app.is-dark .sep-annotation-save-error {
+  color: #f1a7ad;
 }
 
 .sep-plus-app.is-dark {
