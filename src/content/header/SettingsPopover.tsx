@@ -83,11 +83,14 @@ export function SettingsPopover({
 
   useEffect(() => {
     let cancelled = false;
-    void getExportFormat().then((format) => {
-      if (!cancelled) {
-        setExportFormat(format);
-      }
-    });
+    getExportFormat().then(
+      (format) => {
+        if (!cancelled) {
+          setExportFormat(format);
+        }
+      },
+      () => undefined,
+    );
     const unsubscribe = onExportFormatChanged(setExportFormat);
     return () => {
       cancelled = true;
@@ -184,7 +187,7 @@ export function SettingsPopover({
           ariaLabel: 'Annotations format',
           onChange: (format) => {
             setExportFormat(format);
-            void storeExportFormat(format);
+            storeExportFormat(format).catch(() => undefined);
           },
         }}
       />

@@ -7,6 +7,7 @@ import {
   setTheme as storeTheme,
 } from '../lib/storage';
 import type { HighlightColor, ThemePreference, TocItem } from '../lib/types';
+import { applyTheme } from '../host/bootstrap';
 import { getActiveTocIndex } from '../host/toc';
 import { AnnotationMarks } from './annotations/AnnotationMarks';
 import { AnnotationPopover } from './annotations/AnnotationPopover';
@@ -165,6 +166,23 @@ export function App({
     return () => observer.disconnect();
   }, []);
 
+  // Apply to this page directly: after an extension reload storage writes
+  // fail and onChanged never fires, but the choice should still take effect.
+  function changeTheme(next: ThemePreference): void {
+    setTheme(next);
+    applyTheme(next);
+    storeTheme(next).catch((error: unknown) => {
+      console.warn('SEP+ could not save the theme.', error);
+    });
+  }
+
+  function changeHighlightColor(next: HighlightColor): void {
+    setHighlightColor(next);
+    storeHighlightColor(next).catch((error: unknown) => {
+      console.warn('SEP+ could not save the highlight color.', error);
+    });
+  }
+
   useEffect(() => {
     const stopTheme = onThemeChanged(setTheme);
     const stopHighlight = onHighlightColorChanged(setHighlightColor);
@@ -227,15 +245,9 @@ export function App({
               onOpenChange={(next) => setOpenPopover(next ? 'settings' : null)}
               dark={dark}
               theme={theme}
-              onThemeChange={(next) => {
-                setTheme(next);
-                void storeTheme(next);
-              }}
+              onThemeChange={changeTheme}
               highlightColor={highlightColor}
-              onHighlightColorChange={(next) => {
-                setHighlightColor(next);
-                void storeHighlightColor(next);
-              }}
+              onHighlightColorChange={changeHighlightColor}
               onExportAnnotations={annotationState.exportAnnotations}
             />
           </div>
@@ -248,15 +260,9 @@ export function App({
           openPopover={openPopover}
           onOpenPopoverChange={setOpenPopover}
           theme={theme}
-          onThemeChange={(next) => {
-            setTheme(next);
-            void storeTheme(next);
-          }}
+          onThemeChange={changeTheme}
           highlightColor={highlightColor}
-          onHighlightColorChange={(next) => {
-            setHighlightColor(next);
-            void storeHighlightColor(next);
-          }}
+          onHighlightColorChange={changeHighlightColor}
           annotations={annotationState.annotations}
           annotationsLoading={annotationState.loading}
           annotationsError={annotationState.error}

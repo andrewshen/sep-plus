@@ -1,5 +1,5 @@
 import { formatEntryTitle } from '../lib/formatEntryTitle';
-import { getTheme, onThemeChanged } from '../lib/storage';
+import { onThemeChanged } from '../lib/storage';
 import type { ThemePreference } from '../lib/types';
 import {
   detachNative,
@@ -82,7 +82,12 @@ export function setDarkMode(dark: boolean): void {
   document.body?.classList.toggle('dark', dark);
 }
 
+/** Last preference applied to this page, so a system change can follow it
+ *  without reading storage (which fails once the extension reloads). */
+let appliedTheme: ThemePreference | null = null;
+
 export function applyTheme(theme: ThemePreference): void {
+  appliedTheme = theme;
   document.documentElement.classList.add('sep-plus-theme-applied');
   switch (theme) {
     case 'auto':
@@ -663,11 +668,9 @@ export function bootstrapHost(theme: ThemePreference): void {
   window
     .matchMedia('(prefers-color-scheme: dark)')
     .addEventListener('change', () => {
-      void getTheme().then((current) => {
-        if (current === 'auto') {
-          applyTheme('auto');
-        }
-      });
+      if (appliedTheme === 'auto') {
+        applyTheme('auto');
+      }
     });
 
   onThemeChanged((next) => {

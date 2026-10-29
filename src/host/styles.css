@@ -151,6 +151,15 @@ html body.sep-plus-search #content:not(:has(#article)) {
 }
 
 /* Above the result listings that follow it, so its dropdown isn't covered. */
+/* In-flow shadow hosts: inherited text styles (line-height, letter-spacing,
+   text-align…) cross the shadow boundary, so start them from scratch. */
+#sep-plus-home,
+#sep-plus-footer,
+#sep-plus-search {
+  all: initial;
+  display: block;
+}
+
 #sep-plus-search {
   position: relative;
   z-index: 10;

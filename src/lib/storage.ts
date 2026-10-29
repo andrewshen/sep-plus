@@ -10,6 +10,18 @@ export const DEFAULT_HIGHLIGHT_COLOR: HighlightColor = 'yellow';
 const EXPORT_FORMAT_KEY = 'annotationExportFormat';
 export const DEFAULT_EXPORT_FORMAT: AnnotationExportFormat = 'json';
 
+/**
+ * False once the extension has been updated or reloaded under an open tab:
+ * the old content script keeps running, but every chrome.* call throws.
+ */
+export function extensionAlive(): boolean {
+  try {
+    return Boolean(chrome.runtime?.id);
+  } catch {
+    return false;
+  }
+}
+
 function isTheme(value: unknown): value is ThemePreference {
   return value === 'light' || value === 'dark' || value === 'auto';
 }
@@ -68,12 +80,16 @@ export async function getTheme(): Promise<ThemePreference> {
     // Ignore restricted storage access.
   }
 
-  await setTheme('light');
-  return 'light';
+  // First run: follow the system, like the pre-paint background in boot.css.
+  await setTheme('auto');
+  return 'auto';
 }
 
 export async function setTheme(theme: ThemePreference): Promise<void> {
   cacheTheme(theme);
+  if (!extensionAlive()) {
+    return;
+  }
   await chrome.storage.local.set({ [THEME_KEY]: theme });
 }
 
@@ -104,6 +120,9 @@ export async function getHighlightColor(): Promise<HighlightColor> {
 }
 
 export async function setHighlightColor(color: HighlightColor): Promise<void> {
+  if (!extensionAlive()) {
+    return;
+  }
   await chrome.storage.local.set({ [HIGHLIGHT_COLOR_KEY]: color });
 }
 
@@ -136,6 +155,9 @@ export async function getExportFormat(): Promise<AnnotationExportFormat> {
 }
 
 export async function setExportFormat(format: AnnotationExportFormat): Promise<void> {
+  if (!extensionAlive()) {
+    return;
+  }
   await chrome.storage.local.set({ [EXPORT_FORMAT_KEY]: format });
 }
 

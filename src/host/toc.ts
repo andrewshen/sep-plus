@@ -55,7 +55,8 @@ export function collectTocItems(): TocItem[] {
     const href = link.getAttribute('href');
     const text = (link.textContent || '').replace(/\s+/g, ' ').trim();
 
-    if (!href || href.includes('://') || href === '#pagetopright') {
+    // Only in-page sections; links to other pages would be dead buttons.
+    if (!href?.startsWith('#') || href === '#pagetopright') {
       continue;
     }
     if (SKIP_TEXTS.has(text) || seen.has(href)) {
@@ -112,9 +113,22 @@ export function collectContentsTocItems(): TocItem[] {
   return items;
 }
 
+function fragmentId(href: string): string {
+  const raw = href.startsWith('#') ? href.slice(1) : href;
+  try {
+    return decodeURIComponent(raw);
+  } catch {
+    return raw;
+  }
+}
+
 function findHeading(href: string): Element | null {
-  const id = href.startsWith('#') ? href.slice(1) : href;
-  return document.querySelector(`[name="${id}"], [id="${id}"]`);
+  const id = fragmentId(href);
+  if (!id) {
+    return null;
+  }
+  // No selector strings: ids can contain quotes and other selector syntax.
+  return document.getElementById(id) ?? document.getElementsByName(id)[0] ?? null;
 }
 
 /** Headings don't move between nodes, so resolve each list's targets once. */
@@ -139,6 +153,10 @@ export function smoothScrollToHref(
   }
   const top = target.getBoundingClientRect().top + window.scrollY;
   scrollWindowTo(top - HEADER_HEIGHT - 24);
+  // Like a native anchor: the address shows the section and Back returns.
+  if (href.startsWith('#') && location.hash !== href) {
+    history.pushState(history.state, '', href);
+  }
   if (options.focus) {
     focusJumpTarget(target.closest('h1, h2, h3, h4, h5, h6') ?? target);
   }
@@ -151,6 +169,20 @@ export function getActiveTocIndex(
 ): number {
   const headings = headingsFor(items);
   let index = -1;
+
+  // Short final sections never reach the offset line; at the bottom of the
+  // page, the last section is the one being read.
+  const atBottom =
+    window.scrollY > 0 &&
+    window.scrollY + window.innerHeight >=
+      document.documentElement.scrollHeight - 1;
+  if (atBottom) {
+    for (let i = headings.length - 1; i >= 0; i--) {
+      if (headings[i]) {
+        return i;
+      }
+    }
+  }
 
   for (let i = 0; i < headings.length; i++) {
     const heading = headings[i];

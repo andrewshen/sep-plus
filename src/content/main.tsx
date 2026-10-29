@@ -357,7 +357,7 @@ const themePromise: Promise<ThemePreference> = isHtmlDocument
       },
       (error: unknown) => {
         console.warn('SEP+ could not load the saved theme.', error);
-        const fallback = cachedTheme ?? 'light';
+        const fallback = cachedTheme ?? 'auto';
         applyTheme(fallback);
         return fallback;
       }
