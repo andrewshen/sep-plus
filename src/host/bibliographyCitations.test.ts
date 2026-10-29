@@ -253,6 +253,26 @@ describe('citation parsing across supplied SEP formats', () => {
     expect(matches[0]?.entries[0]?.author).toBe('Kripke');
   });
 
+  it('starts a parenthetical match at the author it resolved to', () => {
+    setDocument(
+      '<p>Some agree (Lewis and Kripke 1980).</p>',
+      `
+        <ul class="hanging">
+          <li>Kripke, Saul, 1980, <em>Naming and Necessity</em>.</li>
+          <li>Lewis, David, 1986, <em>Plurality</em>.</li>
+        </ul>
+      `,
+    );
+    const text = 'Some agree (Lewis and Kripke 1980).';
+    const matches = findBibliographyCitationMatches(
+      text,
+      collectBibliographyEntries(document),
+    );
+    expect(matches.map((match) => text.slice(match.start, match.end))).toEqual([
+      'Kripke 1980',
+    ]);
+  });
+
   it('keeps trying later authors after an unresolved narrative match', () => {
     setDocument(
       '<p>As Lewis and Kripke (1980) argue.</p>',

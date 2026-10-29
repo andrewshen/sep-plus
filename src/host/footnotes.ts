@@ -747,6 +747,8 @@ function createPreviewController(options: {
     activeLink = link;
     activeMotion = motion;
     content.replaceChildren(cloneNoteForPreview(note, doc));
+    // Only a link-less note makes the container focusable (see ArrowDown).
+    preview.removeAttribute('tabindex');
     preview.setAttribute('aria-label', 'Footnote');
     preview.dataset.motion = motion;
     preview.dataset.state = wasOpen ? 'open' : 'measuring';
@@ -804,7 +806,10 @@ function createPreviewController(options: {
     clearCloseTimer();
     closeTimer = win.setTimeout(() => {
       closeTimer = null;
-      if (activeLink && doc.activeElement === activeLink) {
+      if (
+        (activeLink && doc.activeElement === activeLink) ||
+        focusIsWithinPreview()
+      ) {
         return;
       }
       hidePreview(true);

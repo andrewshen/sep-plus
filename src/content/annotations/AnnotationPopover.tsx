@@ -101,6 +101,8 @@ export function AnnotationPopover({
 
   useEffect(() => {
     if (draft.trim() === savedRef.current) {
+      // Back to what's stored, so nothing is left unsaved.
+      setSaveError(null);
       return;
     }
     const timer = window.setTimeout(() => {

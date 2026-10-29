@@ -145,6 +145,17 @@ function rollback(error: unknown): void {
   revealPage();
 }
 
+/** Not an SEP layout, so SEP+ never mounts: undo the document_start setup. */
+function release(): void {
+  // Wait out the stored theme so it can't re-add its classes afterwards.
+  void themePromise.then(() => {
+    for (const element of [document.documentElement, document.body]) {
+      element?.classList.remove(...PAGE_CLASSES);
+    }
+    restoreNativeFonts();
+  });
+}
+
 function onUncaughtRenderError(error: unknown): void {
   if (!booted) {
     renderError ??= error;
@@ -376,6 +387,7 @@ void boot({
   waitForDomReady,
   hasSepLayout,
   mount,
+  release,
   reveal: revealPage,
   rollback,
   parseTimeoutMs: PARSE_TIMEOUT_MS,

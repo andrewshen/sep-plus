@@ -108,6 +108,17 @@ describe('getEntryIndex', () => {
     expect(Object.values(stored)).toHaveLength(1);
   });
 
+  it('still returns fetched titles when caching them fails', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => new Response(CONTENTS, { status: 200 })),
+    );
+    vi.mocked(chrome.storage.local.set).mockRejectedValueOnce(
+      new Error('Extension context invalidated.'),
+    );
+    expect(await getEntryIndex()).toHaveLength(8);
+  });
+
   it('throws when nothing is stored and the fetch fails', async () => {
     vi.stubGlobal('fetch', vi.fn(async () => new Response('', { status: 503 })));
     await expect(getEntryIndex()).rejects.toThrow('503');

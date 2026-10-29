@@ -165,8 +165,9 @@ async function refreshEntryIndex(): Promise<EntryIndexItem[]> {
     fetchedAt: Date.now(),
     entries,
   };
-  await chrome.storage.local.set({ [STORAGE_KEY]: next });
-  void chrome.storage.local.remove(LEGACY_STORAGE_KEYS);
+  // A failed cache write still leaves this page with titles to search.
+  await chrome.storage.local.set({ [STORAGE_KEY]: next }).catch(() => undefined);
+  void chrome.storage.local.remove(LEGACY_STORAGE_KEYS).catch(() => undefined);
   return entries;
 }
 

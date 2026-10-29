@@ -44,6 +44,7 @@ function options(overrides: Partial<BootOptions> = {}) {
     waitForDomReady: () => Promise.resolve(),
     hasSepLayout: () => true,
     mount: () => Promise.resolve(),
+    release: vi.fn(),
     reveal: vi.fn(),
     rollback: vi.fn(),
     parseTimeoutMs: 15000,
@@ -77,6 +78,8 @@ describe('boot', () => {
     const { opts } = options({ hasSepLayout: () => false, mount });
     await boot(opts);
     expect(mount).not.toHaveBeenCalled();
+    expect(opts.release).toHaveBeenCalledTimes(1);
+    expect(opts.rollback).not.toHaveBeenCalled();
     expect(opts.reveal).toHaveBeenCalled();
   });
 

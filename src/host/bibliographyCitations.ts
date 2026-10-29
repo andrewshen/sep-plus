@@ -59,7 +59,9 @@ type YearOccurrence = {
 type PendingCitationGroup = {
   /** Co-authors as cited, e.g. ["heck", "may"] for "Heck & May 2006". */
   chain: string[];
-  start: number;
+  /** Where each chain author starts; the match begins at the earliest one cited. */
+  starts: number[];
+  firstAuthor: number;
   end: number;
   entries: BibliographyEntry[];
   valid: boolean;
@@ -582,7 +584,7 @@ function finalizeGroup(
     return;
   }
   matches.push({
-    start: absoluteOffset + group.start,
+    start: absoluteOffset + (group.starts[group.firstAuthor] ?? 0),
     end: absoluteOffset + group.end,
     entries: uniqueEntries(group.entries),
   });
@@ -611,7 +613,8 @@ function parentheticalSegmentMatches(
       finalizeGroup(group, absoluteOffset, matches);
       group = {
         chain: chain.map((author) => author.authorKey),
-        start: cursor + head.start,
+        starts: chain.map((author) => cursor + author.start),
+        firstAuthor: chain.length - 1,
         end: year.end,
         entries: [],
         valid: true,
@@ -622,6 +625,7 @@ function parentheticalSegmentMatches(
       const resolved = resolveChainEntry(group.chain, year.year, patterns, index);
       if (resolved) {
         group.entries.push(resolved.entry);
+        group.firstAuthor = Math.min(group.firstAuthor, resolved.author);
       } else {
         group.valid = false;
       }

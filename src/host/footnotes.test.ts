@@ -570,6 +570,38 @@ describe('controller lifecycle and interactions', () => {
     cleanup();
   });
 
+  it('stays open for keyboard reading when the pointer wanders off', async () => {
+    mockMatchMedia({ hover: true });
+    articleFixture();
+    const cleanup = initFootnotes({
+      document,
+      window,
+      fetch: async () => new Response(notesHtml, { status: 200 }),
+    });
+    await waitForFootnotes();
+    const link = document.querySelector<HTMLAnchorElement>('#ref-1')!;
+    const shadow = document.querySelector<HTMLElement>('#sep-plus-footnote-layer')!
+      .shadowRoot!;
+    const preview = shadow.querySelector<HTMLElement>('.sep-footnote-preview')!;
+
+    link.focus();
+    link.dispatchEvent(
+      new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true, cancelable: true }),
+    );
+    expect(shadow.activeElement).toBe(preview);
+    link.dispatchEvent(new PointerEvent('pointerover', { bubbles: true, pointerType: 'mouse' }));
+    link.dispatchEvent(new PointerEvent('pointerout', { bubbles: true, pointerType: 'mouse' }));
+    await new Promise((resolve) => setTimeout(resolve, 200));
+    expect(preview.hidden).toBe(false);
+
+    // The link-less note made the container focusable; the next note resets it.
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    link.dispatchEvent(new FocusEvent('focusin', { bubbles: true }));
+    expect(preview.hidden).toBe(false);
+    expect(preview.hasAttribute('tabindex')).toBe(false);
+    cleanup();
+  });
+
   it('does not open a hover preview on coarse pointers', async () => {
     articleFixture();
     const cleanup = initFootnotes({

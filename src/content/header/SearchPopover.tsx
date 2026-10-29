@@ -161,8 +161,6 @@ export function Search({
   const [loading, setLoading] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [activeIndex, setActiveIndex] = useState(0);
-  /** Escape closes the results but leaves you in the field. */
-  const keepFocusOnCloseRef = useRef(false);
 
   useDismiss(anchorRef, open, onClose);
 
@@ -175,10 +173,7 @@ export function Search({
       input?.focus();
       return;
     }
-    if (!keepFocusOnCloseRef.current) {
-      input?.blur();
-    }
-    keepFocusOnCloseRef.current = false;
+    input?.blur();
     prefetchedUrlsRef.current.clear();
     clearDocumentPrefetches();
   }, [open]);
@@ -285,10 +280,6 @@ export function Search({
 
   function onKeyDown(event: ReactKeyboardEvent<HTMLInputElement>): void {
     if (isComposingKey(event.nativeEvent)) {
-      return;
-    }
-    if (event.key === 'Escape' && open) {
-      keepFocusOnCloseRef.current = true;
       return;
     }
     if (!open) {

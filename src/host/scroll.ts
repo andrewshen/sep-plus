@@ -2,7 +2,17 @@ const MIN_DURATION_MS = 180;
 const MAX_DURATION_MS = 380;
 const MS_PER_PX = 0.12;
 
-const INTERRUPT_EVENTS = ['wheel', 'touchstart', 'keydown', 'mousedown'] as const;
+const INTERRUPT_EVENTS = ['wheel', 'touchstart', 'mousedown'] as const;
+/** Keys that scroll the page; Tab or Enter right after a jump shouldn't stop it. */
+const SCROLL_KEYS = new Set([
+  'ArrowUp',
+  'ArrowDown',
+  'PageUp',
+  'PageDown',
+  'Home',
+  'End',
+  ' ',
+]);
 
 let cancelActive: (() => void) | null = null;
 
@@ -59,11 +69,18 @@ export function scrollWindowTo(top: number): void {
   let startTime: number | null = null;
   let frame = 0;
 
+  const onKeyDown = (event: KeyboardEvent) => {
+    if (SCROLL_KEYS.has(event.key)) {
+      stop();
+    }
+  };
+
   const stop = () => {
     cancelAnimationFrame(frame);
     for (const type of INTERRUPT_EVENTS) {
       window.removeEventListener(type, stop);
     }
+    window.removeEventListener('keydown', onKeyDown);
     if (cancelActive === stop) {
       cancelActive = null;
     }
@@ -86,6 +103,7 @@ export function scrollWindowTo(top: number): void {
   for (const type of INTERRUPT_EVENTS) {
     window.addEventListener(type, stop, { passive: true });
   }
+  window.addEventListener('keydown', onKeyDown, { passive: true });
   cancelActive = stop;
   frame = requestAnimationFrame(step);
 }

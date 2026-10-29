@@ -669,15 +669,22 @@ export function bootstrapHost(theme: ThemePreference): void {
   injectLocalFonts();
   applyTheme(theme);
 
-  window
-    .matchMedia('(prefers-color-scheme: dark)')
-    .addEventListener('change', () => {
+  const listeners = new AbortController();
+  window.matchMedia('(prefers-color-scheme: dark)').addEventListener(
+    'change',
+    () => {
       if (appliedTheme === 'auto') {
         applyTheme('auto');
       }
-    });
-
-  onThemeChanged((next) => {
+    },
+    { signal: listeners.signal },
+  );
+  const stopThemeSync = onThemeChanged((next) => {
     applyTheme(next);
+  });
+  // A rolled-back page is native SEP; theme changes elsewhere must not restyle it.
+  onRollback(() => {
+    listeners.abort();
+    stopThemeSync();
   });
 }

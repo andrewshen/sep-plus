@@ -108,7 +108,7 @@ describe('Search', () => {
     expect(prefetched()).toHaveLength(3);
   });
 
-  it('keeps focus in the field after Escape', async () => {
+  it('closes and leaves the field after Escape', async () => {
     getEntryIndex.mockResolvedValue(ENTRIES);
     render(<Harness />);
     input().focus();
@@ -116,7 +116,7 @@ describe('Search', () => {
     fireEvent.keyDown(input(), { key: 'Escape' });
     await flush();
     expect(input().getAttribute('aria-expanded')).toBe('false');
-    expect(document.activeElement).toBe(input());
+    expect(document.activeElement).not.toBe(input());
   });
 
   it('retries loading titles on the next open after a failure', async () => {

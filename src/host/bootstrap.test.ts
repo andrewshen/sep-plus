@@ -4,6 +4,7 @@
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
+  bootstrapHost,
   extractEntryCopyright,
   reformatPubinfo,
   restyleSearchResults,
@@ -34,6 +35,27 @@ const COPYRIGHT = `
   </div>
   <div id="article-banner">Support SEP</div>
   <div id="site-credits">Credits</div>`;
+
+describe('bootstrapHost', () => {
+  it('stops following theme changes after a rollback', () => {
+    const listeners = new Set<(changes: object, area: string) => void>();
+    vi.stubGlobal('chrome', {
+      runtime: { getURL: (path: string) => `chrome-extension://id/${path}` },
+      storage: {
+        onChanged: {
+          addListener: (fn: (changes: object, area: string) => void) => listeners.add(fn),
+          removeListener: (fn: (changes: object, area: string) => void) => listeners.delete(fn),
+        },
+      },
+    });
+    bootstrapHost('light');
+    expect(listeners.size).toBe(1);
+
+    rollbackHost();
+    document.documentElement.classList.remove('sep-plus-theme-applied');
+    expect(listeners.size).toBe(0);
+  });
+});
 
 describe('restyleSearchResults', () => {
   it('moves the author under the title and puts it back on rollback', () => {

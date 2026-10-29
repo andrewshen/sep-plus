@@ -4,6 +4,8 @@ export type BootOptions = {
   /** False on pages without SEP's #container/#content layout. */
   hasSepLayout: () => boolean;
   mount: () => Promise<void>;
+  /** Hand a non-SEP-layout page back untouched (theme classes, native fonts). */
+  release: () => void;
   reveal: () => void;
   rollback: (error: unknown) => void;
   /** Reveal the page if parsing stalls (DOMContentLoaded never arrives). */
@@ -39,6 +41,7 @@ export async function boot(options: BootOptions): Promise<void> {
     clearTimer(parseTimer);
     parseTimer = undefined;
     if (!options.hasSepLayout()) {
+      options.release();
       return;
     }
     mountTimer = setTimer(options.reveal, options.mountTimeoutMs);

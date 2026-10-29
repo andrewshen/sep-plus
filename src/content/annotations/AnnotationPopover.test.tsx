@@ -97,6 +97,18 @@ describe('AnnotationPopover', () => {
     expect(alert()).toBeNull();
   });
 
+  it('clears the error once the note is back to what’s saved', async () => {
+    const onSaveNote = vi.fn(() => Promise.reject(new Error('offline')));
+    const { textarea, alert } = renderPopover({ onSaveNote });
+    fireEvent.change(textarea(), { target: { value: 'Draft' } });
+    await settle();
+    expect(alert()).not.toBeNull();
+
+    fireEvent.change(textarea(), { target: { value: '' } });
+    await settle(0);
+    expect(alert()).toBeNull();
+  });
+
   it('retries a failed save when it closes', async () => {
     const onSaveNote = vi
       .fn<(note: string) => Promise<void>>()
