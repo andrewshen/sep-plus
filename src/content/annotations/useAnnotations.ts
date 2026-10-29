@@ -27,7 +27,7 @@ import type {
   EntryAnnotations,
 } from '../../lib/annotations';
 import {
-  buildTextProjection,
+  getTextProjection,
   createSelectionAnchor,
   rangeViewportRect,
   resolveAnnotationRange,
@@ -216,8 +216,27 @@ export function useAnnotations({
     };
   }, [enabled, source]);
 
+  // Note edits autosave constantly; only re-resolve ranges when anchors change.
+  const anchorsKey = useMemo(
+    () =>
+      entry
+        ? JSON.stringify(
+            entry.annotations.map((annotation) => [
+              annotation.id,
+              annotation.selector,
+            ]),
+          )
+        : null,
+    [entry],
+  );
+  const anchors = useMemo(
+    () =>
+      entry?.annotations.map(({ id, selector }) => ({ id, selector })) ?? null,
+    [anchorsKey],
+  );
+
   useEffect(() => {
-    if (!articleRoot || !entry) {
+    if (!articleRoot || !anchors) {
       renderer.clear();
       stableRangesRef.current = new Map();
       setResolvedIds(new Set());
@@ -225,12 +244,12 @@ export function useAnnotations({
       setActiveAnnotation(null);
       return;
     }
-    const projection = buildTextProjection(articleRoot);
+    const projection = getTextProjection(articleRoot);
     const resolved: ResolvedAnnotationRange[] = [];
     const nextIds = new Set<string>();
     const previousRanges = stableRangesRef.current;
     const nextRanges = new Map<string, Range>();
-    for (const annotation of entry.annotations) {
+    for (const annotation of anchors) {
       const fresh = resolveAnnotationRange(
         articleRoot,
         annotation,
@@ -269,7 +288,7 @@ export function useAnnotations({
         : null;
     });
     return () => renderer.clear();
-  }, [articleRoot, entry, renderer]);
+  }, [anchors, articleRoot, renderer]);
 
   useEffect(
     () => () => {
@@ -363,8 +382,10 @@ export function useAnnotations({
     }
     const root = articleRoot;
     let point: { clientX: number; clientY: number } | null = null;
+    let frame: number | null = null;
 
     function updateHover(): void {
+      frame = null;
       const annotationId = point
         ? renderer.annotationAtPoint(point.clientX, point.clientY)
         : null;
@@ -375,24 +396,36 @@ export function useAnnotations({
       );
     }
 
+    function scheduleHover(): void {
+      frame ??= window.requestAnimationFrame(updateHover);
+    }
+
     function onPointerMove(event: PointerEvent): void {
       point = isSepPlusUiEvent(event)
         ? null
         : { clientX: event.clientX, clientY: event.clientY };
-      updateHover();
+      scheduleHover();
     }
 
     function clearHover(): void {
       point = null;
-      updateHover();
+      scheduleHover();
     }
 
+    // Article reflow (images, fonts, window size) moves the highlights.
+    const resizeObserver = new ResizeObserver(() => renderer.invalidateLayout());
+    resizeObserver.observe(root);
+
     document.addEventListener('pointermove', onPointerMove, { passive: true });
-    window.addEventListener('scroll', updateHover, { passive: true });
+    window.addEventListener('scroll', scheduleHover, { passive: true });
     window.addEventListener('blur', clearHover);
     return () => {
+      if (frame !== null) {
+        window.cancelAnimationFrame(frame);
+      }
+      resizeObserver.disconnect();
       document.removeEventListener('pointermove', onPointerMove);
-      window.removeEventListener('scroll', updateHover);
+      window.removeEventListener('scroll', scheduleHover);
       window.removeEventListener('blur', clearHover);
       root.classList.remove('sep-plus-annotation-hovering');
       setHoveredId(null);

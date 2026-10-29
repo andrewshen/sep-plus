@@ -8,6 +8,7 @@ import type { Annotation } from '../lib/annotations';
 import {
   buildTextProjection,
   createSelectionAnchor,
+  getTextProjection,
   rangeViewportRect,
   resolveAnnotationRange,
 } from './annotationAnchors';
@@ -180,6 +181,136 @@ describe('annotation text anchors', () => {
       (anchor?.selector.position.end ?? 0) -
         (anchor?.selector.position.start ?? 0),
     ).toBe(2);
+  });
+
+  it('anchors selections that end on a footnote marker', () => {
+    const root = setArticle(
+      '<p>The argument.<sup><a href="notes.html#1">[1]</a></sup> Next.</p>',
+    );
+    const range = document.createRange();
+    range.setStart(textNode('p'), 4);
+    range.setEnd(textNode('a'), 2);
+    const anchor = createSelectionAnchor(root, range);
+    expect(anchor?.selector.quote.exact).toBe('argument.');
+  });
+
+  it('ignores selections made only of excluded text', () => {
+    const root = setArticle(
+      '<p>The argument.<sup><a href="notes.html#1">[1]</a></sup> Next.</p>',
+    );
+    const range = document.createRange();
+    range.selectNodeContents(document.querySelector('sup') as Element);
+    expect(createSelectionAnchor(root, range)).toBeNull();
+  });
+
+  it('treats <br> as whitespace', () => {
+    const root = setArticle('<p>line one<br>line two</p>');
+    expect(buildTextProjection(root).text).toBe('line one line two');
+  });
+
+  it('re-finds anchors saved before <br> counted as whitespace', () => {
+    const root = setArticle('<p>Intro text. line one<br>line two ends.</p>');
+    const legacy: Annotation = {
+      id: 'legacy',
+      selector: {
+        quote: {
+          type: 'TextQuoteSelector',
+          exact: 'oneline',
+          prefix: 'Intro text. line ',
+          suffix: ' two ends.',
+        },
+        position: { type: 'TextPositionSelector', start: 17, end: 24 },
+      },
+      note: '',
+      createdAt: 1,
+      updatedAt: 1,
+    };
+    const resolved = resolveAnnotationRange(root, legacy);
+    // Range text skips the <br>, but the range spans it.
+    expect(resolved?.toString()).toBe('oneline');
+    expect(resolved?.startContainer).toBe(textNode('p', 0));
+    expect(resolved?.endContainer).toBe(textNode('p', 2));
+  });
+
+  it('does not trust the stored position when its context changed', () => {
+    let root = setArticle(
+      '<p>Early on, Kant argued for idealism.</p><p>Later, Kant argued again.</p>',
+    );
+    const first = textNode('p');
+    const range = document.createRange();
+    range.setStart(first, 10);
+    range.setEnd(first, 14);
+    const annotation = asAnnotation(
+      createSelectionAnchor(root, range) as NonNullable<
+        ReturnType<typeof createSelectionAnchor>
+      >,
+    );
+    expect(annotation.selector.quote.exact).toBe('Kant');
+
+    // A revision puts a different "Kant" at the old offsets.
+    root = setArticle(
+      '<p>Early, Kant… Early on, Kant argued for idealism.</p><p>Later, Kant argued again.</p>',
+    );
+    const resolved = resolveAnnotationRange(root, annotation);
+    expect(resolved?.startOffset).toBe(23);
+  });
+
+  it('survives quote, dash, and whitespace revisions inside the quote', () => {
+    let root = setArticle("<p>He said it's a 'test' - really, in full.</p>");
+    const node = textNode('p');
+    const range = document.createRange();
+    range.setStart(node, 8);
+    range.setEnd(node, 30);
+    const annotation = asAnnotation(
+      createSelectionAnchor(root, range) as NonNullable<
+        ReturnType<typeof createSelectionAnchor>
+      >,
+    );
+
+    root = setArticle('<p>He said it’s a ‘test’ — really, in full.</p>');
+    expect(resolveAnnotationRange(root, annotation)?.toString()).toBe(
+      'it’s a ‘test’ — really',
+    );
+  });
+
+  it('brackets an edited quote between its unchanged context', () => {
+    let root = setArticle(
+      '<p>The opening context stays. The highlighted claim is here. The closing context stays.</p>',
+    );
+    const node = textNode('p');
+    const range = document.createRange();
+    range.setStart(node, 27);
+    range.setEnd(node, 57);
+    const annotation = asAnnotation(
+      createSelectionAnchor(root, range) as NonNullable<
+        ReturnType<typeof createSelectionAnchor>
+      >,
+    );
+    expect(annotation.selector.quote.exact).toBe('The highlighted claim is here.');
+
+    root = setArticle(
+      '<p>The opening context stays. The highlighted claim is there. The closing context stays.</p>',
+    );
+    expect(resolveAnnotationRange(root, annotation)?.toString()).toBe(
+      'The highlighted claim is there.',
+    );
+  });
+
+  it('reuses the projection until the article text changes', async () => {
+    const root = setArticle('<p>Stable text.</p>');
+    const first = getTextProjection(root);
+    expect(getTextProjection(root)).toBe(first);
+
+    const overlay = document.createElement('div');
+    overlay.setAttribute('aria-hidden', 'true');
+    overlay.textContent = 'overlay';
+    root.appendChild(overlay);
+    expect(getTextProjection(root)).toBe(first);
+
+    root.querySelector('p')?.append(' More.');
+    const next = getTextProjection(root);
+    expect(next).not.toBe(first);
+    expect(next.text).toBe('Stable text. More.');
   });
 
   it('anchors the selection toolbar to the first rendered line', () => {
