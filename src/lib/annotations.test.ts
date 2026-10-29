@@ -10,6 +10,8 @@ import {
   getEntryAnnotations,
   onEntryAnnotationsChanged,
   removeAnnotation,
+  UNREADABLE_ANNOTATIONS_PREFIX,
+  updateAnnotationNote,
   upsertAnnotation,
 } from './annotationStorage';
 import {
@@ -194,7 +196,20 @@ describe('annotation storage', () => {
   it('filters unrelated storage records when exporting all entries', async () => {
     stored.entryIndex = { fetchedAt: 1, entries: [] };
     stored[annotationStorageKey(SOURCE)] = entry();
-    expect(await getAllEntryAnnotations()).toEqual([entry()]);
+    expect(await getAllEntryAnnotations()).toEqual({
+      entries: [entry()],
+      skipped: [],
+    });
+  });
+
+  it('skips unreadable records when exporting all entries', async () => {
+    const other = 'https://plato.stanford.edu/entries/other/';
+    stored[annotationStorageKey(SOURCE)] = entry();
+    stored[annotationStorageKey(other)] = { version: 99, source: other };
+    expect(await getAllEntryAnnotations()).toEqual({
+      entries: [entry()],
+      skipped: [annotationStorageKey(other)],
+    });
   });
 
   it('reports malformed stored records without overwriting them', async () => {
@@ -204,6 +219,62 @@ describe('annotation storage', () => {
       'invalid or unsupported',
     );
     expect(stored[key]).toEqual({ version: 99, source: SOURCE });
+  });
+
+  it('sets an unreadable record aside before saving a new one', async () => {
+    const key = annotationStorageKey(SOURCE);
+    const unreadable = { version: 99, source: SOURCE, future: true };
+    stored[key] = unreadable;
+    await upsertAnnotation(SOURCE, 'Example', annotation('fresh'));
+    expect((await getEntryAnnotations(SOURCE))?.annotations.map((a) => a.id))
+      .toEqual(['fresh']);
+    const backups = Object.entries(stored).filter(([storedKey]) =>
+      storedKey.startsWith(UNREADABLE_ANNOTATIONS_PREFIX),
+    );
+    expect(backups).toHaveLength(1);
+    expect(backups[0]?.[1]).toEqual(unreadable);
+  });
+
+  it('serializes concurrent writes to the same entry', async () => {
+    await Promise.all([
+      upsertAnnotation(SOURCE, 'Example', annotation('a', 'Alpha', 0)),
+      upsertAnnotation(SOURCE, 'Example', annotation('b', 'Beta', 10)),
+      upsertAnnotation(SOURCE, 'Example', annotation('c', 'Gamma', 20)),
+    ]);
+    expect(
+      (await getEntryAnnotations(SOURCE))?.annotations.map((item) => item.id),
+    ).toEqual(['a', 'b', 'c']);
+  });
+
+  it('keeps writing after a failed write in the queue', async () => {
+    vi.mocked(chrome.storage.local.set).mockRejectedValueOnce(new Error('boom'));
+    const results = await Promise.allSettled([
+      upsertAnnotation(SOURCE, 'Example', annotation('a')),
+      upsertAnnotation(SOURCE, 'Example', annotation('b', 'Beta', 10)),
+    ]);
+    expect(results.map((result) => result.status)).toEqual([
+      'rejected',
+      'fulfilled',
+    ]);
+  });
+
+  it('updates notes in place', async () => {
+    await upsertAnnotation(SOURCE, 'Example', annotation('one'));
+    const next = await updateAnnotationNote(SOURCE, 'one', 'New note', 500);
+    expect(next?.annotations[0]).toMatchObject({ note: 'New note', updatedAt: 500 });
+  });
+
+  it('never resurrects an annotation deleted before its note saves', async () => {
+    await upsertAnnotation(SOURCE, 'Example', annotation('one'));
+    await upsertAnnotation(SOURCE, 'Example', annotation('two', 'Two', 20));
+    const [, saved] = await Promise.all([
+      removeAnnotation(SOURCE, 'one'),
+      updateAnnotationNote(SOURCE, 'one', 'Late note'),
+    ]);
+    expect(saved).toBeNull();
+    expect(
+      (await getEntryAnnotations(SOURCE))?.annotations.map((item) => item.id),
+    ).toEqual(['two']);
   });
 
   it('propagates storage write failures', async () => {

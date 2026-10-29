@@ -1324,6 +1324,39 @@
   opacity: 1;
 }
 
+/* Same colors as .sep-popover-message.is-error (popover.css). */
+.sep-annotation-save-error {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 8px;
+  color: #8f2d36;
+  font-size: 13px;
+  line-height: 18px;
+}
+
+.sep-plus-app.is-dark .sep-annotation-save-error {
+  color: #f1a7ad;
+}
+
+.sep-plus-app .sep-annotation-save-retry {
+  flex-shrink: 0;
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--sep-text);
+  font: inherit;
+  font-weight: 500;
+  cursor: pointer;
+  transition: opacity var(--sep-duration-fast) var(--sep-ease);
+}
+
+.sep-plus-app .sep-annotation-save-retry:hover {
+  opacity: 0.5;
+}
+
 .sep-plus-app.is-dark {
   --sand-1: #111110;
   --sand-2: #191918;

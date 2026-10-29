@@ -2,6 +2,7 @@ import { useRef } from 'react';
 import type { HighlightColor, ThemePreference } from '../../lib/types';
 import type {
   AnnotationExportFormat,
+  AnnotationExportResult,
   AnnotationExportScope,
 } from '../annotations/useAnnotations';
 import { IconMore } from '../icons';
@@ -22,7 +23,7 @@ type SettingsMenuProps = {
   onExportAnnotations: (
     format: AnnotationExportFormat,
     scope: AnnotationExportScope,
-  ) => Promise<void>;
+  ) => Promise<AnnotationExportResult>;
 };
 
 /** The ⋯ button and its settings popover, shared by the header and homepage. */

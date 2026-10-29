@@ -6,7 +6,13 @@ import { IconButton } from '../ui/IconButton';
 import { Popover } from '../ui/Popover';
 import { useDismiss } from '../ui/useDismiss';
 import { MarginNotePopover } from './MarginNotePopover';
-import type { AnnotationListItem } from './useAnnotations';
+import {
+  annotationErrorMessage,
+  isContextInvalidated,
+  type AnnotationListItem,
+} from './useAnnotations';
+
+type SaveError = { message: string; retryable: boolean };
 
 type AnnotationPopoverProps = {
   annotation: AnnotationListItem;
@@ -42,14 +48,36 @@ export function AnnotationPopover({
   const [draft, setDraft] = useState(annotation.note);
   const [menuOpen, setMenuOpen] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [saveError, setSaveError] = useState<SaveError | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const menuAnchorRef = useRef<HTMLDivElement>(null);
+  /** Last note text storage confirmed; only advances on success. */
   const savedRef = useRef(annotation.note.trim());
   const draftRef = useRef(draft);
   const deletingRef = useRef(false);
+  const mountedRef = useRef(true);
   const onSaveNoteRef = useRef(onSaveNote);
   draftRef.current = draft;
   onSaveNoteRef.current = onSaveNote;
+
+  function save(next: string): void {
+    void onSaveNoteRef.current(next).then(
+      () => {
+        savedRef.current = next;
+        if (mountedRef.current) {
+          setSaveError(null);
+        }
+      },
+      (error: unknown) => {
+        if (mountedRef.current) {
+          setSaveError({
+            message: annotationErrorMessage(error),
+            retryable: !isContextInvalidated(error),
+          });
+        }
+      },
+    );
+  }
 
   useDismiss(menuAnchorRef, menuOpen, () => setMenuOpen(false));
 
@@ -72,19 +100,20 @@ export function AnnotationPopover({
       return;
     }
     const timer = window.setTimeout(() => {
-      const next = draft.trim();
-      savedRef.current = next;
-      void onSaveNoteRef.current(next).catch(() => undefined);
+      if (!deletingRef.current) {
+        save(draft.trim());
+      }
     }, AUTOSAVE_DELAY_MS);
     return () => window.clearTimeout(timer);
   }, [draft]);
 
-  // Flush an unsaved edit when the popover closes mid-debounce.
+  // Flush an unsaved (or failed) edit when the popover closes.
   useEffect(
     () => () => {
+      mountedRef.current = false;
       const next = draftRef.current.trim();
       if (!deletingRef.current && next !== savedRef.current) {
-        void onSaveNoteRef.current(next).catch(() => undefined);
+        save(next);
       }
     },
     [],
@@ -195,6 +224,20 @@ export function AnnotationPopover({
               }
             }}
           />
+          {saveError ? (
+            <div className="sep-annotation-save-error" role="alert">
+              <span>{saveError.message}</span>
+              {saveError.retryable ? (
+                <button
+                  type="button"
+                  className="sep-annotation-save-retry"
+                  onClick={() => save(draftRef.current.trim())}
+                >
+                  Retry
+                </button>
+              ) : null}
+            </div>
+          ) : null}
         </div>
       }
     />

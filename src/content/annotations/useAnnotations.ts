@@ -19,6 +19,7 @@ import {
   getEntryAnnotations,
   onEntryAnnotationsChanged,
   removeAnnotation,
+  updateAnnotationNote,
   upsertAnnotation,
 } from '../../lib/annotationStorage';
 import type {
@@ -64,6 +65,10 @@ export type ActiveAnnotationHighlight = {
 
 export type { AnnotationExportFormat };
 export type AnnotationExportScope = 'entry' | 'all';
+export type AnnotationExportResult = {
+  /** Stored records that couldn't be read and were left out of the file. */
+  skipped: number;
+};
 
 const ARRIVAL_EMPHASIS_MS = 1200;
 /** Clear even if `scrollend` never fires (e.g. already in view). */
@@ -80,8 +85,24 @@ type AnnotationUpdate = {
   note?: string;
 };
 
-function errorMessage(error: unknown): string {
+/** Thrown by every chrome.* call after the extension updates or reloads. */
+export function isContextInvalidated(error: unknown): boolean {
+  return (
+    error instanceof Error && /extension context invalidated/i.test(error.message)
+  );
+}
+
+export function annotationErrorMessage(error: unknown): string {
+  if (isContextInvalidated(error)) {
+    return 'SEP+ was updated. Reload the page to keep saving notes.';
+  }
   return error instanceof Error ? error.message : 'Unknown annotation error.';
+}
+
+const errorMessage = annotationErrorMessage;
+
+export function skippedLabel(count: number): string {
+  return count === 1 ? '1 saved entry' : `${count} saved entries`;
 }
 
 function isSepPlusUiEvent(event: Event): boolean {
@@ -501,34 +522,26 @@ export function useAnnotations({
 
   const updateAnnotation = useCallback(
     async (annotationId: string, update: AnnotationUpdate): Promise<void> => {
-      if (!source || !entry) {
+      if (!source || update.note === undefined) {
         return;
       }
-      const current = entry.annotations.find(
-        (annotation) => annotation.id === annotationId,
-      );
-      if (!current) {
-        return;
-      }
-      const nextAnnotation: Annotation = {
-        ...current,
-        ...(update.note !== undefined ? { note: update.note.trim() } : {}),
-        updatedAt: Date.now(),
-      };
       try {
-        const next = await upsertAnnotation(
+        const next = await updateAnnotationNote(
           source,
-          pageTitle,
-          nextAnnotation,
+          annotationId,
+          update.note.trim(),
         );
-        setEntry(next);
+        // null: deleted meanwhile; the storage listener already updated us.
+        if (next) {
+          setEntry(next);
+        }
         setError(null);
       } catch (updateError: unknown) {
         setError(errorMessage(updateError));
         throw updateError;
       }
     },
-    [entry, pageTitle, source],
+    [source],
   );
 
   const deleteAnnotation = useCallback(
@@ -590,16 +603,18 @@ export function useAnnotations({
     async (
       format: AnnotationExportFormat,
       scope: AnnotationExportScope,
-    ): Promise<void> => {
+    ): Promise<AnnotationExportResult> => {
       try {
-        const entries =
+        const { entries, skipped } =
           scope === 'all'
             ? await getAllEntryAnnotations()
-            : entry
-              ? [entry]
-              : [];
+            : { entries: entry ? [entry] : [], skipped: [] };
         if (entries.length === 0) {
-          throw new Error('There are no annotations to export.');
+          throw new Error(
+            skipped.length
+              ? `Couldn’t read ${skippedLabel(skipped.length)}, so there’s nothing to export.`
+              : 'There are no annotations to export.',
+          );
         }
         const exportedAt = new Date();
         if (format === 'json') {
@@ -625,6 +640,7 @@ export function useAnnotations({
           );
         }
         setError(null);
+        return { skipped: skipped.length };
       } catch (exportError: unknown) {
         setError(errorMessage(exportError));
         throw exportError;
