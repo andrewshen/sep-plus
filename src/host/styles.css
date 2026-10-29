@@ -1,12 +1,8 @@
 @import '../lib/sand.css';
 
 /*
- * Hide until ready. Primary copy lives in boot.css (manifest content_scripts.css)
- * so it wins the first-paint race; this reinforces once host styles load via JS.
+ * The boot hide lives only in boot.css, which also carries the failsafe reveal.
  */
-html:not(.sep-plus-ready) {
-  min-height: 100%;
-}
 
 /* Until the stored theme resolves, --sep-page-bg is the light default, so
    leave the background to boot.css's prefers-color-scheme fallback. */
@@ -14,19 +10,10 @@ html.sep-plus-theme-applied:not(.sep-plus-ready) {
   background: var(--sep-page-bg) !important;
 }
 
-html:not(.sep-plus-ready) > body,
-html:not(.sep-plus-ready) > #sep-plus-root,
-html:not(.sep-plus-ready) > #sep-plus-annotation-layer {
-  visibility: hidden !important;
-}
+/* General Styling: page rules are scoped to html.sep-plus so a failed or
+   rolled-back boot leaves native SEP untouched. */
 
-html:not(.sep-plus-ready) body * {
-  transition: none !important;
-}
-
-/* General Styling */
-
-body {
+:where(html.sep-plus) body {
   background: none !important;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -44,35 +31,35 @@ body {
     sans-serif !important;
 }
 
-blockquote {
+:where(html.sep-plus) blockquote {
   border-left: 2px solid var(--sep-border) !important;
   padding: 0px 20px !important;
   font-style: italic !important;
   margin: 24px 0 !important;
 }
 
-h1,
-h2,
-h3 {
+:where(html.sep-plus) h1,
+:where(html.sep-plus) h2,
+:where(html.sep-plus) h3 {
   font-weight: 700 !important;
 }
 
-a {
+:where(html.sep-plus) a {
   text-decoration: none !important;
   transition: color 0.1s ease !important;
 }
 
-a:hover {
+:where(html.sep-plus) a:hover {
   color: #650303 !important;
 }
 
-#pubinfo {
+:where(html.sep-plus) #pubinfo {
   margin-top: 0 !important;
   margin-bottom: 40px !important;
   padding-bottom: 0 !important;
 }
 
-#pubinfo em {
+:where(html.sep-plus) #pubinfo em {
   font-family: 'Public Sans', system-ui, sans-serif !important;
   font-style: normal !important;
   color: var(--sep-muted) !important;
@@ -81,7 +68,7 @@ a:hover {
   font-weight: 400 !important;
 }
 
-#pubinfo a.sep-pubinfo-author {
+:where(html.sep-plus) #pubinfo a.sep-pubinfo-author {
   font-family: inherit !important;
   font-size: inherit !important;
   font-weight: 400 !important;
@@ -91,18 +78,18 @@ a:hover {
   text-shadow: none !important;
 }
 
-#pubinfo a.sep-pubinfo-author:hover {
+:where(html.sep-plus) #pubinfo a.sep-pubinfo-author:hover {
   color: var(--sep-text) !important;
   text-decoration: none !important;
 }
 
-#article-sidebar .navbar i,
-#operations,
-#site-title {
+:where(html.sep-plus) #article-sidebar .navbar i,
+:where(html.sep-plus) #operations,
+:where(html.sep-plus) #site-title {
   display: none;
 }
 
-#article {
+:where(html.sep-plus) #article {
   margin-top: 0 !important;
   padding-top: 0 !important;
   padding-left: 140px !important;
@@ -258,16 +245,16 @@ body.sep-plus #article {
   }
 }
 
-#article-content h1,
-#article-content h2,
-#article-content h3,
-#style_guide_content h1,
-#style_guide_content h2,
-#style_guide_content h3,
-#style_guide_content_wide h1,
-#style_guide_content_wide h2,
-#style_guide_content_wide h3,
-h4 {
+:where(html.sep-plus) #article-content h1,
+:where(html.sep-plus) #article-content h2,
+:where(html.sep-plus) #article-content h3,
+:where(html.sep-plus) #style_guide_content h1,
+:where(html.sep-plus) #style_guide_content h2,
+:where(html.sep-plus) #style_guide_content h3,
+:where(html.sep-plus) #style_guide_content_wide h1,
+:where(html.sep-plus) #style_guide_content_wide h2,
+:where(html.sep-plus) #style_guide_content_wide h3,
+:where(html.sep-plus) h4 {
   margin-top: 40px !important;
   margin-bottom: 16px !important;
   font-family: 'Public Sans', system-ui, sans-serif !important;
@@ -276,15 +263,15 @@ h4 {
   letter-spacing: -0.02em;
 }
 
-#article-content h1 a:hover,
-#article-content h2 a:hover,
-#article-content h3 a:hover,
-#article-content h4 a:hover,
-#article-content h5 a:hover {
+:where(html.sep-plus) #article-content h1 a:hover,
+:where(html.sep-plus) #article-content h2 a:hover,
+:where(html.sep-plus) #article-content h3 a:hover,
+:where(html.sep-plus) #article-content h4 a:hover,
+:where(html.sep-plus) #article-content h5 a:hover {
   color: inherit !important;
 }
 
-#article-content h1 {
+:where(html.sep-plus) #article-content h1 {
   font-size: 45px !important;
   font-weight: 700 !important;
   line-height: 50.4px !important;
@@ -293,38 +280,38 @@ h4 {
   margin-bottom: 12px !important;
 }
 
-#article-content h2 {
+:where(html.sep-plus) #article-content h2 {
   font-size: 27px !important;
   line-height: 37.8px !important;
   letter-spacing: -0.54px !important;
 }
 
-#article-content h1 em,
-#article-content h2 em,
-#article-content h3 em {
+:where(html.sep-plus) #article-content h1 em,
+:where(html.sep-plus) #article-content h2 em,
+:where(html.sep-plus) #article-content h3 em {
   font-style: normal;
 }
 
-#article-content h3 {
+:where(html.sep-plus) #article-content h3 {
   margin-top: 32px !important;
   font-size: 20px !important;
   line-height: 28px !important;
 }
 
-#article li,
-#content li {
+:where(html.sep-plus) #article li,
+:where(html.sep-plus) #content li {
   line-height: 25px !important;
 }
 
-hr {
+:where(html.sep-plus) hr {
   border: none !important;
   border-top: 1px solid var(--sep-border-subtle) !important;
   background: none !important;
   color: var(--sep-border-subtle) !important;
 }
 
-#article ul,
-#content ul {
+:where(html.sep-plus) #article ul,
+:where(html.sep-plus) #content ul {
   list-style-image: none !important;
 }
 
@@ -379,15 +366,15 @@ body.sep-plus .sep-plus-content-column :is(ul, ol) {
   margin-left: 0 !important;
 }
 
-.is-sticky {
+:where(html.sep-plus) .is-sticky {
   top: 32px !important;
 }
 
-#article-sidebar .navbar .nav > li {
+:where(html.sep-plus) #article-sidebar .navbar .nav > li {
   font-size: 14px !important;
 }
 
-#article-sidebar .navbar .nav > li > a {
+:where(html.sep-plus) #article-sidebar .navbar .nav > li > a {
   font-size: 14px !important;
   line-height: 20px !important;
   padding: 2px 6px !important;
@@ -398,20 +385,20 @@ body.sep-plus .sep-plus-content-column :is(ul, ol) {
   margin-right: 20px !important;
 }
 
-#article-sidebar .navbar .nav > li.active-item > a {
+:where(html.sep-plus) #article-sidebar .navbar .nav > li.active-item > a {
   color: var(--sep-text) !important;
 }
 
-#article-sidebar .navbar .nav > li > a > em {
+:where(html.sep-plus) #article-sidebar .navbar .nav > li > a > em {
   font-style: normal !important;
 }
 
-#article-sidebar .navbar .nav > li > a:hover {
+:where(html.sep-plus) #article-sidebar .navbar .nav > li > a:hover {
   background: none !important;
   color: var(--sep-text) !important;
 }
 
-.navbar .nav > li > a {
+:where(html.sep-plus) .navbar .nav > li > a {
   font-size: 14px !important;
   margin-right: 20px !important;
   font-weight: 700 !important;
@@ -420,17 +407,17 @@ body.sep-plus .sep-plus-content-column :is(ul, ol) {
   padding-bottom: 0 !important;
 }
 
-.navbar .nav > li > a:hover {
+:where(html.sep-plus) .navbar .nav > li > a:hover {
   color: var(--sep-text) !important;
   text-decoration: none !important;
 }
 
-#container {
+:where(html.sep-plus) #container {
   background: none !important;
   box-shadow: none !important;
 }
 
-.result_title a {
+:where(html.sep-plus) .result_title a {
   font-family:
     'Public Sans',
     -apple-system,
@@ -445,10 +432,10 @@ body.sep-plus .sep-plus-content-column :is(ul, ol) {
     sans-serif !important;
 }
 
-.result_snippet,
-#article-content,
-#style_guide_content,
-#style_guide_content_wide {
+:where(html.sep-plus) .result_snippet,
+:where(html.sep-plus) #article-content,
+:where(html.sep-plus) #style_guide_content,
+:where(html.sep-plus) #style_guide_content_wide {
   font-family:
     'Libre Baskerville', Georgia, 'Times New Roman', serif !important;
   font-size: 15px !important;
@@ -456,37 +443,37 @@ body.sep-plus .sep-plus-content-column :is(ul, ol) {
   color: var(--sep-text) !important;
 }
 
-#article-content,
-#style_guide_content,
-#style_guide_content_wide {
+:where(html.sep-plus) #article-content,
+:where(html.sep-plus) #style_guide_content,
+:where(html.sep-plus) #style_guide_content_wide {
   font-synthesis: none;
 }
 
-#article-content strong,
-#article-content b,
-#style_guide_content strong,
-#style_guide_content b,
-#style_guide_content_wide strong,
-#style_guide_content_wide b {
+:where(html.sep-plus) #article-content strong,
+:where(html.sep-plus) #article-content b,
+:where(html.sep-plus) #style_guide_content strong,
+:where(html.sep-plus) #style_guide_content b,
+:where(html.sep-plus) #style_guide_content_wide strong,
+:where(html.sep-plus) #style_guide_content_wide b {
   font-weight: 600 !important;
 }
 
-#article,
-#article-sidebar .navbar .nav {
+:where(html.sep-plus) #article,
+:where(html.sep-plus) #article-sidebar .navbar .nav {
   min-width: 300px;
   box-shadow: none !important;
   border: none !important;
 }
 
-#article-sidebar .navbar .nav {
+:where(html.sep-plus) #article-sidebar .navbar .nav {
   padding-top: 0 !important;
 }
 
-#article-banner-content a,
-#article-copyright,
-#article-copyright a,
-#site-credits,
-#site-credits a {
+:where(html.sep-plus) #article-banner-content a,
+:where(html.sep-plus) #article-copyright,
+:where(html.sep-plus) #article-copyright a,
+:where(html.sep-plus) #site-credits,
+:where(html.sep-plus) #site-credits a {
   font-size: 14px !important;
   line-height: 20px !important;
 }
@@ -526,7 +513,7 @@ body.sep-plus #site-credits a:hover {
   color: var(--sep-text) !important;
 }
 
-select {
+:where(html.sep-plus) select {
   font-family:
     'Public Sans',
     -apple-system,
@@ -544,50 +531,50 @@ select {
   font-weight: 700 !important;
 }
 
-.dropdown-menu {
+:where(html.sep-plus) .dropdown-menu {
   border-radius: 6px !important;
   box-shadow: none !important;
   border-color: var(--sep-border);
 }
 
-.dropdown-menu li {
+:where(html.sep-plus) .dropdown-menu li {
   font-size: 14px !important;
 }
 
-.dropdown-menu li a {
+:where(html.sep-plus) .dropdown-menu li a {
   color: var(--sand-10) !important;
   transition: color var(--sep-duration-fast) var(--sep-ease) !important;
 }
 
-.dropdown-menu li a:hover {
+:where(html.sep-plus) .dropdown-menu li a:hover {
   color: var(--sep-text) !important;
 }
 
-#pubinfo,
-#article-banner-content {
+:where(html.sep-plus) #pubinfo,
+:where(html.sep-plus) #article-banner-content {
   font-weight: 700 !important;
   font-size: 14px !important;
 }
 
-#article-copyright {
+:where(html.sep-plus) #article-copyright {
   font-weight: 400 !important;
   color: var(--sep-muted) !important;
 }
 
-#principal-editor,
-#about-links {
+:where(html.sep-plus) #principal-editor,
+:where(html.sep-plus) #about-links {
   font-weight: 700 !important;
   font-size: 14px !important;
 }
 
-.btn i {
+:where(html.sep-plus) .btn i {
   transition: none !important;
 }
 
-.btn,
-.btn-group,
-#mission,
-#article-banner-content {
+:where(html.sep-plus) .btn,
+:where(html.sep-plus) .btn-group,
+:where(html.sep-plus) #mission,
+:where(html.sep-plus) #article-banner-content {
   font-size: 14px !important;
   border-radius: 6px !important;
   border: 1px solid var(--sep-border-subtle) !important;
@@ -596,23 +583,23 @@ select {
   color: var(--sep-muted) !important;
 }
 
-.btn,
-#mission a,
-#article-banner-content a {
+:where(html.sep-plus) .btn,
+:where(html.sep-plus) #mission a,
+:where(html.sep-plus) #article-banner-content a {
   color: var(--sep-muted) !important;
 }
 
-#article-banner-content,
-#article-banner-content a {
+:where(html.sep-plus) #article-banner-content,
+:where(html.sep-plus) #article-banner-content a {
   font-weight: 400 !important;
 }
 
-#article-banner-content {
+:where(html.sep-plus) #article-banner-content {
   border-radius: 12px !important;
 }
 
 /* Editorial masthead (board.html, info.html) — not a control surface */
-#content .notice:has(.masthead) {
+:where(html.sep-plus) #content .notice:has(.masthead) {
   background: transparent !important;
   border: none !important;
   box-shadow: none !important;
@@ -620,11 +607,11 @@ select {
   margin: 0 !important;
 }
 
-.btn:hover {
+:where(html.sep-plus) .btn:hover {
   color: #8c1515 !important;
 }
 
-.search_results {
+:where(html.sep-plus) .search_results {
   border: none !important;
   box-shadow: none !important;
   padding: 0 !important;
@@ -749,15 +736,15 @@ body.sep-plus .sep-plus-related-entries a:hover {
   border-color: var(--sep-border) !important;
 }
 
-#article-content :is(sup, sup a) {
+:where(html.sep-plus) #article-content :is(sup, sup a) {
   font: var(--sep-footnote-label-font) !important;
 }
 
-#article-content sup a {
+:where(html.sep-plus) #article-content sup a {
   color: var(--sand-10) !important;
 }
 
-#article-content sup a:hover {
+:where(html.sep-plus) #article-content sup a:hover {
   color: var(--sep-text) !important;
 }
 
@@ -767,8 +754,8 @@ body.sep-plus .sep-plus-related-entries a:hover {
 }
 
 /* Hover in and out both ease. Slightly slower than icon buttons. */
-[data-highlighters-overlay] div,
-#article-content > div[aria-hidden='true'][style*='mix-blend-mode'] div {
+:where(html.sep-plus) [data-highlighters-overlay] div,
+:where(html.sep-plus) #article-content > div[aria-hidden='true'][style*='mix-blend-mode'] div {
   transition:
     background-color var(--sep-duration-ui) var(--sep-ease),
     background-image var(--sep-duration-ui) var(--sep-ease),
@@ -848,7 +835,7 @@ body.sep-plus .sep-plus-footnotes .sep-plus-footnote > :first-child a:first-of-t
 /* Dark Mode — sand scale flips on body.dark; only overrides that need
    different semantic roles or non-sand brand colors live here. */
 
-body.dark {
+:where(html.sep-plus) body.dark {
   background: var(--sep-article-bg) !important;
   color: var(--sep-text) !important;
 }
@@ -861,72 +848,72 @@ body.dark.sep-plus :is(#article, #content:not(:has(#article))) {
   color: var(--sep-text) !important;
 }
 
-body.dark #article-sidebar .navbar .nav,
-body.dark #article-sidebar .navbar .nav > li > a {
+:where(html.sep-plus) body.dark #article-sidebar .navbar .nav,
+:where(html.sep-plus) body.dark #article-sidebar .navbar .nav > li > a {
   background: var(--sep-article-bg) !important;
 }
 
-body.dark #article-copyright {
+:where(html.sep-plus) body.dark #article-copyright {
   border-color: var(--sep-border-subtle) !important;
 }
 
-body.dark table.all-rules td,
-body.dark table.all-rules th {
+:where(html.sep-plus) body.dark table.all-rules td,
+:where(html.sep-plus) body.dark table.all-rules th {
   border: 1px solid var(--sep-muted) !important;
 }
 
-body.dark h1,
-body.dark h2,
-body.dark h3,
-body.dark h1 a,
-body.dark h2 a,
-body.dark h3 a,
-body.dark h4,
-body.dark h5 {
+:where(html.sep-plus) body.dark h1,
+:where(html.sep-plus) body.dark h2,
+:where(html.sep-plus) body.dark h3,
+:where(html.sep-plus) body.dark h1 a,
+:where(html.sep-plus) body.dark h2 a,
+:where(html.sep-plus) body.dark h3 a,
+:where(html.sep-plus) body.dark h4,
+:where(html.sep-plus) body.dark h5 {
   color: var(--sep-text) !important;
 }
 
-body.dark .search_results {
+:where(html.sep-plus) body.dark .search_results {
   background: none !important;
   border: none !important;
 }
 
-body.dark img {
+:where(html.sep-plus) body.dark img {
   opacity: 0.75;
   transition: opacity 0.1s ease;
 }
 
-body.dark img:hover {
+:where(html.sep-plus) body.dark img:hover {
   opacity: 1;
 }
 
-body.dark .icon-search,
-body.dark #article-sidebar .navbar .nav > li > a:hover,
-body.dark #article-sidebar .navbar .nav > li.active-item > a {
+:where(html.sep-plus) body.dark .icon-search,
+:where(html.sep-plus) body.dark #article-sidebar .navbar .nav > li > a:hover,
+:where(html.sep-plus) body.dark #article-sidebar .navbar .nav > li.active-item > a {
   color: var(--sep-text) !important;
 }
 
-body.dark #pubinfo em,
-body.dark #pubinfo a.sep-pubinfo-author,
-body.dark #article-copyright,
-body.dark #site-credits,
-body.dark .navbar .nav > li > a,
-body.dark #article-sidebar .navbar .nav > li > a {
+:where(html.sep-plus) body.dark #pubinfo em,
+:where(html.sep-plus) body.dark #pubinfo a.sep-pubinfo-author,
+:where(html.sep-plus) body.dark #article-copyright,
+:where(html.sep-plus) body.dark #site-credits,
+:where(html.sep-plus) body.dark .navbar .nav > li > a,
+:where(html.sep-plus) body.dark #article-sidebar .navbar .nav > li > a {
   color: var(--sep-muted) !important;
 }
 
-body.dark #pubinfo a.sep-pubinfo-author:hover,
-body.dark .navbar .nav > li > a:hover {
+:where(html.sep-plus) body.dark #pubinfo a.sep-pubinfo-author:hover,
+:where(html.sep-plus) body.dark .navbar .nav > li > a:hover {
   color: var(--sep-text) !important;
 }
 
 /* Brand link accents — outside the sand scale */
-body.dark a:link,
-body.dark a:visited {
+:where(html.sep-plus) body.dark a:link,
+:where(html.sep-plus) body.dark a:visited {
   color: #f9acac !important;
 }
 
-body.dark a:hover {
+:where(html.sep-plus) body.dark a:hover {
   color: #ffcbcb !important;
 }
 
@@ -940,43 +927,43 @@ body.dark.sep-plus .sep-plus-related-entries a:hover {
   color: var(--sep-text) !important;
 }
 
-body.dark .btn:hover i {
+:where(html.sep-plus) body.dark .btn:hover i {
   color: #ffcbcb !important;
 }
 
-body.dark .dropdown-menu,
-body.dark .dropdown-menu li a {
+:where(html.sep-plus) body.dark .dropdown-menu,
+:where(html.sep-plus) body.dark .dropdown-menu li a {
   background: var(--sep-panel-bg) !important;
   border-color: var(--sep-border) !important;
 }
 
-body.dark .btn,
-body.dark .btn-group,
-body.dark #mission,
-body.dark #article-banner-content {
+:where(html.sep-plus) body.dark .btn,
+:where(html.sep-plus) body.dark .btn-group,
+:where(html.sep-plus) body.dark #mission,
+:where(html.sep-plus) body.dark #article-banner-content {
   background: transparent !important;
   color: var(--sep-muted) !important;
 }
 
-body.dark .btn,
-body.dark #mission a,
-body.dark #article-banner-content a {
+:where(html.sep-plus) body.dark .btn,
+:where(html.sep-plus) body.dark #mission a,
+:where(html.sep-plus) body.dark #article-banner-content a {
   color: var(--sep-muted) !important;
 }
 
-body.dark .dropdown-menu {
+:where(html.sep-plus) body.dark .dropdown-menu {
   color: var(--sep-text) !important;
 }
 
-body.dark .caret {
+:where(html.sep-plus) body.dark .caret {
   border-top: 4px solid var(--sep-text) !important;
 }
 
-body.dark .dropdown-menu li a {
+:where(html.sep-plus) body.dark .dropdown-menu li a {
   color: var(--sep-muted) !important;
 }
 
-body.dark .dropdown-menu li a:hover {
+:where(html.sep-plus) body.dark .dropdown-menu li a:hover {
   background: var(--sand-7) !important;
   color: var(--sep-text) !important;
 }
@@ -1072,63 +1059,63 @@ body.dark.sep-plus .sep-plus-search-pager-page:hover {
   color: #fff !important;
 }
 
-body.dark blockquote {
+:where(html.sep-plus) body.dark blockquote {
   border-color: var(--sep-border) !important;
 }
 
 /* Print */
 
 @media print {
-  #article-sidebar,
-  #academic-tools,
-  #other-internet-resources,
-  #related-entries,
-  #article-copyright,
-  #article-banner,
-  #footer,
-  #search,
-  #search-form,
+  :where(html.sep-plus) #article-sidebar,
+  :where(html.sep-plus) #academic-tools,
+  :where(html.sep-plus) #other-internet-resources,
+  :where(html.sep-plus) #related-entries,
+  :where(html.sep-plus) #article-copyright,
+  :where(html.sep-plus) #article-banner,
+  :where(html.sep-plus) #footer,
+  :where(html.sep-plus) #search,
+  :where(html.sep-plus) #search-form,
   #sep-plus-footnote-layer {
     display: none !important;
   }
 
-  #article {
+  :where(html.sep-plus) #article {
     padding-top: 0 !important;
     padding-left: 80px !important;
     padding-right: 80px !important;
   }
 
   /* Fixed ink colors — do not use theme vars (dark sand would invert) */
-  li,
-  p,
-  blockquote {
+  :where(html.sep-plus) li,
+  :where(html.sep-plus) p,
+  :where(html.sep-plus) blockquote {
     color: #21201c !important; /* sand-12 light */
   }
 
-  body.dark a:link,
-  body.dark a:visited,
-  a:link,
-  a:visited {
+  :where(html.sep-plus) body.dark a:link,
+  :where(html.sep-plus) body.dark a:visited,
+  :where(html.sep-plus) a:link,
+  :where(html.sep-plus) a:visited {
     color: #3b3a37 !important; /* sand-6 dark ≈ print link gray */
   }
 
-  body.dark blockquote {
+  :where(html.sep-plus) body.dark blockquote {
     border-color: #dad9d6 !important; /* sand-6 light */
   }
 
-  body.dark h1,
-  body.dark h2,
-  body.dark h3,
-  body.dark h1 a,
-  body.dark h2 a,
-  body.dark h3 a,
-  body.dark h4,
-  body.dark h5 {
+  :where(html.sep-plus) body.dark h1,
+  :where(html.sep-plus) body.dark h2,
+  :where(html.sep-plus) body.dark h3,
+  :where(html.sep-plus) body.dark h1 a,
+  :where(html.sep-plus) body.dark h2 a,
+  :where(html.sep-plus) body.dark h3 a,
+  :where(html.sep-plus) body.dark h4,
+  :where(html.sep-plus) body.dark h5 {
     color: #21201c !important; /* sand-12 light */
   }
 
-  [data-highlighters-overlay],
-  #article-content > div[aria-hidden='true'][style*='mix-blend-mode'] {
+  :where(html.sep-plus) [data-highlighters-overlay],
+  :where(html.sep-plus) #article-content > div[aria-hidden='true'][style*='mix-blend-mode'] {
     display: none !important;
   }
 
@@ -1137,7 +1124,7 @@ body.dark blockquote {
     text-decoration: none !important;
   }
 
-  sup {
+  :where(html.sep-plus) sup {
     top: 0 !important;
     font: var(--sep-footnote-label-font) !important;
   }

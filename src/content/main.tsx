@@ -1,5 +1,5 @@
 import { flushSync } from 'react-dom';
-import { createRoot } from 'react-dom/client';
+import { createRoot, type Root } from 'react-dom/client';
 import {
   applyTheme,
   bootstrapHost,
@@ -14,6 +14,7 @@ import {
   wrapSiteContentColumn,
 } from '../host/bootstrap';
 import { initFootnotes } from '../host/footnotes';
+import { detachNative, rollbackHost } from '../host/rollback';
 import {
   collectContentsTocItems,
   collectTocItems,
@@ -28,20 +29,39 @@ import {
 import { normalizeEntryUrl } from '../lib/annotations';
 import type { HighlightColor, ThemePreference, TocItem } from '../lib/types';
 import { App } from './App';
+import { boot } from './boot';
 import uiStyles from './styles.css?inline';
 import '../host/styles.css';
 
+// Matches background.ts (not shared, so the content script stays one chunk).
+const RESTORE_NATIVE_FONTS_MESSAGE = 'sep-plus:restore-native-fonts';
 const READY_CLASS = 'sep-plus-ready';
-const BOOT_TIMEOUT_MS = 8000;
+const ALIVE_CLASS = 'sep-plus-alive';
+const PARSE_TIMEOUT_MS = 15000;
+const MOUNT_TIMEOUT_MS = 8000;
+const HOST_IDS = [
+  'sep-plus-root',
+  'sep-plus-annotation-layer',
+  'sep-plus-home',
+  'sep-plus-footer',
+  'sep-plus-search',
+];
+const PAGE_CLASSES = [
+  'sep-plus',
+  'sep-plus-home',
+  'sep-plus-site',
+  'sep-plus-search',
+  'sep-plus-theme-applied',
+  'dark',
+];
 
-let bootTimedOut = false;
-let bootTimeout: number | undefined;
+let root: Root | null = null;
+let stopFootnotes: (() => void) | null = null;
+let renderError: unknown = null;
+let booted = false;
+let rolledBack = false;
 
 function revealPage(): void {
-  if (bootTimeout !== undefined) {
-    window.clearTimeout(bootTimeout);
-    bootTimeout = undefined;
-  }
   document
     .getElementById('sep-plus-root')
     ?.removeAttribute('data-sep-plus-booting');
@@ -65,6 +85,72 @@ function waitForNextFrame(): Promise<void> {
   return new Promise((resolve) => {
     window.requestAnimationFrame(() => resolve());
   });
+}
+
+function hasSepLayout(): boolean {
+  return Boolean(
+    document.body &&
+      document.getElementById('container') &&
+      document.getElementById('content'),
+  );
+}
+
+/** Font Awesome is blocked for the SEP+ chrome; native SEP needs it back. */
+function restoreNativeFonts(): void {
+  try {
+    void chrome.runtime
+      .sendMessage({ type: RESTORE_NATIVE_FONTS_MESSAGE })
+      .then((restored: unknown) => {
+        if (!restored) {
+          return;
+        }
+        for (const link of Array.from(
+          document.querySelectorAll<HTMLLinkElement>(
+            'link[rel="stylesheet"][href*="font-awesome"]',
+          ),
+        )) {
+          link.after(link.cloneNode());
+          link.remove();
+        }
+      })
+      .catch(() => undefined);
+  } catch {
+    // Extension context is gone; nothing more to do.
+  }
+}
+
+/** Put native SEP back after a failed boot or a crashed React tree. */
+function rollback(error: unknown): void {
+  if (rolledBack) {
+    return;
+  }
+  rolledBack = true;
+  console.error('SEP+ failed to initialize.', error);
+  stopFootnotes?.();
+  stopFootnotes = null;
+  try {
+    root?.unmount();
+  } catch {
+    // Already unmounted by React after the uncaught error.
+  }
+  root = null;
+  for (const id of HOST_IDS) {
+    document.getElementById(id)?.remove();
+  }
+  for (const element of [document.documentElement, document.body]) {
+    element?.classList.remove(...PAGE_CLASSES);
+  }
+  rollbackHost();
+  restoreNativeFonts();
+  revealPage();
+}
+
+function onUncaughtRenderError(error: unknown): void {
+  if (!booted) {
+    renderError ??= error;
+    return;
+  }
+  queueMicrotask(() => rollback(error));
 }
 
 /** A shadow host in the page flow (unlike the fixed overlays), so it scrolls
@@ -116,17 +202,15 @@ function mountShell(
 
   // Detach rather than hide: SEP's sticky-sidebar script rewrites this node's
   // inline styles on every scroll, which forces style + layout while attached.
-  document.querySelector('#article-sidebar')?.remove();
+  detachNative(document.querySelector('#article-sidebar'));
 
   const existingHost = document.getElementById('sep-plus-root') as
     | (HTMLElement & { sepPlusUnmount?: () => void })
     | null;
   existingHost?.sepPlusUnmount?.();
-  existingHost?.remove();
-  document.getElementById('sep-plus-annotation-layer')?.remove();
-  document.getElementById('sep-plus-home')?.remove();
-  document.getElementById('sep-plus-footer')?.remove();
-  document.getElementById('sep-plus-search')?.remove();
+  for (const id of HOST_IDS) {
+    document.getElementById(id)?.remove();
+  }
 
   const host = document.createElement('div') as HTMLDivElement & {
     sepPlusUnmount?: () => void;
@@ -165,10 +249,13 @@ function mountShell(
     }
   }
 
-  const root = createRoot(mount);
-  host.sepPlusUnmount = () => root.unmount();
+  const reactRoot = createRoot(mount, {
+    onUncaughtError: onUncaughtRenderError,
+  });
+  root = reactRoot;
+  host.sepPlusUnmount = () => reactRoot.unmount();
   flushSync(() => {
-    root.render(
+    reactRoot.render(
       <App
         items={items}
         initialTheme={initialTheme}
@@ -183,19 +270,11 @@ function mountShell(
   });
 }
 
-async function main(): Promise<void> {
-  await waitForDomReady();
-  if (bootTimedOut) {
-    return;
-  }
-
+async function mount(): Promise<void> {
   const [theme, highlightColor] = await Promise.all([
     themePromise,
     highlightColorPromise,
   ]);
-  if (bootTimedOut) {
-    return;
-  }
 
   const articleMode = isArticlePage();
   const homeMode = !articleMode && isHomePage();
@@ -236,56 +315,69 @@ async function main(): Promise<void> {
     articleTitle,
     entryCopyright,
   );
+  if (renderError) {
+    throw renderError;
+  }
 
   if (articleMode) {
-    initFootnotes();
+    stopFootnotes = initFootnotes();
   }
 
   await fontsReadyPromise;
-  if (bootTimedOut) {
-    return;
-  }
-
   await waitForNextFrame();
-  revealPage();
+  if (renderError) {
+    throw renderError;
+  }
+  booted = true;
 }
 
-// Ensure a prior ready state (e.g. bfcache) cannot skip the boot hide.
-document.documentElement.classList.remove(READY_CLASS);
+const isHtmlDocument = document.contentType === 'text/html';
+if (isHtmlDocument) {
+  document.documentElement.classList.add(ALIVE_CLASS);
+  // Ensure a prior ready state (e.g. bfcache) cannot skip the boot hide.
+  document.documentElement.classList.remove(READY_CLASS);
+}
 
-const cachedTheme = readCachedTheme();
+const cachedTheme = isHtmlDocument ? readCachedTheme() : null;
 if (cachedTheme) {
   applyTheme(cachedTheme);
 }
 
-injectLocalFonts();
-const fontsReadyPromise = preloadLocalFonts();
-const themePromise: Promise<ThemePreference> = getTheme().then(
-  (theme) => {
-    applyTheme(theme);
-    return theme;
-  },
-  (error: unknown) => {
-    console.warn('SEP+ could not load the saved theme.', error);
-    const fallback = cachedTheme ?? 'light';
-    applyTheme(fallback);
-    return fallback;
-  }
-);
+if (isHtmlDocument) {
+  injectLocalFonts();
+}
+const fontsReadyPromise = isHtmlDocument
+  ? preloadLocalFonts()
+  : Promise.resolve();
+const themePromise: Promise<ThemePreference> = isHtmlDocument
+  ? getTheme().then(
+      (theme) => {
+        applyTheme(theme);
+        return theme;
+      },
+      (error: unknown) => {
+        console.warn('SEP+ could not load the saved theme.', error);
+        const fallback = cachedTheme ?? 'light';
+        applyTheme(fallback);
+        return fallback;
+      }
+    )
+  : Promise.resolve('light');
 
-const highlightColorPromise: Promise<HighlightColor> = getHighlightColor().catch(
-  (error: unknown) => {
-    console.warn('SEP+ could not load the saved highlight color.', error);
-    return DEFAULT_HIGHLIGHT_COLOR;
-  }
-);
+const highlightColorPromise: Promise<HighlightColor> = isHtmlDocument
+  ? getHighlightColor().catch((error: unknown) => {
+      console.warn('SEP+ could not load the saved highlight color.', error);
+      return DEFAULT_HIGHLIGHT_COLOR;
+    })
+  : Promise.resolve(DEFAULT_HIGHLIGHT_COLOR);
 
-bootTimeout = window.setTimeout(() => {
-  bootTimedOut = true;
-  revealPage();
-}, BOOT_TIMEOUT_MS);
-
-void main().catch((error: unknown) => {
-  console.error('SEP+ failed to initialize.', error);
-  revealPage();
+void boot({
+  isHtmlDocument,
+  waitForDomReady,
+  hasSepLayout,
+  mount,
+  reveal: revealPage,
+  rollback,
+  parseTimeoutMs: PARSE_TIMEOUT_MS,
+  mountTimeoutMs: MOUNT_TIMEOUT_MS,
 });

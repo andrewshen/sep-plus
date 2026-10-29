@@ -12,6 +12,12 @@ describe('block-unused-fonts ruleset', () => {
     expect(rule?.condition.resourceTypes).toEqual(['stylesheet']);
   });
 
+  it('uses a lower priority than the per-tab restore rule', () => {
+    for (const rule of rules) {
+      expect((rule as { priority?: number }).priority ?? 1).toBeLessThan(2);
+    }
+  });
+
   it('gives every rule a unique id', () => {
     const ids = rules.map((rule) => rule.id);
     expect(new Set(ids).size).toBe(ids.length);

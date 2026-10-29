@@ -31,6 +31,11 @@ export default defineManifest({
       },
     ],
   },
+  // Only used to re-allow Font Awesome in a tab where SEP+ failed to start.
+  background: {
+    service_worker: 'src/background.ts',
+    type: 'module',
+  },
   content_scripts: [
     {
       matches: [

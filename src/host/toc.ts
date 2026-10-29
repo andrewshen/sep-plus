@@ -1,4 +1,5 @@
 import type { TocItem } from '../lib/types';
+import { detachNative } from './rollback';
 import { scrollWindowTo } from './scroll';
 
 /** Height of the fixed SEP+ header; keep in sync with `.sep-header`. */
@@ -32,18 +33,12 @@ export function prepareArticleNav(): void {
     return;
   }
 
-  const firstItem = articleNav.querySelector('li');
-  firstItem?.remove();
+  detachNative(articleNav.querySelector('li'));
 
   for (const link of Array.from(articleNav.querySelectorAll('a'))) {
     const text = (link.textContent || '').replace(/\s+/g, ' ').trim();
     if (text === 'Bibliography' || text === 'Academic Tools') {
-      const listItem = link.closest('li');
-      if (listItem) {
-        listItem.remove();
-      } else {
-        link.remove();
-      }
+      detachNative(link.closest('li') ?? link);
     }
   }
 }
@@ -98,20 +93,20 @@ export function collectContentsTocItems(): TocItem[] {
     }
   }
 
-  (nav.closest('.sticky-wrapper') ?? nav.closest('.sticky') ?? nav).remove();
+  detachNative(nav.closest('.sticky-wrapper') ?? nav.closest('.sticky') ?? nav);
 
   // The side outline replaces the per-letter "[jump to top]" links.
   for (const link of Array.from(
     document.querySelectorAll('#content h2 a[href="#pagetopright"]'),
   )) {
-    link.remove();
+    detachNative(link);
   }
 
   // ...and the <hr> divider above each letter heading.
   for (const heading of Array.from(document.querySelectorAll('#content h2'))) {
     const prev = heading.previousElementSibling;
     if (prev?.tagName === 'HR') {
-      prev.remove();
+      detachNative(prev);
     }
   }
   return items;

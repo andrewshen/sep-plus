@@ -28,10 +28,26 @@ html.sep-plus-theme-applied.dark:not(.sep-plus-ready) {
   background: #222221 !important;
 }
 
+/* Not !important: the failsafe animation must be able to override it, so the
+   page still appears if the content script never runs. Once the script is
+   alive it owns the reveal (including its own timeout). */
 html:not(.sep-plus-ready) > body,
 html:not(.sep-plus-ready) > #sep-plus-root,
 html:not(.sep-plus-ready) > #sep-plus-annotation-layer {
-  visibility: hidden !important;
+  visibility: hidden;
+  animation: sep-plus-boot-failsafe 0s 5s forwards;
+}
+
+html.sep-plus-alive:not(.sep-plus-ready) > body,
+html.sep-plus-alive:not(.sep-plus-ready) > #sep-plus-root,
+html.sep-plus-alive:not(.sep-plus-ready) > #sep-plus-annotation-layer {
+  animation: none;
+}
+
+@keyframes sep-plus-boot-failsafe {
+  to {
+    visibility: visible;
+  }
 }
 
 html:not(.sep-plus-ready) body * {

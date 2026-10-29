@@ -1,6 +1,12 @@
 import { formatEntryTitle } from '../lib/formatEntryTitle';
 import { getTheme, onThemeChanged } from '../lib/storage';
 import type { ThemePreference } from '../lib/types';
+import {
+  detachNative,
+  onRollback,
+  rememberChildren,
+  replaceNative,
+} from './rollback';
 
 function fontFace(
   family: string,
@@ -246,6 +252,7 @@ export function reformatPubinfo(): void {
     em.appendChild(dateEl);
   }
 
+  rememberChildren(pubinfo);
   pubinfo.replaceChildren(em);
   pubinfo.dataset.sepPlusPubinfo = '1';
 }
@@ -370,7 +377,7 @@ export function restyleSearchResults(): void {
     .closest('#content')
     ?.querySelector<HTMLElement>(':scope > h1, :scope > .sep-plus-content-column > h1');
   if (heading && /^search$/i.test((heading.textContent ?? '').trim())) {
-    heading.remove();
+    detachNative(heading);
   }
 
   const query = new URLSearchParams(location.search).get('query') ?? '';
@@ -401,6 +408,7 @@ export function restyleSearchResults(): void {
   const page = document.createElement('span');
   page.className = 'sep-plus-search-summary-page';
   page.textContent = parsed.page;
+  rememberChildren(totalEl);
   totalEl.replaceChildren(count, page);
   totalEl.classList.add('sep-plus-search-summary');
   totalEl.dataset.sepPlusSearchSummary = '1';
@@ -468,7 +476,7 @@ function restyleSearchPager(current: number, totalPages: number): void {
     pager.append(step('Next', current + 1));
   }
 
-  nav.replaceWith(pager);
+  replaceNative(nav, pager);
 }
 
 /**
@@ -489,7 +497,10 @@ export function wrapSiteContentColumn(): void {
   // sheet). Pull it in so the title + A–Z nav sit in the reading column.
   const tocWrapper = document.querySelector<HTMLElement>('#toc-wrapper');
   if (tocWrapper && tocWrapper.parentElement !== content) {
+    const parent = tocWrapper.parentNode;
+    const next = tocWrapper.nextSibling;
     content.insertBefore(tocWrapper, content.firstChild);
+    onRollback(() => parent?.insertBefore(tocWrapper, next));
   }
 
   const column = document.createElement('div');
@@ -500,6 +511,10 @@ export function wrapSiteContentColumn(): void {
   }
   content.appendChild(column);
   content.dataset.sepPlusContentColumn = '1';
+  onRollback(() => {
+    column.replaceWith(...Array.from(column.childNodes));
+    delete content.dataset.sepPlusContentColumn;
+  });
 }
 
 /**
@@ -523,6 +538,7 @@ export function styleRelatedEntries(): void {
     return;
   }
 
+  const original = paragraph.cloneNode(true) as HTMLElement;
   const list = document.createElement('div');
   list.className = 'sep-plus-related-entries';
   for (const link of links) {
@@ -534,7 +550,12 @@ export function styleRelatedEntries(): void {
     }
     list.appendChild(link);
   }
+  // Links moved into the list, so restore a pristine copy of the paragraph.
   paragraph.replaceWith(list);
+  onRollback(() => {
+    list.replaceWith(original);
+    delete section.dataset.sepPlusRelated;
+  });
   section.dataset.sepPlusRelated = '1';
 }
 
@@ -614,7 +635,7 @@ export function extractEntryCopyright(): HTMLElement | null {
   }
 
   for (const selector of ['#article-copyright', '#article-banner', '#site-credits']) {
-    document.querySelector(selector)?.remove();
+    detachNative(document.querySelector(selector));
   }
 
   return line;
