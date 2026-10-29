@@ -2,8 +2,8 @@
  * @vitest-environment happy-dom
  * @vitest-environment-options {"url":"https://plato.stanford.edu/"}
  */
-import { describe, expect, it } from 'vitest';
-import { filterEntries, parseContentsHtml } from './entryIndex';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { filterEntries, getEntryIndex, parseContentsHtml } from './entryIndex';
 import type { EntryIndexItem } from './types';
 
 function href(slug: string): string {
@@ -62,6 +62,73 @@ describe('parseContentsHtml', () => {
     );
     expect(titleOf('justice-distributive')).toBe('justice: distributive');
     expect(entries).toHaveLength(8);
+  });
+});
+
+describe('getEntryIndex', () => {
+  const WEEK = 7 * 24 * 60 * 60 * 1000;
+  let stored: Record<string, unknown>;
+
+  beforeEach(() => {
+    stored = {};
+    vi.stubGlobal('chrome', {
+      storage: {
+        local: {
+          get: vi.fn(async (key: string) =>
+            key in stored ? { [key]: stored[key] } : {},
+          ),
+          set: vi.fn(async (values: Record<string, unknown>) => {
+            Object.assign(stored, values);
+          }),
+          remove: vi.fn(async () => undefined),
+        },
+      },
+    });
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  function cache(fetchedAt: number) {
+    return { fetchedAt, entries: [{ title: 'Cached', href: href('cached') }] };
+  }
+
+  function storageKey(): string {
+    return Object.keys(stored)[0] ?? 'missing';
+  }
+
+  it('fetches and caches when nothing is stored', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => new Response(CONTENTS, { status: 200 })),
+    );
+    const entries = await getEntryIndex();
+    expect(entries).toHaveLength(8);
+    expect(Object.values(stored)).toHaveLength(1);
+  });
+
+  it('throws when nothing is stored and the fetch fails', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => new Response('', { status: 503 })));
+    await expect(getEntryIndex()).rejects.toThrow('503');
+  });
+
+  it('serves a stale cache while refreshing, even if the refresh fails', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => new Response(CONTENTS, { status: 200 })),
+    );
+    await getEntryIndex();
+    const key = storageKey();
+    stored[key] = cache(Date.now() - 2 * WEEK);
+
+    vi.stubGlobal('fetch', vi.fn(async () => {
+      throw new TypeError('Failed to fetch');
+    }));
+    expect((await getEntryIndex()).map((entry) => entry.title)).toEqual([
+      'Cached',
+    ]);
+    expect(fetch).toHaveBeenCalledTimes(1);
   });
 });
 

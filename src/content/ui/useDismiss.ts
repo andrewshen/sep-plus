@@ -25,6 +25,10 @@ export function useDismiss(
     }
 
     function onKeyDown(event: KeyboardEvent): void {
+      // Escape during IME composition cancels the composition, not the popover.
+      if (event.isComposing || event.keyCode === 229) {
+        return;
+      }
       if (event.key === 'Escape' && !event.defaultPrevented) {
         event.preventDefault();
         onDismissRef.current();

@@ -35,15 +35,31 @@ export function AnimatedPlaceholder({
     });
   }, [text]);
 
+  // One timer per exiting layer: a shared timer would restart on every text
+  // change, so fast changes would pile up layers that never leave.
+  const exitTimers = useRef(new Map<number, number>());
   useEffect(() => {
-    if (!layers.some((layer) => layer.exiting)) {
-      return;
+    for (const layer of layers) {
+      if (layer.exiting && !exitTimers.current.has(layer.id)) {
+        exitTimers.current.set(
+          layer.id,
+          window.setTimeout(() => {
+            exitTimers.current.delete(layer.id);
+            setLayers((current) => current.filter(({ id }) => id !== layer.id));
+          }, EXIT_MS),
+        );
+      }
     }
-    const timer = window.setTimeout(() => {
-      setLayers((current) => current.filter((layer) => !layer.exiting));
-    }, EXIT_MS);
-    return () => window.clearTimeout(timer);
   }, [layers]);
+
+  useEffect(() => {
+    const timers = exitTimers.current;
+    return () => {
+      for (const timer of timers.values()) {
+        window.clearTimeout(timer);
+      }
+    };
+  }, []);
 
   return (
     <span

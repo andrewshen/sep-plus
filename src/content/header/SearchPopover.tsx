@@ -50,6 +50,8 @@ const RESULTS_ID = 'sep-search-results';
 const PREFETCH_ATTR = 'data-sep-plus-prefetch';
 /** Wait out rapid ↑/↓ before kicking off a prefetch. */
 const PREFETCH_DEBOUNCE_MS = 75;
+/** Only the most recent candidates stay prefetched. */
+const MAX_PREFETCHES = 3;
 
 function rowHref(row: SearchRow): string {
   return row.kind === 'entry' ? row.entry.href : searchResultsUrl(row.query);
@@ -91,7 +93,8 @@ function supportsSpeculationRules(): boolean {
   );
 }
 
-function installDocumentPrefetch(url: string): void {
+/** Installs a prefetch and returns the URLs evicted to stay under the cap. */
+function installDocumentPrefetch(url: string): string[] {
   if (supportsSpeculationRules()) {
     const script = document.createElement('script');
     script.type = 'speculationrules';
@@ -100,14 +103,29 @@ function installDocumentPrefetch(url: string): void {
       prefetch: [{ urls: [url] }],
     });
     document.head.appendChild(script);
-    return;
+  } else {
+    const link = document.createElement('link');
+    link.rel = 'prefetch';
+    link.href = url;
+    link.setAttribute(PREFETCH_ATTR, url);
+    document.head.appendChild(link);
   }
 
-  const link = document.createElement('link');
-  link.rel = 'prefetch';
-  link.href = url;
-  link.setAttribute(PREFETCH_ATTR, url);
-  document.head.appendChild(link);
+  const installed = Array.from(document.querySelectorAll(`[${PREFETCH_ATTR}]`));
+  return installed
+    .slice(0, Math.max(0, installed.length - MAX_PREFETCHES))
+    .map((element) => {
+      element.remove();
+      return element.getAttribute(PREFETCH_ATTR) ?? '';
+    });
+}
+
+/** IME composition (e.g. Japanese, Chinese): keys confirm candidates. */
+export function isComposingKey(event: {
+  isComposing?: boolean;
+  keyCode?: number;
+}): boolean {
+  return Boolean(event.isComposing) || event.keyCode === 229;
 }
 
 function clearDocumentPrefetches(): void {
@@ -143,6 +161,8 @@ export function Search({
   const [loading, setLoading] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [activeIndex, setActiveIndex] = useState(0);
+  /** Escape closes the results but leaves you in the field. */
+  const keepFocusOnCloseRef = useRef(false);
 
   useDismiss(anchorRef, open, onClose);
 
@@ -155,7 +175,10 @@ export function Search({
       input?.focus();
       return;
     }
-    input?.blur();
+    if (!keepFocusOnCloseRef.current) {
+      input?.blur();
+    }
+    keepFocusOnCloseRef.current = false;
     prefetchedUrlsRef.current.clear();
     clearDocumentPrefetches();
   }, [open]);
@@ -182,8 +205,8 @@ export function Search({
         })
         .catch(() => {
           if (!cancelled) {
+            // entries stays null, so the next open tries again.
             setLoadError('Could not load entry titles');
-            setEntries([]);
           }
         })
         .finally(() => {
@@ -233,7 +256,9 @@ export function Search({
       return;
     }
     const row = rows[activeIndex];
-    const url = row ? prefetchableUrl(rowHref(row)) : null;
+    // Search rows would run SEP's full-text search on every pause in typing.
+    const url =
+      row?.kind === 'entry' ? prefetchableUrl(rowHref(row)) : null;
     if (!url || prefetchedUrlsRef.current.has(url)) {
       return;
     }
@@ -242,7 +267,9 @@ export function Search({
         return;
       }
       prefetchedUrlsRef.current.add(url);
-      installDocumentPrefetch(url);
+      for (const evicted of installDocumentPrefetch(url)) {
+        prefetchedUrlsRef.current.delete(evicted);
+      }
     }, PREFETCH_DEBOUNCE_MS);
     return () => window.clearTimeout(timer);
   }, [open, rows, activeIndex]);
@@ -257,7 +284,18 @@ export function Search({
   }, [open, activeIndex]);
 
   function onKeyDown(event: ReactKeyboardEvent<HTMLInputElement>): void {
+    if (isComposingKey(event.nativeEvent)) {
+      return;
+    }
+    if (event.key === 'Escape' && open) {
+      keepFocusOnCloseRef.current = true;
+      return;
+    }
     if (!open) {
+      if (event.key === 'ArrowDown') {
+        event.preventDefault();
+        onOpen();
+      }
       return;
     }
     if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
@@ -284,7 +322,31 @@ export function Search({
     : undefined;
 
   return (
-    <div className={`sep-search sep-search--${variant}`} ref={anchorRef}>
+    <div
+      className={`sep-search sep-search--${variant}`}
+      ref={anchorRef}
+      onMouseDown={(event) => {
+        // Presses anywhere in the results keep focus in the field.
+        if (event.target !== inputRef.current) {
+          event.preventDefault();
+        }
+      }}
+      onBlur={() => {
+        if (!open) {
+          return;
+        }
+        // Wait for focus to land. Switching windows blurs without moving
+        // focus, so the field is still the active element and stays open.
+        window.setTimeout(() => {
+          const anchor = anchorRef.current;
+          const root = anchor?.getRootNode() as Document | ShadowRoot | undefined;
+          const active = root?.activeElement ?? null;
+          if (anchor && !(active && anchor.contains(active))) {
+            onClose();
+          }
+        }, 0);
+      }}
+    >
       <div
         className={['sep-search-field', open ? 'is-open' : '']
           .filter(Boolean)

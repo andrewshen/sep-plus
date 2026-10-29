@@ -149,17 +149,7 @@ async function fetchEntryIndex(): Promise<EntryIndexItem[]> {
   return parseContentsHtml(html);
 }
 
-export async function getEntryIndex(): Promise<EntryIndexItem[]> {
-  const stored = await chrome.storage.local.get(STORAGE_KEY);
-  const cache = stored[STORAGE_KEY];
-  if (
-    isEntryIndexCache(cache) &&
-    cache.entries.length > 0 &&
-    Date.now() - cache.fetchedAt < CACHE_TTL_MS
-  ) {
-    return cache.entries;
-  }
-
+async function refreshEntryIndex(): Promise<EntryIndexItem[]> {
   const entries = await fetchEntryIndex();
   const next: EntryIndexCache = {
     fetchedAt: Date.now(),
@@ -168,6 +158,31 @@ export async function getEntryIndex(): Promise<EntryIndexItem[]> {
   await chrome.storage.local.set({ [STORAGE_KEY]: next });
   void chrome.storage.local.remove(LEGACY_STORAGE_KEYS);
   return entries;
+}
+
+let pendingRefresh: Promise<EntryIndexItem[]> | null = null;
+
+/**
+ * Cached titles, refreshed weekly. A stale cache is still returned at once
+ * (and refreshed in the background) so search keeps working offline or when
+ * SEP is down; only a missing cache waits on the network.
+ */
+export async function getEntryIndex(): Promise<EntryIndexItem[]> {
+  const stored = await chrome.storage.local.get(STORAGE_KEY);
+  const cache = stored[STORAGE_KEY];
+  const usable = isEntryIndexCache(cache) && cache.entries.length > 0;
+  if (usable && Date.now() - cache.fetchedAt < CACHE_TTL_MS) {
+    return cache.entries;
+  }
+
+  pendingRefresh ??= refreshEntryIndex().finally(() => {
+    pendingRefresh = null;
+  });
+  if (usable) {
+    pendingRefresh.catch(() => undefined);
+    return cache.entries;
+  }
+  return pendingRefresh;
 }
 
 /** Lowercase, accent-free, straight-quoted: `Gödel` / `Kūkai` match `godel` / `kukai`. */
