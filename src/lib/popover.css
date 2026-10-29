@@ -163,3 +163,15 @@
 .sep-plus-app.is-dark .sep-popover-message.is-error {
   color: #f1a7ad;
 }
+
+/* Keyboard focus inside any popover, footnotes included, gets the shared
+   ring; the surface itself only takes focus to receive keyboard users. */
+.sep-popover[tabindex]:focus,
+.sep-popover :focus:not(:focus-visible) {
+  outline: none;
+}
+
+.sep-popover :focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--sep-text) 32%, transparent);
+  outline-offset: 2px;
+}
