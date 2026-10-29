@@ -97,6 +97,26 @@ describe('AnnotationPopover', () => {
     expect(alert()).toBeNull();
   });
 
+  it('copies and closes the menu without a Copied label', async () => {
+    const writeText = vi.fn(() => Promise.resolve());
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: { writeText },
+    });
+    renderPopover();
+    fireEvent.click(mount.querySelector('[aria-label="Annotation actions"]')!);
+    const item = Array.from(mount.querySelectorAll('[role="menuitem"]')).find((el) =>
+      el.textContent?.includes('Copy'),
+    )!;
+    fireEvent.click(item);
+    await settle(0);
+    expect(writeText).toHaveBeenCalledTimes(1);
+    expect(mount.textContent).not.toContain('Copied');
+    expect(
+      mount.querySelector('[aria-label="Annotation actions"][aria-expanded]')?.getAttribute('aria-expanded'),
+    ).toBe('false');
+  });
+
   it('clears the error once the note is back to what’s saved', async () => {
     const onSaveNote = vi.fn(() => Promise.reject(new Error('offline')));
     const { textarea, alert } = renderPopover({ onSaveNote });

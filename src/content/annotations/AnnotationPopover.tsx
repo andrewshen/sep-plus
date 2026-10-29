@@ -27,7 +27,6 @@ type AnnotationPopoverProps = {
 
 const MENU_ID = 'sep-annotation-menu';
 const AUTOSAVE_DELAY_MS = 400;
-const COPIED_CLOSE_DELAY_MS = 600;
 
 function clipboardText(annotation: AnnotationListItem): string {
   const quote = `“${annotation.selector.quote.exact}”`;
@@ -49,7 +48,6 @@ export function AnnotationPopover({
 }: AnnotationPopoverProps) {
   const [draft, setDraft] = useState(annotation.note);
   const [menuOpen, setMenuOpen] = useState(false);
-  const [copied, setCopied] = useState(false);
   const [saveError, setSaveError] = useState<SaveError | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const menuAnchorRef = useRef<HTMLDivElement>(null);
@@ -125,23 +123,13 @@ export function AnnotationPopover({
     [],
   );
 
-  useEffect(() => {
-    if (!copied) {
-      return;
-    }
-    const timer = window.setTimeout(() => {
-      setMenuOpen(false);
-      setCopied(false);
-    }, COPIED_CLOSE_DELAY_MS);
-    return () => window.clearTimeout(timer);
-  }, [copied]);
-
   async function copy(): Promise<void> {
+    // Close like a click-away; the menu's own exit animation runs.
+    setMenuOpen(false);
     try {
       await navigator.clipboard.writeText(clipboardText({ ...annotation, note: draft }));
-      setCopied(true);
     } catch {
-      setMenuOpen(false);
+      // Clipboard access can be denied; there's nothing useful to show.
     }
   }
 
@@ -164,7 +152,6 @@ export function AnnotationPopover({
         controls={MENU_ID}
         hasPopup="menu"
         onClick={() => {
-          setCopied(false);
           setMenuOpen((open) => !open);
         }}
       >
@@ -185,7 +172,7 @@ export function AnnotationPopover({
           icon={<IconCopy />}
           onClick={() => void copy()}
         >
-          {copied ? 'Copied' : 'Copy to clipboard'}
+          Copy to clipboard
         </ActionButton>
         <ActionButton
           role="menuitem"
