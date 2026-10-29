@@ -471,6 +471,70 @@ describe('controller lifecycle and interactions', () => {
     cleanup();
   });
 
+  it('aborts the notes fetch and leaves the page untouched on early cleanup', async () => {
+    articleFixture(true);
+    let aborted = false;
+    const cleanup = initFootnotes({
+      document,
+      window,
+      fetch: (_input, init) =>
+        new Promise<Response>((_resolve, reject) => {
+          init?.signal?.addEventListener('abort', () => {
+            aborted = true;
+            reject(new DOMException('Aborted', 'AbortError'));
+          });
+        }),
+    });
+    cleanup();
+    await Promise.resolve();
+    expect(aborted).toBe(true);
+    expect(document.querySelector('#footnotes')).toBeNull();
+    expect(document.querySelector('#ref-1')?.getAttribute('href')).toBe(
+      'notes.html#note-1'
+    );
+  });
+
+  it('points several markers at one shared note', async () => {
+    setDocument(`
+      <article id="article">
+        <div id="article-content">
+          <p>One <sup><a id="ref-1" href="notes.html#note-1">1</a></sup></p>
+          <p>Again <sup><a id="ref-1b" href="notes.html#note-1">1</a></sup></p>
+        </div>
+      </article>
+    `);
+    const cleanup = initFootnotes({
+      document,
+      window,
+      fetch: async () => new Response(notesHtml, { status: 200 }),
+    });
+    const section = await waitForFootnotes();
+    const notes = section.querySelectorAll('.sep-plus-footnote');
+    expect(notes).toHaveLength(1);
+    const target = `#${notes[0]?.id}`;
+    expect(document.querySelector('#ref-1')?.getAttribute('href')).toBe(target);
+    expect(document.querySelector('#ref-1b')?.getAttribute('href')).toBe(target);
+    cleanup();
+  });
+
+  it('works on entries without a bibliography', async () => {
+    setDocument(`
+      <article id="article">
+        <div id="article-content">
+          <p>Text <sup><a id="ref-1" href="notes.html#note-1">1</a></sup></p>
+        </div>
+      </article>
+    `);
+    const cleanup = initFootnotes({
+      document,
+      window,
+      fetch: async () => new Response(notesHtml, { status: 200 }),
+    });
+    const section = await waitForFootnotes();
+    expect(section.querySelectorAll('.sep-plus-footnote')).toHaveLength(1);
+    cleanup();
+  });
+
   it('opens pointer previews only when fine hover is available', async () => {
     mockMatchMedia({ hover: true });
     articleFixture();

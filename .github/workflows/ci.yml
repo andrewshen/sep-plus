@@ -30,3 +30,7 @@ jobs:
 
       - name: Test
         run: npm test
+
+      # Catches manifest and bundling errors that typecheck and tests miss.
+      - name: Build
+        run: npx vite build

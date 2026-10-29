@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
   annotationExportFilename,
+  escapeMarkdownText,
+  serializeAnnotationsMarkdown,
   serializeAnnotationsWord,
 } from './annotationExport';
 import {
@@ -98,6 +100,44 @@ describe('serializeAnnotationsWord', () => {
     expect(html.startsWith('\ufeff<html')).toBe(true);
     expect(html).toContain('xmlns:w="urn:schemas-microsoft-com:office:word"');
     expect(html).toContain('<meta charset="utf-8">');
+  });
+});
+
+describe('serializeAnnotationsMarkdown', () => {
+  it('writes notes and quotes literally instead of as Markdown or HTML', () => {
+    const markdown = serializeAnnotationsMarkdown(
+      [
+        entry([
+          annotation('one', 'If *p* then [q] <b>', 0, {
+            section: '2. *Modal* logic',
+            note: 'First line\n## Not a heading\n- not a list\n1. not ordered\n<img src=x onerror=alert(1)>\n&copy; stays',
+          }),
+        ]),
+      ],
+      EXPORTED_AT,
+    );
+
+    expect(markdown).toContain('### 2. \\*Modal\\* logic');
+    expect(markdown).toContain('> If \\*p\\* then \\[q\\] \\<b>');
+    expect(markdown).toContain('\\## Not a heading');
+    expect(markdown).toContain('\\- not a list');
+    expect(markdown).toContain('1\\. not ordered');
+    expect(markdown).toContain('\\<img src=x onerror=alert(1)>');
+    expect(markdown).toContain('\\&copy; stays');
+    expect(markdown).not.toMatch(/^## Not a heading/m);
+  });
+
+  it('links each entry title to its source', () => {
+    const markdown = serializeAnnotationsMarkdown([entry([])], EXPORTED_AT);
+    expect(markdown).toContain(`## [Example](<${SOURCE}>)`);
+  });
+});
+
+describe('escapeMarkdownText', () => {
+  it('leaves ordinary prose alone', () => {
+    expect(escapeMarkdownText('Kant’s view, in 1781, was this: 2 + 2 = 4.')).toBe(
+      'Kant’s view, in 1781, was this: 2 + 2 = 4.',
+    );
   });
 });
 

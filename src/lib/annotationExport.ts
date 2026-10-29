@@ -47,14 +47,30 @@ export function serializeAnnotationExport(
   return `${JSON.stringify(annotationExport, null, 2)}\n`;
 }
 
-function escapeMarkdownLinkText(text: string): string {
-  return text.replaceAll('\\', '\\\\').replaceAll('[', '\\[').replaceAll(']', '\\]');
+/**
+ * Notes and quoted passages are plain text, not Markdown: `*` in logic
+ * notation, `<tags>` and a note line starting with `#` must come out
+ * literally rather than as emphasis, raw HTML, or a heading.
+ */
+export function escapeMarkdownText(text: string): string {
+  return text
+    .split(/\r?\n/)
+    .map((line) =>
+      escapeMarkdownInline(line)
+        .replace(/^(\s*)([#>+-]|=+\s*$)/, '$1\\$2')
+        .replace(/^(\s*\d+)([.)])/, '$1\\$2'),
+    )
+    .join('\n');
+}
+
+/** For text inside a heading or link label, where block syntax can't start. */
+function escapeMarkdownInline(text: string): string {
+  return text.replace(/[\\`*_[\]<~|]/g, '\\$&').replace(/&(?=#?\w+;)/g, '\\&');
 }
 
 function quoteMarkdown(text: string): string {
-  return text
-    .trim()
-    .split(/\r?\n/)
+  return escapeMarkdownText(text.trim())
+    .split('\n')
     .map((line) => `> ${line}`)
     .join('\n');
 }
@@ -62,7 +78,7 @@ function quoteMarkdown(text: string): string {
 function annotationMarkdown(annotation: Annotation): string {
   const parts = [quoteMarkdown(annotation.selector.quote.exact)];
   if (annotation.note.trim()) {
-    parts.push(annotation.note.trim());
+    parts.push(escapeMarkdownText(annotation.note.trim()));
   }
   const updated = new Date(annotation.updatedAt).toISOString();
   parts.push(`_Highlight · Updated ${updated}_`);
@@ -82,13 +98,13 @@ export function serializeAnnotationsMarkdown(
   for (const entry of sortedEntries(entries)) {
     lines.push(
       '',
-      `## [${escapeMarkdownLinkText(entry.pageTitle || entry.source)}](${entry.source})`,
+      `## [${escapeMarkdownInline(entry.pageTitle || entry.source)}](<${entry.source}>)`,
     );
     let activeSection: string | undefined;
     for (const annotation of entry.annotations) {
       if (annotation.section && annotation.section !== activeSection) {
         activeSection = annotation.section;
-        lines.push('', `### ${activeSection}`);
+        lines.push('', `### ${escapeMarkdownInline(activeSection)}`);
       }
       lines.push('', annotationMarkdown(annotation));
     }
