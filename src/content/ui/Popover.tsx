@@ -13,6 +13,12 @@ import { trackScrollFade } from '../../lib/scrollFade';
 
 export const POPOVER_EXIT_MS = 150;
 
+/** Module-level so the ref keeps its identity: a new callback each render
+ *  would tear down and rebuild the observers. */
+function attachScrollFade(body: HTMLDivElement | null): (() => void) | undefined {
+  return body ? trackScrollFade(body) : undefined;
+}
+
 type PopoverSurfaceProps = Omit<HTMLAttributes<HTMLDivElement>, 'title'> & {
   ref?: Ref<HTMLDivElement>;
   title?: ReactNode;
@@ -58,7 +64,7 @@ export function PopoverSurface({
       ) : null}
       {children ? (
         <div
-          ref={(body) => (body ? trackScrollFade(body) : undefined)}
+          ref={attachScrollFade}
           className={['sep-popover-body', prose ? 'sep-popover-prose' : '']
             .filter(Boolean)
             .join(' ')}

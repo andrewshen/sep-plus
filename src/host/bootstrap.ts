@@ -293,7 +293,7 @@ export function parseSearchSummary(
   const current = Math.floor((start - 1) / pageSize) + 1;
   const totalPages = Math.ceil(total / pageSize);
   return {
-    count: `${total.toLocaleString('en-US')} results for “${query.trim()}”`,
+    count: `${total.toLocaleString('en-US')} ${total === 1 ? 'result' : 'results'} for “${query.trim()}”`,
     page: `Page ${current.toLocaleString('en-US')} of ${totalPages.toLocaleString('en-US')}`,
     current,
     totalPages,
@@ -419,7 +419,7 @@ export function restyleSearchResults(): void {
 
   const count = document.createElement('span');
   count.className = 'sep-plus-search-summary-count';
-  const labelMatch = parsed.count.match(/^(.*?)(results for)(.*)$/);
+  const labelMatch = parsed.count.match(/^(.*?)(results? for)(.*)$/);
   if (labelMatch) {
     const [, before = '', labelText = '', after = ''] = labelMatch;
     const label = document.createElement('span');

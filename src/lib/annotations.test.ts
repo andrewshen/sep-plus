@@ -264,6 +264,19 @@ describe('annotation storage', () => {
     expect(next?.annotations[0]).toMatchObject({ note: 'New note', updatedAt: 500 });
   });
 
+  it('saves a note even if the clock now reads before its creation', async () => {
+    await upsertAnnotation(SOURCE, 'Example', annotation('one'));
+    const next = await updateAnnotationNote(SOURCE, 'one', 'Skewed', 50);
+    expect(next?.annotations[0]).toMatchObject({ note: 'Skewed', updatedAt: 100 });
+  });
+
+  it('never dates an edit before the previous one', async () => {
+    await upsertAnnotation(SOURCE, 'Example', annotation('one'));
+    await updateAnnotationNote(SOURCE, 'one', 'First edit', 500);
+    const next = await updateAnnotationNote(SOURCE, 'one', 'Second edit', 300);
+    expect(next?.annotations[0]).toMatchObject({ note: 'Second edit', updatedAt: 500 });
+  });
+
   it('never resurrects an annotation deleted before its note saves', async () => {
     await upsertAnnotation(SOURCE, 'Example', annotation('one'));
     await upsertAnnotation(SOURCE, 'Example', annotation('two', 'Two', 20));

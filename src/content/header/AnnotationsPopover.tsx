@@ -54,7 +54,9 @@ export function AnnotationsPopover({
           secondary={
             annotation.resolved
               ? annotation.note.trim() || undefined
-              : 'Text could not be located in this revision.'
+              : ['Not found in this revision.', annotation.note.trim()]
+                  .filter(Boolean)
+                  .join(' ')
           }
           disabled={!annotation.resolved}
           onClick={(event) => {

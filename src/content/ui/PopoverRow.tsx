@@ -130,12 +130,14 @@ export function PopoverRow<T extends string = string>({
   }
 
   if (onClick) {
+    // aria-disabled rather than disabled, so the row stays focusable and
+    // screen readers can still read it.
     return (
       <button
         type="button"
         className="sep-popover-row is-interactive"
-        disabled={disabled}
-        onClick={onClick}
+        aria-disabled={disabled || undefined}
+        onClick={disabled ? undefined : onClick}
       >
         {content}
       </button>

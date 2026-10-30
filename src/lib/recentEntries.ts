@@ -112,10 +112,16 @@ async function fetchRecentEntries(): Promise<RecentEntry[]> {
   return parseNewHtml(await response.text());
 }
 
+/** Null when there's no usable cache, including when storage can't be read
+ *  after an extension update (chrome.* then throws synchronously). */
 async function readCache(): Promise<RecentEntriesCache | null> {
-  const stored = await chrome.storage.local.get(STORAGE_KEY);
-  const cache = stored[STORAGE_KEY];
-  return isRecentEntriesCache(cache) ? cache : null;
+  try {
+    const stored = await chrome.storage.local.get(STORAGE_KEY);
+    const cache = stored[STORAGE_KEY];
+    return isRecentEntriesCache(cache) ? cache : null;
+  } catch {
+    return null;
+  }
 }
 
 /**
@@ -138,7 +144,11 @@ export async function loadRecentEntries(
     return;
   }
   onEntries(entries);
-  await chrome.storage.local.set({
-    [STORAGE_KEY]: { fetchedAt: Date.now(), entries } satisfies RecentEntriesCache,
-  });
+  try {
+    await chrome.storage.local.set({
+      [STORAGE_KEY]: { fetchedAt: Date.now(), entries } satisfies RecentEntriesCache,
+    });
+  } catch {
+    // Not cached; the next homepage visit fetches again.
+  }
 }

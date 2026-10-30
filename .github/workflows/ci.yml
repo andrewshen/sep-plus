@@ -35,6 +35,10 @@ jobs:
       - name: Build
         run: npm run build:chrome && npm run build:firefox
 
+      # Checks what CRXJS actually emits, which src/manifest.test.ts can't see.
+      - name: Check built manifests
+        run: npm run check:dist
+
       # Catches APIs and manifest keys Firefox doesn't support.
       - name: Lint Firefox build
         run: npm run lint:firefox

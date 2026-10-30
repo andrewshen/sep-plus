@@ -14,12 +14,31 @@ export function trackScrollFade(el: HTMLElement): () => void {
   update();
   el.addEventListener('scroll', update, { passive: true });
   // Size changes (popover placement, window resize) and content swaps
-  // (footnote text, note edits) both change what overflows.
+  // (footnote text, note edits) both change what overflows. The children are
+  // observed too: once the scroller is at its max height, content that grows
+  // in place (a lazy image, a font swap) doesn't resize the scroller itself.
   const resize =
     typeof ResizeObserver === 'function' ? new ResizeObserver(update) : null;
-  resize?.observe(el);
+  function observeSizes(): void {
+    if (!resize) {
+      return;
+    }
+    resize.disconnect();
+    resize.observe(el);
+    for (const child of Array.from(el.children)) {
+      resize.observe(child);
+    }
+  }
+  observeSizes();
   const mutations =
-    typeof MutationObserver === 'function' ? new MutationObserver(update) : null;
+    typeof MutationObserver === 'function'
+      ? new MutationObserver((records) => {
+          if (records.some((record) => record.type === 'childList' && record.target === el)) {
+            observeSizes();
+          }
+          update();
+        })
+      : null;
   mutations?.observe(el, { childList: true, subtree: true, characterData: true });
 
   return () => {

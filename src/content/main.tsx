@@ -29,7 +29,12 @@ import {
 import { normalizeEntryUrl } from '../lib/annotations';
 import type { HighlightColor, ThemePreference, TocItem } from '../lib/types';
 import { App } from './App';
-import { boot } from './boot';
+import {
+  boot,
+  clearRewrittenPageReload,
+  isRewrittenByEarlierInstance,
+  reloadRewrittenPage,
+} from './boot';
 import uiStyles from './styles.css?inline';
 import '../host/styles.css';
 
@@ -342,7 +347,18 @@ async function mount(): Promise<void> {
   booted = true;
 }
 
-const isHtmlDocument = document.contentType === 'text/html';
+const getSessionStorage = () => window.sessionStorage;
+const rewrittenEarlier =
+  document.contentType === 'text/html' &&
+  isRewrittenByEarlierInstance(document);
+if (rewrittenEarlier) {
+  reloadRewrittenPage(getSessionStorage, () => location.reload());
+} else {
+  clearRewrittenPageReload(getSessionStorage);
+}
+// A page an earlier copy rewrote is left as it is (and reloaded above).
+const isHtmlDocument =
+  document.contentType === 'text/html' && !rewrittenEarlier;
 if (isHtmlDocument) {
   // Ensure a prior ready state (e.g. bfcache) cannot skip the boot hide.
   document.documentElement.classList.remove(READY_CLASS);

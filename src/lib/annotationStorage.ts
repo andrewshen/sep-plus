@@ -169,7 +169,9 @@ export function updateAnnotationNote(
       ...current,
       annotations: current.annotations.map((annotation) =>
         annotation.id === annotationId
-          ? { ...annotation, note, updatedAt }
+          ? // A clock set back mustn't date this edit before the last one (or
+            // before creation, which validation rejects).
+            { ...annotation, note, updatedAt: Math.max(updatedAt, existing.updatedAt) }
           : annotation,
       ),
     };

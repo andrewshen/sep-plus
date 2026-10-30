@@ -512,6 +512,68 @@ describe('citation parsing across supplied SEP formats', () => {
       ),
     ).toEqual([]);
   });
+
+  it('does not read lowercase words as capitalized author names', () => {
+    setDocument(
+      '<p>(in the field since 1980); (in may 1968); (Field 1980)</p>',
+      `
+        <ul class="hanging">
+          <li>Field, Hartry, 1980, <em>Science Without Numbers</em>.</li>
+          <li>May, Robert, 1968, “Another Work.”</li>
+        </ul>
+      `,
+    );
+    const text = '(in the field since 1980); (in may 1968); (Field 1980)';
+    const matches = findBibliographyCitationMatches(
+      text,
+      collectBibliographyEntries(document),
+    );
+    expect(matches.map((match) => text.slice(match.start, match.end))).toEqual([
+      'Field 1980',
+    ]);
+  });
+
+  it('still matches lowercase particles and a capitalized particle', () => {
+    setDocument(
+      '<p>(van Fraassen 1980); (Van Fraassen 1980)</p>',
+      `
+        <ul class="hanging">
+          <li>van Fraassen, Bas, 1980, <em>The Scientific Image</em>.</li>
+        </ul>
+      `,
+    );
+    const text = '(van Fraassen 1980); (Van Fraassen 1980)';
+    const matches = findBibliographyCitationMatches(
+      text,
+      collectBibliographyEntries(document),
+    );
+    expect(matches.map((match) => text.slice(match.start, match.end))).toEqual([
+      'van Fraassen 1980',
+      'Van Fraassen 1980',
+    ]);
+  });
+
+  it('matches a lowercase particle when the bibliography capitalizes it', () => {
+    setDocument(
+      '<p>(van Fraassen 1980); (Smith &amp; van Fraassen 1980)</p>',
+      `
+        <ul class="hanging">
+          <li>Van Fraassen, Bas, 1980, <em>The Scientific Image</em>.</li>
+          <li>Smith, Jane and Bas Van Fraassen, 1980, “Joint Work.”</li>
+        </ul>
+      `,
+    );
+    const text = '(van Fraassen 1980); (Smith & van Fraassen 1980)';
+    const matches = findBibliographyCitationMatches(
+      text,
+      collectBibliographyEntries(document),
+    );
+    expect(matches.map((match) => text.slice(match.start, match.end))).toEqual([
+      'van Fraassen 1980',
+      'Smith & van Fraassen 1980',
+    ]);
+    expect(matches[1]?.entries[0]?.author).toBe('Smith');
+  });
 });
 
 describe('citation DOM linking and cleanup', () => {
@@ -719,6 +781,7 @@ describe('citation preview interaction controller', () => {
     const click = new MouseEvent('click', {
       bubbles: true,
       cancelable: true,
+      detail: 1,
     });
     expect(trigger.dispatchEvent(click)).toBe(true);
     expect(click.defaultPrevented).toBe(false);
@@ -731,6 +794,28 @@ describe('citation preview interaction controller', () => {
       }),
     );
     expect(onActive.mock.calls.at(-1)?.[0]).toBeNull();
+  });
+
+  it('opens and moves focus into the preview on a screen reader click', () => {
+    interactionFixture();
+    const onActive = vi.fn();
+    const onFocusPreview = vi.fn();
+    const controller = initBibliographyCitations({
+      document,
+      window,
+      onActiveChange: onActive,
+      onFocusPreview,
+    });
+    controllers.push(controller);
+    const trigger = triggerAt();
+
+    trigger.dispatchEvent(new MouseEvent('click', { bubbles: true, detail: 1 }));
+    expect(onActive).not.toHaveBeenCalled();
+    expect(onFocusPreview).not.toHaveBeenCalled();
+
+    trigger.dispatchEvent(new MouseEvent('click', { bubbles: true, detail: 0 }));
+    expect(onActive.mock.calls.at(-1)?.[0]?.entries[0]?.year).toBe('1997');
+    expect(onFocusPreview).toHaveBeenCalledTimes(1);
   });
 
   it('recomputes active geometry on viewport changes', () => {

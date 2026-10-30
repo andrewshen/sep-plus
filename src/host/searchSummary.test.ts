@@ -47,6 +47,13 @@ describe('parseSearchSummary', () => {
     });
   });
 
+  it('uses the singular for a single result', () => {
+    expect(parseSearchSummary('1–1 of 1 documents found', 'akrasia')).toMatchObject({
+      count: '1 result for “akrasia”',
+      page: 'Page 1 of 1',
+    });
+  });
+
   it('returns null for text it cannot read', () => {
     expect(parseSearchSummary('', 'x')).toBeNull();
     expect(parseSearchSummary('No documents found', 'x')).toBeNull();

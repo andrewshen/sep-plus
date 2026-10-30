@@ -50,16 +50,25 @@ export function serializeAnnotationExport(
 /**
  * Notes and quoted passages are plain text, not Markdown: `*` in logic
  * notation, `<tags>` and a note line starting with `#` must come out
- * literally rather than as emphasis, raw HTML, or a heading.
+ * literally rather than as emphasis, raw HTML, or a heading. Line breaks
+ * stay line breaks, and indentation can't turn a line into a code block.
  */
 export function escapeMarkdownText(text: string): string {
-  return text
-    .split(/\r?\n/)
-    .map((line) =>
-      escapeMarkdownInline(line)
-        .replace(/^(\s*)([#>+-]|=+\s*$)/, '$1\\$2')
-        .replace(/^(\s*\d+)([.)])/, '$1\\$2'),
-    )
+  const lines = text.split(/\r?\n/).map((line) =>
+    line.trim()
+      ? escapeMarkdownInline(line)
+          .replace(/^(\s*)([#>+-]|=+\s*$)/, '$1\\$2')
+          .replace(/^(\s*\d+)([.)])/, '$1\\$2')
+          // After the escapes above: their `\s` matches U+00A0 too.
+          .replace(/^[ \t]+/, (indent) =>
+            indent.replace(/\t/g, '    ').replace(/ /g, '\u00a0'),
+          )
+      : '',
+  );
+  // A trailing backslash is a hard break; plain newlines would join the
+  // lines into one paragraph. Blank lines still separate paragraphs.
+  return lines
+    .map((line, index) => (line && lines[index + 1] ? `${line}\\` : line))
     .join('\n');
 }
 

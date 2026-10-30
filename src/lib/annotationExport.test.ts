@@ -139,6 +139,18 @@ describe('escapeMarkdownText', () => {
       'Kant’s view, in 1781, was this: 2 + 2 = 4.',
     );
   });
+
+  it('keeps line breaks within a paragraph and blank lines between them', () => {
+    expect(escapeMarkdownText('one\ntwo\n\nthree\n   \nfour')).toBe(
+      'one\\\ntwo\n\nthree\n\nfour',
+    );
+  });
+
+  it('keeps indentation without starting a code block', () => {
+    expect(escapeMarkdownText('Proof:\n\n    p → q\n\t# step')).toBe(
+      'Proof:\n\n\u00a0\u00a0\u00a0\u00a0p → q\\\n\u00a0\u00a0\u00a0\u00a0\\# step',
+    );
+  });
 });
 
 describe('annotationExportFilename', () => {

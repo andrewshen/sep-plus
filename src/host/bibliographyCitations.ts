@@ -439,6 +439,8 @@ function patternsFor(index: BibliographyIndex): CompiledPatterns | null {
   return compiled;
 }
 
+const HAS_UPPERCASE = /\p{Lu}/u;
+
 function findAuthorOccurrences(
   text: string,
   patterns: CompiledPatterns,
@@ -452,7 +454,14 @@ function findAuthorOccurrences(
       continue;
     }
     const authorKey = normalizeAuthor(matched);
-    if (!index.authorNames.has(authorKey)) {
+    const name = index.authorNames.get(authorKey);
+    if (name === undefined) {
+      continue;
+    }
+    // Case-insensitive so "van Fraassen" and "Van Fraassen" find each
+    // other, but an all-lowercase word ("field", "may") isn't a name the
+    // bibliography capitalizes.
+    if (!HAS_UPPERCASE.test(matched) && HAS_UPPERCASE.test(name)) {
       continue;
     }
     occurrences.push({
@@ -1225,6 +1234,26 @@ export function initBibliographyCitations(
         return;
       }
       event.preventDefault();
+      if (activeTarget?.trigger !== trigger) {
+        show(trigger, 'keyboard');
+      }
+      options.onFocusPreview?.();
+    },
+    { signal: lifecycle.signal },
+  );
+
+  // Screen readers activate buttons with a synthesized click (detail 0);
+  // treat it like Enter. Pointer clicks stay with hover and focus.
+  articleRoot.addEventListener(
+    'click',
+    (event) => {
+      if ((event as MouseEvent).detail !== 0) {
+        return;
+      }
+      const trigger = findTrigger(event.target);
+      if (!trigger) {
+        return;
+      }
       if (activeTarget?.trigger !== trigger) {
         show(trigger, 'keyboard');
       }

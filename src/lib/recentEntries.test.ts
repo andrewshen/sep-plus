@@ -2,8 +2,13 @@
  * @vitest-environment happy-dom
  * @vitest-environment-options {"url":"https://plato.stanford.edu/"}
  */
-import { describe, expect, it } from 'vitest';
-import { formatRecentDate, parseNewHtml, splitAuthors } from './recentEntries';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import {
+  formatRecentDate,
+  loadRecentEntries,
+  parseNewHtml,
+  splitAuthors,
+} from './recentEntries';
 
 const SAMPLE = `
 <h1>What's New</h1>
@@ -55,6 +60,37 @@ describe('parseNewHtml link safety', () => {
       parseNewHtml(html, 'https://plato.stanford.edu/').map((entry) => entry.href),
     ).toEqual(['https://plato.stanford.edu/entries/kant/']);
   });
+});
+
+describe('loadRecentEntries', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  const invalidated = new Error('Extension context invalidated.');
+  const failures = {
+    'throws synchronously': () => {
+      throw invalidated;
+    },
+    rejects: () => Promise.reject(invalidated),
+  };
+
+  for (const [label, fail] of Object.entries(failures)) {
+    it(`still delivers fetched entries when storage ${label}`, async () => {
+      vi.stubGlobal('chrome', {
+        storage: { local: { get: vi.fn(fail), set: vi.fn(fail) } },
+      });
+      vi.stubGlobal(
+        'fetch',
+        vi.fn(async () => new Response(SAMPLE, { status: 200 })),
+      );
+      const onEntries = vi.fn();
+      await expect(loadRecentEntries(onEntries)).resolves.toBeUndefined();
+      expect(onEntries).toHaveBeenCalledTimes(1);
+      expect(onEntries.mock.calls[0]?.[0]).toHaveLength(3);
+      expect(chrome.storage.local.set).toHaveBeenCalledTimes(1);
+    });
+  }
 });
 
 describe('splitAuthors', () => {

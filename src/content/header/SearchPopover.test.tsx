@@ -86,11 +86,28 @@ describe('Search', () => {
     getEntryIndex.mockResolvedValue(ENTRIES);
     render(<Harness />);
     await typeQuery('frege');
+    await flush();
     expect(prefetched()).toEqual([ENTRIES[0]?.href]);
 
     fireEvent.change(input(), { target: { value: 'no such entry' } });
-    await flush();
+    await flush(400);
     expect(prefetched().some((url) => url.includes('searcher.py'))).toBe(false);
+  });
+
+  it('waits for a pause in typing before prefetching the top result', async () => {
+    getEntryIndex.mockResolvedValue(ENTRIES);
+    render(<Harness />);
+    fireEvent.focus(input());
+    await flush();
+    fireEvent.change(input(), { target: { value: 'frege' } });
+    await flush(250);
+    expect(prefetched()).toEqual([]);
+    await flush(100);
+    expect(prefetched()).toEqual([ENTRIES[0]?.href]);
+
+    fireEvent.keyDown(input(), { key: 'ArrowDown' });
+    await flush(100);
+    expect(prefetched()).toEqual([ENTRIES[0]?.href, ENTRIES[1]?.href]);
   });
 
   it('keeps at most three prefetches', async () => {

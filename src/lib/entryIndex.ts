@@ -165,10 +165,26 @@ async function refreshEntryIndex(): Promise<EntryIndexItem[]> {
     fetchedAt: Date.now(),
     entries,
   };
-  // A failed cache write still leaves this page with titles to search.
-  await chrome.storage.local.set({ [STORAGE_KEY]: next }).catch(() => undefined);
-  void chrome.storage.local.remove(LEGACY_STORAGE_KEYS).catch(() => undefined);
+  // A failed cache write still leaves this page with titles to search. After
+  // an extension update chrome.* throws synchronously, so catch both ways.
+  try {
+    await chrome.storage.local.set({ [STORAGE_KEY]: next });
+    void chrome.storage.local.remove(LEGACY_STORAGE_KEYS).catch(() => undefined);
+  } catch {
+    // Not cached; the next page load fetches again.
+  }
   return entries;
+}
+
+/** The stored cache, or undefined if storage can't be read (e.g. after an
+ *  extension update), so search falls back to the network. */
+async function readStoredIndex(): Promise<unknown> {
+  try {
+    const stored = await chrome.storage.local.get(STORAGE_KEY);
+    return stored[STORAGE_KEY];
+  } catch {
+    return undefined;
+  }
 }
 
 let pendingRefresh: Promise<EntryIndexItem[]> | null = null;
@@ -179,8 +195,7 @@ let pendingRefresh: Promise<EntryIndexItem[]> | null = null;
  * SEP is down; only a missing cache waits on the network.
  */
 export async function getEntryIndex(): Promise<EntryIndexItem[]> {
-  const stored = await chrome.storage.local.get(STORAGE_KEY);
-  const cache = stored[STORAGE_KEY];
+  const cache = await readStoredIndex();
   const usable = isEntryIndexCache(cache) && cache.entries.length > 0;
   if (usable && Date.now() - cache.fetchedAt < CACHE_TTL_MS) {
     return cache.entries;

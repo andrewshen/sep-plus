@@ -585,7 +585,7 @@
   cursor: pointer;
 }
 
-.sep-plus-app .sep-popover-row:disabled {
+.sep-plus-app .sep-popover-row[aria-disabled='true'] {
   cursor: default;
 }
 
@@ -644,16 +644,17 @@
 /* Hover fades a row's trailing value (Dark, Yellow, Email…); rows without
    one, like annotation entries, fade as a whole. */
 .sep-plus-app
-  .sep-popover-row.is-interactive:not(:disabled):not(
+  .sep-popover-row.is-interactive:not([aria-disabled='true']):not(
     :has(.sep-popover-row-trailing)
   ):hover,
 .sep-plus-app
-  .sep-popover-row.is-interactive:not(:disabled):hover
+  .sep-popover-row.is-interactive:not([aria-disabled='true']):hover
   .sep-popover-row-trailing {
   opacity: 0.5;
 }
 
-.sep-popover-row:disabled :is(.sep-popover-row-label, .sep-popover-row-secondary) {
+.sep-popover-row[aria-disabled='true']
+  :is(.sep-popover-row-label, .sep-popover-row-secondary) {
   color: var(--sep-muted-soft);
 }
 

@@ -50,6 +50,9 @@ const RESULTS_ID = 'sep-search-results';
 const PREFETCH_ATTR = 'data-sep-plus-prefetch';
 /** Wait out rapid ↑/↓ before kicking off a prefetch. */
 const PREFETCH_DEBOUNCE_MS = 75;
+/** While typing, the top result changes on most keystrokes; wait for a real
+ *  pause so each one doesn't fetch a whole entry page. */
+const TYPING_PREFETCH_DEBOUNCE_MS = 300;
 /** Only the most recent candidates stay prefetched. */
 const MAX_PREFETCHES = 3;
 
@@ -246,7 +249,17 @@ export function Search({
     setActiveIndex(0);
   }, [query, rows.length]);
 
+  const prefetchQueryRef = useRef(query);
+  const queryChangedAtRef = useRef(0);
   useEffect(() => {
+    // By time, not by comparing queries: the activeIndex reset that follows
+    // a keystroke re-runs this effect with the query already up to date.
+    if (prefetchQueryRef.current !== query) {
+      prefetchQueryRef.current = query;
+      queryChangedAtRef.current = Date.now();
+    }
+    const typing =
+      Date.now() - queryChangedAtRef.current < TYPING_PREFETCH_DEBOUNCE_MS;
     if (!open) {
       return;
     }
@@ -257,17 +270,20 @@ export function Search({
     if (!url || prefetchedUrlsRef.current.has(url)) {
       return;
     }
-    const timer = window.setTimeout(() => {
-      if (prefetchedUrlsRef.current.has(url)) {
-        return;
-      }
-      prefetchedUrlsRef.current.add(url);
-      for (const evicted of installDocumentPrefetch(url)) {
-        prefetchedUrlsRef.current.delete(evicted);
-      }
-    }, PREFETCH_DEBOUNCE_MS);
+    const timer = window.setTimeout(
+      () => {
+        if (prefetchedUrlsRef.current.has(url)) {
+          return;
+        }
+        prefetchedUrlsRef.current.add(url);
+        for (const evicted of installDocumentPrefetch(url)) {
+          prefetchedUrlsRef.current.delete(evicted);
+        }
+      },
+      typing ? TYPING_PREFETCH_DEBOUNCE_MS : PREFETCH_DEBOUNCE_MS,
+    );
     return () => window.clearTimeout(timer);
-  }, [open, rows, activeIndex]);
+  }, [open, rows, activeIndex, query]);
 
   useEffect(() => {
     if (!open || !listRef.current) {

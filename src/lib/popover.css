@@ -124,6 +124,14 @@
   --sep-popover-fade-top: 0px;
   --sep-popover-fade-bottom: 0px;
   --sep-popover-fade-bottom-clear: 0px;
+
+  /* Rows and links scrolled into view (arrow keys, Tab) stop clear of the
+     fades below, not underneath them. */
+  scroll-padding-block: 20px 32px;
+}
+
+.sep-popover-title + .sep-popover-body {
+  scroll-padding-top: calc(20px + max(0px, calc(8px - var(--sep-popover-title-gap))));
 }
 
 .sep-popover-body[data-fade-top] {

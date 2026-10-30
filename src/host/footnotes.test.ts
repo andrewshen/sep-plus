@@ -523,6 +523,55 @@ describe('controller lifecycle and interactions', () => {
     cleanup();
   });
 
+  it('starts each newly shown note at the top', async () => {
+    setDocument(`
+      <article id="article">
+        <div id="article-content">
+          <p>One <sup><a id="ref-1" href="notes.html#note-1">1</a></sup></p>
+          <p>Two <sup><a id="ref-2" href="notes.html#note-2">2</a></sup></p>
+        </div>
+      </article>
+    `);
+    const cleanup = initFootnotes({
+      document,
+      window,
+      fetch: async () =>
+        new Response(
+          `<div id="aueditable">
+            <div id="note-1"><p><a href="index.html#ref-1">1.</a> First</p></div>
+            <div id="note-2"><p><a href="index.html#ref-2">2.</a> Second</p></div>
+          </div>`,
+          { status: 200 },
+        ),
+    });
+    await waitForFootnotes();
+    const body = document
+      .querySelector('#sep-plus-footnote-layer')
+      ?.shadowRoot?.querySelector<HTMLElement>('.sep-popover-body');
+    if (!body) {
+      throw new Error('Missing preview body');
+    }
+    let scrollTop = 0;
+    Object.defineProperty(body, 'scrollTop', {
+      configurable: true,
+      get: () => scrollTop,
+      set: (value: number) => {
+        scrollTop = value;
+      },
+    });
+
+    document
+      .querySelector('#ref-1')!
+      .dispatchEvent(new FocusEvent('focusin', { bubbles: true }));
+    scrollTop = 120;
+    document
+      .querySelector('#ref-2')!
+      .dispatchEvent(new FocusEvent('focusin', { bubbles: true }));
+    expect(body.textContent?.trim()).toBe('Second');
+    expect(scrollTop).toBe(0);
+    cleanup();
+  });
+
   it('works on entries without a bibliography', async () => {
     setDocument(`
       <article id="article">

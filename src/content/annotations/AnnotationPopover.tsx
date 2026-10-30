@@ -6,7 +6,7 @@ import { IconButton } from '../ui/IconButton';
 import { Popover } from '../ui/Popover';
 import { useDismiss } from '../ui/useDismiss';
 import { MarginNotePopover } from './MarginNotePopover';
-import { stashPendingNote } from './pendingNotes';
+import { clearPendingNote, stashPendingNote } from './pendingNotes';
 import {
   isContextInvalidated,
   type AnnotationListItem,
@@ -63,6 +63,8 @@ export function AnnotationPopover({
   const draftRef = useRef(draft);
   const deletingRef = useRef(false);
   const mountedRef = useRef(true);
+  /** This popover left a draft in sessionStorage for the next load. */
+  const stashedRef = useRef(false);
   const onSaveNoteRef = useRef(onSaveNote);
   draftRef.current = draft;
   onSaveNoteRef.current = onSaveNote;
@@ -76,8 +78,14 @@ export function AnnotationPopover({
         }
       },
       (error: unknown) => {
+        const stale = isContextInvalidated(error);
+        // Also when the popover already closed: any later reload keeps it.
+        // Not if the note was changed back to what's stored meanwhile.
+        if (stale && draftRef.current.trim() !== savedRef.current) {
+          stashPendingNote(annotation.id, next);
+          stashedRef.current = true;
+        }
         if (mountedRef.current) {
-          const stale = isContextInvalidated(error);
           setSaveError({
             message: stale ? RELOAD_MESSAGE : RETRY_MESSAGE,
             retryable: !stale,
@@ -136,8 +144,14 @@ export function AnnotationPopover({
 
   useEffect(() => {
     if (draft.trim() === savedRef.current) {
-      // Back to what's stored, so nothing is left unsaved.
+      // Back to what's stored, so nothing is left unsaved, and a draft
+      // stashed earlier mustn't overwrite the note on the next load. Only
+      // this popover's own stash: another may still be waiting to restore.
       setSaveError(null);
+      if (stashedRef.current) {
+        clearPendingNote(annotation.id);
+        stashedRef.current = false;
+      }
       return;
     }
     const timer = window.setTimeout(() => {

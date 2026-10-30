@@ -1,5 +1,14 @@
+/**
+ * @vitest-environment happy-dom
+ */
 import { describe, expect, it, vi } from 'vitest';
-import { boot, type BootOptions } from './boot';
+import {
+  boot,
+  clearRewrittenPageReload,
+  isRewrittenByEarlierInstance,
+  reloadRewrittenPage,
+  type BootOptions,
+} from './boot';
 
 function deferred<T = void>() {
   let resolve!: (value: T) => void;
@@ -132,5 +141,60 @@ describe('boot', () => {
     expect(opts.reveal).not.toHaveBeenCalled();
     domReady.resolve();
     await done;
+  });
+});
+
+function fakeDocument(
+  readyState: DocumentReadyState,
+  html = '',
+): Document {
+  const doc = document.implementation.createHTMLDocument('');
+  doc.documentElement.innerHTML = html ? `<body>${html}</body>` : '<body></body>';
+  Object.defineProperty(doc, 'readyState', { value: readyState });
+  return doc;
+}
+
+describe('isRewrittenByEarlierInstance', () => {
+  it('detects a loaded page an earlier copy rewrote', () => {
+    const byClass = fakeDocument('complete');
+    byClass.documentElement.classList.add('sep-plus');
+    expect(isRewrittenByEarlierInstance(byClass)).toBe(true);
+    expect(
+      isRewrittenByEarlierInstance(
+        fakeDocument('interactive', '<div id="sep-plus-root"></div>'),
+      ),
+    ).toBe(true);
+  });
+
+  it('ignores native pages and pages still loading', () => {
+    expect(isRewrittenByEarlierInstance(fakeDocument('complete'))).toBe(false);
+    const loading = fakeDocument('loading');
+    loading.documentElement.classList.add('sep-plus');
+    expect(isRewrittenByEarlierInstance(loading)).toBe(false);
+  });
+});
+
+describe('reloadRewrittenPage', () => {
+  it('reloads once, then not again until a normal start clears the flag', () => {
+    sessionStorage.clear();
+    const reload = vi.fn();
+    const storage = () => sessionStorage;
+    reloadRewrittenPage(storage, reload);
+    reloadRewrittenPage(storage, reload);
+    expect(reload).toHaveBeenCalledTimes(1);
+
+    reloadRewrittenPage(storage, reload);
+    clearRewrittenPageReload(storage);
+    reloadRewrittenPage(storage, reload);
+    expect(reload).toHaveBeenCalledTimes(3);
+    sessionStorage.clear();
+  });
+
+  it('does not reload without sessionStorage', () => {
+    const reload = vi.fn();
+    reloadRewrittenPage(() => {
+      throw new Error('SecurityError');
+    }, reload);
+    expect(reload).not.toHaveBeenCalled();
   });
 });

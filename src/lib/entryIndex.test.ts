@@ -119,6 +119,19 @@ describe('getEntryIndex', () => {
     expect(await getEntryIndex()).toHaveLength(8);
   });
 
+  it('fetches titles when storage throws after an extension update', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => new Response(CONTENTS, { status: 200 })),
+    );
+    const invalidated = () => {
+      throw new Error('Extension context invalidated.');
+    };
+    vi.mocked(chrome.storage.local.get).mockImplementation(invalidated);
+    vi.mocked(chrome.storage.local.set).mockImplementation(invalidated);
+    expect(await getEntryIndex()).toHaveLength(8);
+  });
+
   it('throws when nothing is stored and the fetch fails', async () => {
     vi.stubGlobal('fetch', vi.fn(async () => new Response('', { status: 503 })));
     await expect(getEntryIndex()).rejects.toThrow('503');

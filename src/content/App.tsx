@@ -66,6 +66,18 @@ function isEditableTarget(target: EventTarget | null): boolean {
   );
 }
 
+const IS_MAC = /Mac|iPhone|iPad/.test(navigator.platform);
+
+/** On macOS, Ctrl+K in a text field deletes to the end of the line. */
+function isMacTextKillShortcut(event: KeyboardEvent): boolean {
+  return (
+    IS_MAC &&
+    event.ctrlKey &&
+    !event.metaKey &&
+    isEditableTarget(event.composedPath()[0] ?? null)
+  );
+}
+
 export function App({
   items,
   initialTheme,
@@ -195,7 +207,9 @@ export function App({
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
       const isSearchShortcut =
-        (event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k';
+        (event.metaKey || event.ctrlKey) &&
+        event.key.toLowerCase() === 'k' &&
+        !isMacTextKillShortcut(event);
       if (isSearchShortcut) {
         event.preventDefault();
         setOpenPopover((open) => (open === 'search' ? null : 'search'));

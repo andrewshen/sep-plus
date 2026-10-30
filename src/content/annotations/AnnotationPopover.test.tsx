@@ -237,6 +237,56 @@ describe('AnnotationPopover', () => {
     vi.restoreAllMocks();
   });
 
+  it('keeps a draft that failed to save after the extension updated, even once closed', async () => {
+    const onSaveNote = vi.fn(() =>
+      Promise.reject(new Error('Extension context invalidated.')),
+    );
+    const { textarea, unmount } = renderPopover({ onSaveNote });
+    fireEvent.change(textarea(), { target: { value: 'Closed too soon ' } });
+    unmount();
+    await settle(0);
+    expect(sessionStorage.getItem('sep-plus:pending-note:one')).toBe('Closed too soon');
+    sessionStorage.clear();
+  });
+
+  it('drops its stashed draft when the note is changed back to what’s stored', async () => {
+    const onSaveNote = vi.fn(() =>
+      Promise.reject(new Error('Extension context invalidated.')),
+    );
+    const { textarea, alert, unmount } = renderPopover({
+      annotation: { ...ANNOTATION, note: 'Saved' },
+      onSaveNote,
+    });
+    fireEvent.change(textarea(), { target: { value: 'Changed' } });
+    await settle();
+    expect(sessionStorage.getItem('sep-plus:pending-note:one')).toBe('Changed');
+
+    fireEvent.change(textarea(), { target: { value: 'Saved' } });
+    await settle(0);
+    expect(alert()).toBeNull();
+    expect(sessionStorage.getItem('sep-plus:pending-note:one')).toBeNull();
+    unmount();
+    await settle(0);
+    expect(sessionStorage.getItem('sep-plus:pending-note:one')).toBeNull();
+  });
+
+  it('leaves a draft stashed before it opened for the next load to restore', async () => {
+    sessionStorage.setItem('sep-plus:pending-note:one', 'From before');
+    const { unmount } = renderPopover();
+    await settle(0);
+    unmount();
+    expect(sessionStorage.getItem('sep-plus:pending-note:one')).toBe('From before');
+    sessionStorage.clear();
+  });
+
+  it('does not stash a draft for other save errors', async () => {
+    const onSaveNote = vi.fn(() => Promise.reject(new Error('offline')));
+    const { textarea } = renderPopover({ onSaveNote });
+    fireEvent.change(textarea(), { target: { value: 'Retry me' } });
+    await settle();
+    expect(sessionStorage.getItem('sep-plus:pending-note:one')).toBeNull();
+  });
+
   it('does not save a pending edit once delete starts', async () => {
     let finishDelete!: () => void;
     const onDelete = vi.fn(

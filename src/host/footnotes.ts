@@ -657,6 +657,8 @@ function createPreviewController(options: {
   const hoverMedia = win.matchMedia('(hover: hover) and (pointer: fine)');
   const reduceMedia = win.matchMedia('(prefers-reduced-motion: reduce)');
   let activeLink: HTMLAnchorElement | null = null;
+  /** The marker whose note `content` holds, even while closing. */
+  let contentLink: HTMLAnchorElement | null = null;
   let showFrame: number | null = null;
   let positionFrame: number | null = null;
   let closeTimer: number | null = null;
@@ -702,12 +704,13 @@ function createPreviewController(options: {
       return;
     }
     const triggerRect = activeLink.getBoundingClientRect();
-    const previewRect = preview.getBoundingClientRect();
+    // Layout size: the bounding rect would include the entry scale.
+    const previewWidth = preview.offsetWidth;
     const placement = computeFootnotePlacement(
       triggerRect,
       {
-        width: previewRect.width,
-        height: previewRect.height,
+        width: previewWidth,
+        height: preview.offsetHeight,
       },
       {
         width: win.innerWidth,
@@ -720,7 +723,7 @@ function createPreviewController(options: {
     const originX = triggerRect.left + triggerRect.width / 2 - placement.left;
     preview.style.setProperty(
       '--sep-popover-origin-x',
-      `${Math.min(Math.max(originX, 0), previewRect.width)}px`
+      `${Math.min(Math.max(originX, 0), previewWidth)}px`
     );
   }
 
@@ -748,6 +751,12 @@ function createPreviewController(options: {
     activeLink = link;
     activeMotion = motion;
     content.replaceChildren(cloneNoteForPreview(note, doc));
+    // A closing preview keeps its content (and scroll) mounted, so another
+    // note opened meanwhile would start partway down.
+    if (link !== contentLink) {
+      content.scrollTop = 0;
+      contentLink = link;
+    }
     // Only a link-less note makes the container focusable (see ArrowDown).
     preview.removeAttribute('tabindex');
     preview.setAttribute('aria-label', 'Footnote');
@@ -774,6 +783,7 @@ function createPreviewController(options: {
     preview.hidden = true;
     preview.dataset.state = 'measuring';
     content.replaceChildren();
+    contentLink = null;
   }
 
   function hidePreview(animate: boolean): void {
