@@ -1,5 +1,6 @@
 import {
   ANNOTATION_SCHEMA_VERSION,
+  isEntryAnnotations,
   sortAnnotations,
   type Annotation,
   type EntryAnnotations,
@@ -45,6 +46,49 @@ export function serializeAnnotationExport(
   annotationExport: AnnotationExport,
 ): string {
   return `${JSON.stringify(annotationExport, null, 2)}\n`;
+}
+
+export type ParsedAnnotationExport = {
+  entries: EntryAnnotations[];
+  /** Entries in the file that failed validation and were left out. */
+  skipped: number;
+};
+
+/** Reads a file written by `serializeAnnotationExport`, of either scope. */
+export function parseAnnotationExport(text: string): ParsedAnnotationExport {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(text.replace(/^\ufeff/, ''));
+  } catch {
+    throw new Error('This file isn’t valid JSON.');
+  }
+  if (
+    typeof parsed !== 'object' ||
+    parsed === null ||
+    (parsed as { format?: unknown }).format !== ANNOTATION_EXPORT_FORMAT
+  ) {
+    throw new Error('This isn’t a SEP+ annotations export.');
+  }
+  const { version, entries } = parsed as { version?: unknown; entries?: unknown };
+  if (typeof version === 'number' && version > ANNOTATION_SCHEMA_VERSION) {
+    throw new Error(
+      'This export is from a newer version of SEP+. Update the extension to import it.',
+    );
+  }
+  if (version !== ANNOTATION_SCHEMA_VERSION || !Array.isArray(entries)) {
+    throw new Error('This isn’t a SEP+ annotations export.');
+  }
+  const valid = entries.filter(isEntryAnnotations);
+  const skipped = entries.length - valid.length;
+  const withAnnotations = valid.filter((entry) => entry.annotations.length > 0);
+  if (withAnnotations.length === 0) {
+    throw new Error(
+      skipped && skipped === entries.length
+        ? 'None of the entries in this file could be read.'
+        : 'This file has no annotations to import.',
+    );
+  }
+  return { entries: withAnnotations, skipped };
 }
 
 /**

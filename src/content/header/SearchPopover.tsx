@@ -413,6 +413,7 @@ export function Search({
         open={open}
         align="center"
         variant="menu"
+        scrollFade={false}
         role="group"
         ariaLabel="Search results"
         onExited={() => {

@@ -28,6 +28,8 @@ type PopoverSurfaceProps = Omit<HTMLAttributes<HTMLDivElement>, 'title'> & {
   variant?: 'list' | 'menu';
   /** Free-form text body (notes, footnotes) instead of rows. */
   prose?: boolean;
+  /** Fade the body's clipped edges while it scrolls. On unless a popover opts out. */
+  scrollFade?: boolean;
 };
 
 /**
@@ -40,6 +42,7 @@ export function PopoverSurface({
   accessory,
   variant = 'list',
   prose = false,
+  scrollFade = true,
   className,
   children,
   ...rest
@@ -64,7 +67,7 @@ export function PopoverSurface({
       ) : null}
       {children ? (
         <div
-          ref={attachScrollFade}
+          ref={scrollFade ? attachScrollFade : undefined}
           className={['sep-popover-body', prose ? 'sep-popover-prose' : '']
             .filter(Boolean)
             .join(' ')}
@@ -80,6 +83,7 @@ type PopoverProps = {
   open: boolean;
   align: 'center' | 'end';
   variant?: 'list' | 'menu';
+  scrollFade?: boolean;
   title?: ReactNode;
   ariaLabel: string;
   role?: AriaRole;
@@ -105,6 +109,7 @@ export function Popover({
   open,
   align,
   variant = 'list',
+  scrollFade,
   title,
   ariaLabel,
   role = 'dialog',
@@ -149,6 +154,7 @@ export function Popover({
       aria-label={ariaLabel}
       title={title}
       variant={variant}
+      scrollFade={scrollFade}
       className={[
         'sep-popover--dropdown',
         `sep-popover--${align}`,

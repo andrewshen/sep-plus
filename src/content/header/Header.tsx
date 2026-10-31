@@ -39,6 +39,7 @@ type HeaderProps = {
     format: AnnotationExportFormat,
     scope: AnnotationExportScope,
   ) => Promise<void>;
+  onImportAnnotations: (file: File) => Promise<string>;
 };
 
 export function Header({
@@ -56,6 +57,7 @@ export function Header({
   annotationsError,
   onScrollToAnnotation,
   onExportAnnotations,
+  onImportAnnotations,
 }: HeaderProps) {
   const annotationsRef = useRef<HTMLDivElement>(null);
   const annotationsButtonRef = useRef<HTMLButtonElement>(null);
@@ -121,6 +123,7 @@ export function Header({
           highlightColor={highlightColor}
           onHighlightColorChange={onHighlightColorChange}
           onExportAnnotations={onExportAnnotations}
+          onImportAnnotations={onImportAnnotations}
         />
       </div>
     </header>

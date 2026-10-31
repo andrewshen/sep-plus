@@ -23,6 +23,7 @@ type SettingsMenuProps = {
     format: AnnotationExportFormat,
     scope: AnnotationExportScope,
   ) => Promise<void>;
+  onImportAnnotations: (file: File) => Promise<string>;
 };
 
 /** The ⋯ button and its settings popover, shared by the header and homepage. */
@@ -35,6 +36,7 @@ export function SettingsMenu({
   highlightColor,
   onHighlightColorChange,
   onExportAnnotations,
+  onImportAnnotations,
 }: SettingsMenuProps) {
   const anchorRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
@@ -62,6 +64,7 @@ export function SettingsMenu({
         highlightColor={highlightColor}
         onHighlightColorChange={onHighlightColorChange}
         onExport={onExportAnnotations}
+        onImport={onImportAnnotations}
         onClose={close}
         returnFocusRef={buttonRef}
       />

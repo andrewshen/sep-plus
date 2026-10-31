@@ -1,7 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import {
+  ANNOTATION_EXPORT_FORMAT,
   annotationExportFilename,
+  buildAnnotationExport,
   escapeMarkdownText,
+  parseAnnotationExport,
+  serializeAnnotationExport,
   serializeAnnotationsMarkdown,
   serializeAnnotationsWord,
 } from './annotationExport';
@@ -150,6 +154,67 @@ describe('escapeMarkdownText', () => {
     expect(escapeMarkdownText('Proof:\n\n    p → q\n\t# step')).toBe(
       'Proof:\n\n\u00a0\u00a0\u00a0\u00a0p → q\\\n\u00a0\u00a0\u00a0\u00a0\\# step',
     );
+  });
+});
+
+describe('parseAnnotationExport', () => {
+  function envelope(entries: unknown[], version: unknown = ANNOTATION_SCHEMA_VERSION) {
+    return JSON.stringify({
+      format: ANNOTATION_EXPORT_FORMAT,
+      version,
+      exportedAt: EXPORTED_AT.toISOString(),
+      extensionVersion: '2.0.0',
+      entries,
+    });
+  }
+
+  it('reads back what the JSON export wrote', () => {
+    const entries = [
+      entry([annotation('one', 'Quote', 0, { note: 'Note', section: '1. Intro' })]),
+    ];
+    const text = serializeAnnotationExport(
+      buildAnnotationExport(entries, EXPORTED_AT, '2.0.0'),
+    );
+    expect(parseAnnotationExport(text)).toEqual({ entries, skipped: 0 });
+    expect(parseAnnotationExport(`\ufeff${text}`).entries).toEqual(entries);
+  });
+
+  it('skips invalid entries and keeps the rest', () => {
+    const parsed = parseAnnotationExport(
+      envelope([entry([annotation('one', 'Quote', 0)]), { source: 'nope' }]),
+    );
+    expect(parsed.entries).toHaveLength(1);
+    expect(parsed.skipped).toBe(1);
+  });
+
+  it('rejects files that are not a SEP+ export', () => {
+    expect(() => parseAnnotationExport('{not json')).toThrow('valid JSON');
+    expect(() => parseAnnotationExport('[]')).toThrow('SEP+ annotations export');
+    expect(() =>
+      parseAnnotationExport(JSON.stringify({ format: 'other', entries: [] })),
+    ).toThrow('SEP+ annotations export');
+  });
+
+  it('rejects exports from a newer schema version', () => {
+    expect(() => parseAnnotationExport(envelope([], 2))).toThrow('newer version');
+  });
+
+  it('rejects files with nothing usable in them', () => {
+    expect(() => parseAnnotationExport(envelope([]))).toThrow('no annotations');
+    expect(() => parseAnnotationExport(envelope([entry([])]))).toThrow(
+      'no annotations',
+    );
+    expect(() => parseAnnotationExport(envelope([{ bad: true }]))).toThrow(
+      'None of the entries',
+    );
+  });
+
+  it('leaves out entries with no annotations without counting them as skipped', () => {
+    const kept = entry([annotation('one', 'Quote', 0)]);
+    expect(parseAnnotationExport(envelope([kept, entry([])]))).toEqual({
+      entries: [kept],
+      skipped: 0,
+    });
   });
 });
 

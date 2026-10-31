@@ -10,6 +10,7 @@ import {
   annotationExportFilename,
   buildAnnotationExport,
   downloadTextFile,
+  parseAnnotationExport,
   serializeAnnotationExport,
   serializeAnnotationsMarkdown,
   serializeAnnotationsWord,
@@ -17,7 +18,9 @@ import {
 import {
   getAllEntryAnnotations,
   getEntryAnnotations,
+  importEntryAnnotations,
   onEntryAnnotationsChanged,
+  type AnnotationImportResult,
   removeAnnotation,
   updateAnnotationNote,
   upsertAnnotation,
@@ -101,6 +104,38 @@ const errorMessage = annotationErrorMessage;
 
 export function skippedLabel(count: number): string {
   return count === 1 ? '1 saved entry' : `${count} saved entries`;
+}
+
+function plural(count: number, one: string, many: string): string {
+  return `${count} ${count === 1 ? one : many}`;
+}
+
+export type ImportSummary = {
+  text: string;
+  /** Nothing was imported and at least one entry couldn't be. */
+  error: boolean;
+};
+
+export function importSummary(
+  { added, updated, entries, failed }: AnnotationImportResult,
+  skipped: number,
+): ImportSummary {
+  const imported = added + updated;
+  const unread = skipped + failed;
+  const parts: string[] = [];
+  if (imported) {
+    parts.push(
+      `Imported ${plural(imported, 'annotation', 'annotations')} across ${plural(entries, 'entry', 'entries')}.`,
+    );
+  } else if (!unread) {
+    parts.push('Everything in this file is already saved.');
+  } else {
+    parts.push('Nothing new was imported.');
+  }
+  if (unread) {
+    parts.push(`${plural(unread, 'entry', 'entries')} couldn’t be imported.`);
+  }
+  return { text: parts.join(' '), error: !imported && unread > 0 };
 }
 
 function isSepPlusUiEvent(event: Event): boolean {
@@ -707,6 +742,22 @@ export function useAnnotations({
     [entry],
   );
 
+  // Errors here are about the chosen file, so they're reported by the
+  // caller rather than in the annotation list's error slot.
+  const importAnnotations = useCallback(async (file: File): Promise<string> => {
+    let summary: ImportSummary;
+    try {
+      const { entries, skipped } = parseAnnotationExport(await file.text());
+      summary = importSummary(await importEntryAnnotations(entries), skipped);
+    } catch (importError: unknown) {
+      throw new Error(errorMessage(importError));
+    }
+    if (summary.error) {
+      throw new Error(summary.text);
+    }
+    return summary.text;
+  }, []);
+
   return {
     annotations,
     pendingSelection,
@@ -725,5 +776,6 @@ export function useAnnotations({
     deleteAnnotation,
     scrollToAnnotation,
     exportAnnotations,
+    importAnnotations,
   };
 }

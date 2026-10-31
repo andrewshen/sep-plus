@@ -198,6 +198,55 @@ export function createEntryAnnotations(
   };
 }
 
+export type MergedEntryAnnotations = {
+  entry: EntryAnnotations;
+  /** Imported annotations that weren't stored yet. */
+  added: number;
+  /** Stored annotations replaced by a more recently edited imported copy. */
+  updated: number;
+};
+
+/**
+ * Merge an imported entry into the stored one by annotation id. Nothing
+ * stored is dropped; on a shared id the later `updatedAt` wins, and a tie
+ * keeps the stored copy.
+ */
+export function mergeEntryAnnotations(
+  current: EntryAnnotations | null,
+  imported: EntryAnnotations,
+): MergedEntryAnnotations {
+  const byId = new Map(
+    (current?.annotations ?? []).map((annotation) => [annotation.id, annotation]),
+  );
+  let added = 0;
+  let updated = 0;
+  for (const annotation of imported.annotations) {
+    const existing = byId.get(annotation.id);
+    if (!existing) {
+      added += 1;
+      byId.set(annotation.id, annotation);
+    } else if (annotation.updatedAt > existing.updatedAt) {
+      updated += 1;
+      byId.set(annotation.id, annotation);
+    }
+  }
+  if (byId.size > MAX_ANNOTATIONS_PER_ENTRY) {
+    throw new Error(
+      `Importing would put more than ${MAX_ANNOTATIONS_PER_ENTRY.toLocaleString('en-US')} annotations on ${imported.pageTitle || imported.source}.`,
+    );
+  }
+  const base = current ?? createEntryAnnotations(imported.source, imported.pageTitle);
+  return {
+    entry: {
+      ...base,
+      pageTitle: base.pageTitle || imported.pageTitle,
+      annotations: sortAnnotations([...byId.values()]),
+    },
+    added,
+    updated,
+  };
+}
+
 export function sortAnnotations(
   annotations: readonly Annotation[],
 ): Annotation[] {

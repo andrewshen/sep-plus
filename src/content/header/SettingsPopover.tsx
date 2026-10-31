@@ -1,4 +1,4 @@
-import { useEffect, useState, type RefObject } from 'react';
+import { useEffect, useRef, useState, type RefObject } from 'react';
 import {
   HIGHLIGHT_COLOR_OPTIONS,
   highlightColorValue,
@@ -57,9 +57,13 @@ type SettingsPopoverProps = {
     format: AnnotationExportFormat,
     scope: AnnotationExportScope,
   ) => Promise<void>;
+  /** Resolves to a summary of what was imported. */
+  onImport: (file: File) => Promise<string>;
   onClose: () => void;
   returnFocusRef?: RefObject<HTMLElement | null>;
 };
+
+type SettingsMessage = { text: string; error: boolean };
 
 export function SettingsPopover({
   id,
@@ -70,11 +74,13 @@ export function SettingsPopover({
   highlightColor,
   onHighlightColorChange,
   onExport,
+  onImport,
   onClose,
   returnFocusRef,
 }: SettingsPopoverProps) {
-  const [exportError, setExportError] = useState<string | null>(null);
+  const [message, setMessage] = useState<SettingsMessage | null>(null);
   const [exportFormat, setExportFormat] = useState(DEFAULT_EXPORT_FORMAT);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -96,12 +102,33 @@ export function SettingsPopover({
   async function runExport(): Promise<void> {
     try {
       await onExport(exportFormat, 'all');
-      setExportError(null);
+      setMessage(null);
       onClose();
     } catch (error: unknown) {
-      setExportError(
-        error instanceof Error ? error.message : 'Could not export annotations.',
-      );
+      setMessage({
+        text:
+          error instanceof Error ? error.message : 'Could not export annotations.',
+        error: true,
+      });
+    }
+  }
+
+  // Stays open afterwards so the summary is visible.
+  async function runImport(input: HTMLInputElement): Promise<void> {
+    const file = input.files?.[0];
+    // Cleared so choosing the same file again still fires `change`.
+    input.value = '';
+    if (!file) {
+      return;
+    }
+    try {
+      setMessage({ text: await onImport(file), error: false });
+    } catch (error: unknown) {
+      setMessage({
+        text:
+          error instanceof Error ? error.message : 'Could not import annotations.',
+        error: true,
+      });
     }
   }
 
@@ -114,11 +141,16 @@ export function SettingsPopover({
       ariaLabel="Settings"
       className="sep-popover--tight-bottom"
       returnFocusRef={returnFocusRef}
-      onExited={() => setExportError(null)}
+      onExited={() => setMessage(null)}
     >
-      {exportError ? (
-        <div className="sep-popover-message is-error" role="alert">
-          {exportError}
+      {message ? (
+        <div
+          className={
+            message.error ? 'sep-popover-message is-error' : 'sep-popover-message'
+          }
+          role={message.error ? 'alert' : 'status'}
+        >
+          {message.text}
         </div>
       ) : null}
       <PopoverRow
@@ -173,6 +205,18 @@ export function SettingsPopover({
         label="Export annotations"
         trailing="Download"
         onClick={() => void runExport()}
+      />
+      <PopoverRow
+        label="Import annotations"
+        trailing="Choose file"
+        onClick={() => fileInputRef.current?.click()}
+      />
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept=".json,application/json"
+        hidden
+        onChange={(event) => void runImport(event.currentTarget)}
       />
       <PopoverRow
         label="Send feedback"

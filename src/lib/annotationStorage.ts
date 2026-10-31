@@ -3,6 +3,7 @@ import {
   annotationStorageKey,
   createEntryAnnotations,
   isEntryAnnotations,
+  mergeEntryAnnotations,
   normalizeEntryUrl,
   sortAnnotations,
   type Annotation,
@@ -143,6 +144,59 @@ export function upsertAnnotation(
     await setEntryAnnotations(next);
     return next;
   });
+}
+
+export type AnnotationImportResult = {
+  added: number;
+  updated: number;
+  /** Entries whose stored record changed. */
+  entries: number;
+  /** Entries that couldn't be written, e.g. over the per-entry cap. */
+  failed: number;
+};
+
+/** Merge imported entries into storage; see `mergeEntryAnnotations`. */
+export async function importEntryAnnotations(
+  entries: readonly EntryAnnotations[],
+): Promise<AnnotationImportResult> {
+  const result: AnnotationImportResult = {
+    added: 0,
+    updated: 0,
+    entries: 0,
+    failed: 0,
+  };
+  // A file may list one source more than once; count it once.
+  const changedSources = new Set<string>();
+  let firstError: unknown;
+  for (const imported of entries) {
+    // Reading for write sets an unreadable record aside, so don't touch
+    // storage for an entry that can't add anything.
+    if (imported.annotations.length === 0) {
+      continue;
+    }
+    try {
+      const normalized = normalizedSource(imported.source);
+      await serialized(annotationStorageKey(normalized), async () => {
+        const current = await readEntryForWrite(normalized);
+        const merged = mergeEntryAnnotations(current, imported);
+        if (merged.added === 0 && merged.updated === 0) {
+          return;
+        }
+        await setEntryAnnotations(merged.entry);
+        result.added += merged.added;
+        result.updated += merged.updated;
+        changedSources.add(normalized);
+      });
+    } catch (error: unknown) {
+      firstError ??= error;
+      result.failed += 1;
+    }
+  }
+  if (result.failed > 0 && result.failed === entries.length) {
+    throw firstError;
+  }
+  result.entries = changedSources.size;
+  return result;
 }
 
 /**

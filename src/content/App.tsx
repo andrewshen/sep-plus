@@ -263,6 +263,7 @@ export function App({
               highlightColor={highlightColor}
               onHighlightColorChange={changeHighlightColor}
               onExportAnnotations={annotationState.exportAnnotations}
+              onImportAnnotations={annotationState.importAnnotations}
             />
           </div>
         </>
@@ -282,6 +283,7 @@ export function App({
           annotationsError={annotationState.error}
           onScrollToAnnotation={annotationState.scrollToAnnotation}
           onExportAnnotations={annotationState.exportAnnotations}
+          onImportAnnotations={annotationState.importAnnotations}
         />
       )}
       {searchMount
