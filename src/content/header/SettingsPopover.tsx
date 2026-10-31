@@ -63,8 +63,6 @@ type SettingsPopoverProps = {
   returnFocusRef?: RefObject<HTMLElement | null>;
 };
 
-type SettingsMessage = { text: string; error: boolean };
-
 export function SettingsPopover({
   id,
   open,
@@ -78,7 +76,6 @@ export function SettingsPopover({
   onClose,
   returnFocusRef,
 }: SettingsPopoverProps) {
-  const [message, setMessage] = useState<SettingsMessage | null>(null);
   const [exportFormat, setExportFormat] = useState(DEFAULT_EXPORT_FORMAT);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -102,18 +99,15 @@ export function SettingsPopover({
   async function runExport(): Promise<void> {
     try {
       await onExport(exportFormat, 'all');
-      setMessage(null);
       onClose();
     } catch (error: unknown) {
-      setMessage({
-        text:
-          error instanceof Error ? error.message : 'Could not export annotations.',
-        error: true,
-      });
+      window.alert(
+        error instanceof Error ? error.message : 'Could not export annotations.',
+      );
     }
   }
 
-  // Stays open afterwards so the summary is visible.
+  // Results (and failures) are reported with a native alert, not in the popover.
   async function runImport(input: HTMLInputElement): Promise<void> {
     const file = input.files?.[0];
     // Cleared so choosing the same file again still fires `change`.
@@ -121,15 +115,14 @@ export function SettingsPopover({
     if (!file) {
       return;
     }
+    let text: string;
     try {
-      setMessage({ text: await onImport(file), error: false });
+      text = await onImport(file);
     } catch (error: unknown) {
-      setMessage({
-        text:
-          error instanceof Error ? error.message : 'Could not import annotations.',
-        error: true,
-      });
+      text =
+        error instanceof Error ? error.message : 'Could not import annotations.';
     }
+    window.alert(text);
   }
 
   return (
@@ -141,18 +134,7 @@ export function SettingsPopover({
       ariaLabel="Settings"
       className="sep-popover--tight-bottom"
       returnFocusRef={returnFocusRef}
-      onExited={() => setMessage(null)}
     >
-      {message ? (
-        <div
-          className={
-            message.error ? 'sep-popover-message is-error' : 'sep-popover-message'
-          }
-          role={message.error ? 'alert' : 'status'}
-        >
-          {message.text}
-        </div>
-      ) : null}
       <PopoverRow
         label="Appearance"
         trailing={

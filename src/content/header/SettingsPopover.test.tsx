@@ -22,7 +22,10 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-function renderPopover(onImport: (file: File) => Promise<string>) {
+function renderPopover(
+  onImport: (file: File) => Promise<string>,
+  onExport: () => Promise<void> = vi.fn(async () => undefined),
+) {
   const view = render(
     <SettingsPopover
       id="settings"
@@ -32,7 +35,7 @@ function renderPopover(onImport: (file: File) => Promise<string>) {
       onThemeChange={vi.fn()}
       highlightColor="yellow"
       onHighlightColorChange={vi.fn()}
-      onExport={vi.fn(async () => undefined)}
+      onExport={onExport}
       onImport={onImport}
       onClose={vi.fn()}
     />,
@@ -46,6 +49,21 @@ function chooseFile(input: HTMLInputElement, file: File): void {
   fireEvent.change(input);
 }
 
+describe('SettingsPopover export', () => {
+  it('reports a failed export in a native alert', async () => {
+    const alert = vi.spyOn(window, 'alert').mockImplementation(() => {});
+    const onExport = vi.fn(async () => {
+      throw new Error('There are no annotations to export.');
+    });
+    const { getByText, queryByRole } = renderPopover(vi.fn(), onExport);
+    fireEvent.click(getByText('Export annotations').closest('button')!);
+    await vi.waitFor(() =>
+      expect(alert).toHaveBeenCalledWith('There are no annotations to export.'),
+    );
+    expect(queryByRole('alert')).toBeNull();
+  });
+});
+
 describe('SettingsPopover import', () => {
   it('opens the file picker from the Import annotations row', () => {
     const click = vi.spyOn(HTMLInputElement.prototype, 'click').mockImplementation(() => {});
@@ -54,26 +72,29 @@ describe('SettingsPopover import', () => {
     expect(click).toHaveBeenCalledTimes(1);
   });
 
-  it('shows the import summary as a status message', async () => {
+  it('reports the import summary in a native alert', async () => {
+    const alert = vi.spyOn(window, 'alert').mockImplementation(() => {});
     const file = new File(['{}'], 'backup.json', { type: 'application/json' });
     const onImport = vi.fn(async () => 'Imported 2 annotations across 1 entry.');
-    const { input, findByRole } = renderPopover(onImport);
+    const { input } = renderPopover(onImport);
     chooseFile(input, file);
     expect(onImport).toHaveBeenCalledWith(file);
-    const status = await findByRole('status');
-    expect(status.textContent).toBe('Imported 2 annotations across 1 entry.');
-    expect(status.classList.contains('is-error')).toBe(false);
+    await vi.waitFor(() =>
+      expect(alert).toHaveBeenCalledWith('Imported 2 annotations across 1 entry.'),
+    );
     expect(input.value).toBe('');
   });
 
-  it('shows a failed import as an alert', async () => {
+  it('reports a failed import in a native alert', async () => {
+    const alert = vi.spyOn(window, 'alert').mockImplementation(() => {});
     const onImport = vi.fn(async () => {
       throw new Error('This isn’t a SEP+ annotations export.');
     });
-    const { input, findByRole } = renderPopover(onImport);
+    const { input, queryByRole } = renderPopover(onImport);
     chooseFile(input, new File(['[]'], 'other.json'));
-    const alert = await findByRole('alert');
-    expect(alert.textContent).toBe('This isn’t a SEP+ annotations export.');
-    expect(alert.classList.contains('is-error')).toBe(true);
+    await vi.waitFor(() =>
+      expect(alert).toHaveBeenCalledWith('This isn’t a SEP+ annotations export.'),
+    );
+    expect(queryByRole('alert')).toBeNull();
   });
 });
