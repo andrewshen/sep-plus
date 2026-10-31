@@ -1,6 +1,6 @@
 # SEP+
 
-SEP+ is a browser extension for the Stanford Encyclopedia of Philosophy that redesigns the reading experience: better typography, dark mode, a persistent contents sidebar, hover-preview footnotes and citations, highlights and notes, and a `⌘K` command palette for jumping between entries.
+SEP+ is a browser extension for the Stanford Encyclopedia of Philosophy that redesigns the reading experience: better typography, dark mode, a persistent contents sidebar, hover-preview footnotes and citations, highlights and notes, and a command palette for jumping between entries.
 
 Install the extension on the [Chrome Web Store](https://chrome.google.com/webstore/detail/sep%2B/falicmbacjghbjdmmnaagmbkpgiphbbg).
 
@@ -12,7 +12,7 @@ Install the extension on the [Chrome Web Store](https://chrome.google.com/websto
 - `⌘K` / `Ctrl K` command palette with typeahead search to jump to any SEP entry (`/` also focuses search)
 - Footnotes shown as hover/tap previews instead of jumping down the page
 - Bibliography citations shown as previews inline, with PhilPapers search links
-- Local text highlights and margin notes, with selectable highlight colors and JSON or Markdown export
+- Local text highlights and margin notes, with selectable highlight colors, JSON, Markdown, or Word export, and JSON import
 - Print-optimized styles (inlines footnotes, removes irrelevant sections)
 
 ## Development
@@ -70,6 +70,7 @@ The build is bundled and minified, so AMO asks for the source code. Upload a zip
 - Theme and annotations are stored locally in the current browser profile.
 - Annotation exports are plaintext. Export a JSON backup before uninstalling the
   extension, because Chrome and Firefox both remove extension-local annotation
-  data on uninstall.
+  data on uninstall. Restore it with **Settings → Import annotations**, which
+  merges the file into any annotations already saved.
 
 SEP+ only has access to [plato.stanford.edu](https://plato.stanford.edu) and will never serve ads or collect user data.
