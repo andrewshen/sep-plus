@@ -6,7 +6,7 @@ export function createManifest(browser: TargetBrowser) {
   return defineManifest({
     manifest_version: 3,
     name: 'SEP+',
-    version: '2.0.0',
+    version: '2.0.1',
     description: 'Improve the Stanford Encyclopedia of Philosophy reading experience',
     homepage_url: 'https://andrewshen.net',
     default_locale: 'en',

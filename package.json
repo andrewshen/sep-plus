@@ -1,6 +1,6 @@
 {
   "name": "sep-plus",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "private": true,
   "type": "module",
   "description": "Improve the Stanford Encyclopedia of Philosophy reading experience",
