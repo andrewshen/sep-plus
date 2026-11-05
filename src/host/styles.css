@@ -1,0 +1,1147 @@
+@import '../lib/sand.css';
+
+/*
+ * The boot hide lives only in boot.css, which also carries the failsafe reveal.
+ */
+
+/* Until the stored theme resolves, --sep-page-bg is the light default, so
+   leave the background to boot.css's prefers-color-scheme fallback. */
+html.sep-plus-theme-applied:not(.sep-plus-ready) {
+  background: var(--sep-page-bg) !important;
+}
+
+/* General Styling: page rules are scoped to html.sep-plus so a failed or
+   rolled-back boot leaves native SEP untouched. */
+
+:where(html.sep-plus) body {
+  background: none !important;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-family:
+    'Public Sans',
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    Roboto,
+    Oxygen,
+    Ubuntu,
+    Cantarell,
+    'Open Sans',
+    'Helvetica Neue',
+    sans-serif !important;
+}
+
+:where(html.sep-plus) blockquote {
+  border-left: 2px solid var(--sep-border) !important;
+  padding: 0px 20px !important;
+  font-style: italic !important;
+  margin: 24px 0 !important;
+}
+
+:where(html.sep-plus) h1,
+:where(html.sep-plus) h2,
+:where(html.sep-plus) h3 {
+  font-weight: 700 !important;
+}
+
+:where(html.sep-plus) a {
+  text-decoration: none !important;
+  transition: color 0.1s ease !important;
+}
+
+:where(html.sep-plus) a:hover {
+  color: #650303 !important;
+}
+
+:where(html.sep-plus) #pubinfo {
+  margin-top: 0 !important;
+  margin-bottom: 40px !important;
+  padding-bottom: 0 !important;
+}
+
+:where(html.sep-plus) #pubinfo em {
+  font-family: 'Public Sans', system-ui, sans-serif !important;
+  font-style: normal !important;
+  color: var(--sep-muted) !important;
+  font-size: 14px !important;
+  line-height: 20px !important;
+  font-weight: 400 !important;
+}
+
+:where(html.sep-plus) #pubinfo a.sep-pubinfo-author {
+  font-family: inherit !important;
+  font-size: inherit !important;
+  font-weight: 400 !important;
+  font-style: normal !important;
+  color: var(--sep-muted) !important;
+  text-decoration: none !important;
+  text-shadow: none !important;
+}
+
+:where(html.sep-plus) #pubinfo a.sep-pubinfo-author:hover {
+  color: var(--sep-text) !important;
+  text-decoration: none !important;
+}
+
+:where(html.sep-plus) #article-sidebar .navbar i,
+:where(html.sep-plus) #operations,
+:where(html.sep-plus) #site-title {
+  display: none;
+}
+
+:where(html.sep-plus) #article {
+  margin-top: 0 !important;
+  padding-top: 0 !important;
+  padding-left: 140px !important;
+  padding-right: 0 !important;
+}
+
+/* The root background and color-scheme also set the fill Chrome uses for
+   tiles it hasn't rasterized yet; without them a fast scroll flashes white. */
+html.sep-plus {
+  background: var(--sep-page-bg) !important;
+  color-scheme: light;
+}
+
+html.sep-plus.dark {
+  color-scheme: dark;
+}
+
+body.sep-plus {
+  background: var(--sep-page-bg) !important;
+}
+
+/* No sticky rings after clicks; keyboard focus gets one consistent ring
+   (same as citations). Jump targets (headings, paragraphs) take focus only
+   so Tab continues from there; they don't need a ring. */
+body.sep-plus :focus:not(:focus-visible),
+body.sep-plus [data-sep-plus-focus-target]:focus {
+  outline: none !important;
+}
+
+body.sep-plus :focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--sep-text) 32%, transparent) !important;
+  outline-offset: 2px !important;
+}
+
+/* The homepage is rendered entirely by SEP+ (#sep-plus-home). */
+body.sep-plus-home > :not(#sep-plus-home) {
+  display: none !important;
+}
+
+/* Other non-entry pages: #sep-plus-footer follows #container and sits at
+   the bottom of the window when the content is short. */
+body.sep-plus-site {
+  display: flex !important;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+body.sep-plus-site #container {
+  flex: 1 0 auto;
+}
+
+html body.sep-plus-site #content:not(:has(#article)) {
+  min-height: 0 !important;
+}
+
+/* Full-page search starts closer to the header than other pages. */
+html body.sep-plus-search #content:not(:has(#article)) {
+  padding-top: 100px !important;
+}
+
+/* Above the result listings that follow it, so its dropdown isn't covered. */
+/* In-flow shadow hosts: inherited text styles (line-height, letter-spacing,
+   text-align…) cross the shadow boundary, so start them from scratch. */
+#sep-plus-home,
+#sep-plus-footer,
+#sep-plus-search {
+  all: initial;
+  display: block;
+}
+
+#sep-plus-search {
+  position: relative;
+  z-index: 10;
+  margin-bottom: 24px;
+}
+
+/* Native SEP chrome — replaced by the React header on every page. */
+body.sep-plus #header-wrapper,
+body.sep-plus #article-sidebar,
+body.sep-plus #search,
+body.sep-plus #footer {
+  display: none !important;
+}
+
+body.sep-plus #container,
+body.sep-plus #content,
+body.sep-plus #article {
+  width: 100% !important;
+  max-width: none !important;
+  margin: 0 !important;
+  box-sizing: border-box !important;
+}
+
+body.sep-plus #container,
+body.sep-plus #content {
+  padding: 0 !important;
+}
+
+/* Header + reading-column tokens (React chrome lives in Shadow DOM) */
+:root {
+  --sep-plus-header-height: 60px;
+  /* The title sits 108px below the header. */
+  --sep-plus-page-padding: calc(var(--sep-plus-header-height) + 108px) 60px
+    120px;
+  --sep-plus-content-max-width: 585px;
+}
+
+/* Entries use #article; every other page uses #content (no nested #article). */
+body.sep-plus :is(#article, #content:not(:has(#article))) {
+  padding: var(--sep-plus-page-padding) !important;
+  min-height: 100vh !important;
+  background: transparent !important;
+}
+
+/* Search results sit 100px below the fixed header, not the 108px entry offset. */
+body.sep-plus #content:has(.searchpage) {
+  padding-top: calc(var(--sep-plus-header-height) + 100px) !important;
+}
+
+body.sep-plus #article-content,
+body.sep-plus #article-copyright,
+body.sep-plus #article-banner,
+body.sep-plus #site-credits,
+body.sep-plus .sep-plus-content-column {
+  max-width: var(--sep-plus-content-max-width) !important;
+  width: 100% !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
+}
+
+html.sep-plus,
+body.sep-plus {
+  overflow-x: hidden !important;
+  /* Prevent load-time layout (fonts) from nudging scroll. */
+  overflow-anchor: none;
+  scroll-padding-top: var(--sep-plus-header-height);
+}
+
+body.sep-plus #container,
+body.sep-plus #article {
+  overflow-anchor: none;
+}
+
+/* Fixed header + outline sit above the page. */
+#sep-plus-root {
+  all: initial;
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  pointer-events: none;
+}
+
+#sep-plus-annotation-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 90;
+  pointer-events: none;
+}
+
+@media print {
+  #sep-plus-root,
+  #sep-plus-annotation-layer,
+  #sep-plus-footer {
+    display: none !important;
+  }
+
+  body.sep-plus :is(#article, #content:not(:has(#article))) {
+    padding-top: 0 !important;
+  }
+}
+
+:where(html.sep-plus) #article-content h1,
+:where(html.sep-plus) #article-content h2,
+:where(html.sep-plus) #article-content h3,
+:where(html.sep-plus) #style_guide_content h1,
+:where(html.sep-plus) #style_guide_content h2,
+:where(html.sep-plus) #style_guide_content h3,
+:where(html.sep-plus) #style_guide_content_wide h1,
+:where(html.sep-plus) #style_guide_content_wide h2,
+:where(html.sep-plus) #style_guide_content_wide h3,
+:where(html.sep-plus) h4 {
+  margin-top: 40px !important;
+  margin-bottom: 16px !important;
+  font-family: 'Public Sans', system-ui, sans-serif !important;
+  font-weight: 700 !important;
+  color: var(--sep-text) !important;
+  letter-spacing: -0.02em;
+}
+
+:where(html.sep-plus) #article-content h1 a:hover,
+:where(html.sep-plus) #article-content h2 a:hover,
+:where(html.sep-plus) #article-content h3 a:hover,
+:where(html.sep-plus) #article-content h4 a:hover,
+:where(html.sep-plus) #article-content h5 a:hover {
+  color: inherit !important;
+}
+
+:where(html.sep-plus) #article-content h1 {
+  font-size: 45px !important;
+  font-weight: 700 !important;
+  line-height: 50.4px !important;
+  letter-spacing: -0.9px !important;
+  margin-top: 0 !important;
+  margin-bottom: 12px !important;
+}
+
+:where(html.sep-plus) #article-content h2 {
+  font-size: 27px !important;
+  line-height: 37.8px !important;
+  letter-spacing: -0.54px !important;
+}
+
+:where(html.sep-plus) #article-content h1 em,
+:where(html.sep-plus) #article-content h2 em,
+:where(html.sep-plus) #article-content h3 em {
+  font-style: normal;
+}
+
+:where(html.sep-plus) #article-content h3 {
+  margin-top: 32px !important;
+  font-size: 20px !important;
+  line-height: 28px !important;
+}
+
+:where(html.sep-plus) #article li,
+:where(html.sep-plus) #content li {
+  line-height: 25px !important;
+}
+
+:where(html.sep-plus) hr {
+  border: none !important;
+  border-top: 1px solid var(--sep-border-subtle) !important;
+  background: none !important;
+  color: var(--sep-border-subtle) !important;
+}
+
+:where(html.sep-plus) #article ul,
+:where(html.sep-plus) #content ul {
+  list-style-image: none !important;
+}
+
+/* In-page table of contents: no bullets, nested sections indent. */
+body.sep-plus #article #toc {
+  margin-top: 40px !important;
+  margin-bottom: 40px !important;
+  padding: 0 !important;
+}
+
+/* SEP draws its own rule after the TOC. */
+body.sep-plus #article #toc > hr {
+  display: none !important;
+}
+
+body.sep-plus #article #toc ul {
+  list-style: none !important;
+  margin: 0 !important;
+  padding-left: 0 !important;
+}
+
+body.sep-plus #article #toc ul ul {
+  padding-left: 20px !important;
+}
+
+/* One 4px gap between every row, including parent -> first subsection. */
+body.sep-plus #article #toc li {
+  list-style: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+body.sep-plus #article #toc li + li,
+body.sep-plus #article #toc li > ul {
+  margin-top: 4px !important;
+}
+
+body.sep-plus #article #toc a {
+  color: var(--sep-muted) !important;
+  transition: color 0.1s ease !important;
+}
+
+/* Same colors as the side rail outline: muted, then full text on hover. */
+body.sep-plus #article #toc a:hover {
+  color: var(--sep-text) !important;
+}
+
+/* Non-entry pages: flush lists (no bullet / indent). Entries keep default markers. */
+body.sep-plus .sep-plus-content-column :is(ul, ol) {
+  list-style: none !important;
+  padding-left: 0 !important;
+  margin-left: 0 !important;
+}
+
+:where(html.sep-plus) .is-sticky {
+  top: 32px !important;
+}
+
+:where(html.sep-plus) #article-sidebar .navbar .nav > li {
+  font-size: 14px !important;
+}
+
+:where(html.sep-plus) #article-sidebar .navbar .nav > li > a {
+  font-size: 14px !important;
+  line-height: 20px !important;
+  padding: 2px 6px !important;
+  padding-left: 0 !important;
+  color: var(--sand-10) !important;
+  text-shadow: none !important;
+  transition: color 0.1s ease !important;
+  margin-right: 20px !important;
+}
+
+:where(html.sep-plus) #article-sidebar .navbar .nav > li.active-item > a {
+  color: var(--sep-text) !important;
+}
+
+:where(html.sep-plus) #article-sidebar .navbar .nav > li > a > em {
+  font-style: normal !important;
+}
+
+:where(html.sep-plus) #article-sidebar .navbar .nav > li > a:hover {
+  background: none !important;
+  color: var(--sep-text) !important;
+}
+
+:where(html.sep-plus) .navbar .nav > li > a {
+  font-size: 14px !important;
+  margin-right: 20px !important;
+  font-weight: 700 !important;
+  color: var(--sand-10) !important;
+  text-shadow: none !important;
+  padding-bottom: 0 !important;
+}
+
+:where(html.sep-plus) .navbar .nav > li > a:hover {
+  color: var(--sep-text) !important;
+  text-decoration: none !important;
+}
+
+:where(html.sep-plus) #container {
+  background: none !important;
+  box-shadow: none !important;
+}
+
+:where(html.sep-plus) .result_title a {
+  font-family:
+    'Public Sans',
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    Roboto,
+    Oxygen,
+    Ubuntu,
+    Cantarell,
+    'Open Sans',
+    'Helvetica Neue',
+    sans-serif !important;
+}
+
+:where(html.sep-plus) .result_snippet,
+:where(html.sep-plus) #article-content,
+:where(html.sep-plus) #style_guide_content,
+:where(html.sep-plus) #style_guide_content_wide {
+  font-family:
+    'Libre Baskerville', Georgia, 'Times New Roman', serif !important;
+  font-size: 15px !important;
+  line-height: 25px !important;
+  color: var(--sep-text) !important;
+}
+
+:where(html.sep-plus) #article-content,
+:where(html.sep-plus) #style_guide_content,
+:where(html.sep-plus) #style_guide_content_wide {
+  font-synthesis: none;
+}
+
+:where(html.sep-plus) #article-content strong,
+:where(html.sep-plus) #article-content b,
+:where(html.sep-plus) #style_guide_content strong,
+:where(html.sep-plus) #style_guide_content b,
+:where(html.sep-plus) #style_guide_content_wide strong,
+:where(html.sep-plus) #style_guide_content_wide b {
+  font-weight: 600 !important;
+}
+
+:where(html.sep-plus) #article,
+:where(html.sep-plus) #article-sidebar .navbar .nav {
+  min-width: 300px;
+  box-shadow: none !important;
+  border: none !important;
+}
+
+:where(html.sep-plus) #article-sidebar .navbar .nav {
+  padding-top: 0 !important;
+}
+
+:where(html.sep-plus) #article-banner-content a,
+:where(html.sep-plus) #article-copyright,
+:where(html.sep-plus) #article-copyright a,
+:where(html.sep-plus) #site-credits,
+:where(html.sep-plus) #site-credits a {
+  font-size: 14px !important;
+  line-height: 20px !important;
+}
+
+body.sep-plus #site-credits {
+  margin-top: 20px !important;
+  padding: 0 !important;
+  color: var(--sep-muted) !important;
+  font-weight: 400 !important;
+  background: transparent !important;
+  background-color: transparent !important;
+}
+
+body.sep-plus #article-copyright {
+  margin-top: 56px !important;
+  padding-top: 20px !important;
+  border-top: 1px solid var(--sep-border-subtle) !important;
+  font-weight: 400 !important;
+  color: var(--sep-muted) !important;
+}
+
+body.sep-plus #article-copyright > p {
+  margin-bottom: 20px !important;
+}
+
+body.sep-plus #article-copyright br {
+  display: none !important;
+}
+
+body.sep-plus #article-copyright a,
+body.sep-plus #site-credits a {
+  color: inherit !important;
+}
+
+body.sep-plus #article-copyright a:hover,
+body.sep-plus #site-credits a:hover {
+  color: var(--sep-text) !important;
+}
+
+:where(html.sep-plus) select {
+  font-family:
+    'Public Sans',
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    Roboto,
+    Oxygen,
+    Ubuntu,
+    Cantarell,
+    'Open Sans',
+    'Helvetica Neue',
+    sans-serif !important;
+  font-size: 14px !important;
+  line-height: 20px !important;
+  font-weight: 700 !important;
+}
+
+:where(html.sep-plus) .dropdown-menu {
+  border-radius: 6px !important;
+  box-shadow: none !important;
+  border-color: var(--sep-border);
+}
+
+:where(html.sep-plus) .dropdown-menu li {
+  font-size: 14px !important;
+}
+
+:where(html.sep-plus) .dropdown-menu li a {
+  color: var(--sand-10) !important;
+  transition: color var(--sep-duration-fast) var(--sep-ease) !important;
+}
+
+:where(html.sep-plus) .dropdown-menu li a:hover {
+  color: var(--sep-text) !important;
+}
+
+:where(html.sep-plus) #pubinfo,
+:where(html.sep-plus) #article-banner-content {
+  font-weight: 700 !important;
+  font-size: 14px !important;
+}
+
+:where(html.sep-plus) #article-copyright {
+  font-weight: 400 !important;
+  color: var(--sep-muted) !important;
+}
+
+:where(html.sep-plus) #principal-editor,
+:where(html.sep-plus) #about-links {
+  font-weight: 700 !important;
+  font-size: 14px !important;
+}
+
+:where(html.sep-plus) .btn i {
+  transition: none !important;
+}
+
+:where(html.sep-plus) .btn,
+:where(html.sep-plus) .btn-group,
+:where(html.sep-plus) #mission,
+:where(html.sep-plus) #article-banner-content {
+  font-size: 14px !important;
+  border-radius: 6px !important;
+  border: 1px solid var(--sep-border-subtle) !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  color: var(--sep-muted) !important;
+}
+
+:where(html.sep-plus) .btn,
+:where(html.sep-plus) #mission a,
+:where(html.sep-plus) #article-banner-content a {
+  color: var(--sep-muted) !important;
+}
+
+:where(html.sep-plus) #article-banner-content,
+:where(html.sep-plus) #article-banner-content a {
+  font-weight: 400 !important;
+}
+
+:where(html.sep-plus) #article-banner-content {
+  border-radius: 12px !important;
+}
+
+/* Editorial masthead (board.html, info.html) — not a control surface */
+:where(html.sep-plus) #content .notice:has(.masthead) {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+:where(html.sep-plus) .btn:hover {
+  color: #8c1515 !important;
+}
+
+:where(html.sep-plus) .search_results {
+  border: none !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+}
+
+body.sep-plus .search_total.sep-plus-search-summary {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  margin: 0 0 20px !important;
+  padding: 0 0 16px !important;
+  border-bottom: 1px solid var(--sep-divider);
+  font-family: var(--sep-font);
+}
+
+body.sep-plus .sep-plus-search-summary-count {
+  color: var(--sep-text);
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 20px;
+}
+
+body.sep-plus .sep-plus-search-summary-label {
+  color: var(--sep-muted);
+}
+
+body.sep-plus .sep-plus-search-summary-page {
+  flex-shrink: 0;
+  color: var(--sep-muted);
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 20px;
+}
+
+body.sep-plus .result_listing {
+  margin-bottom: 24px;
+}
+
+body.sep-plus .result_listing[data-sep-plus-result-link] {
+  position: relative;
+  transition: opacity var(--sep-duration-fast) var(--sep-ease);
+}
+
+body.sep-plus .result_listing[data-sep-plus-result-link]:hover {
+  opacity: 0.5;
+}
+
+body.sep-plus .result_listing[data-sep-plus-result-link] .result_title a.l::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+}
+
+body.sep-plus .result_snippet,
+body.sep-plus .result_snippet * {
+  color: var(--sep-muted) !important;
+}
+
+body.sep-plus .result_title a.l,
+body.sep-plus .result_title a.l:link,
+body.sep-plus .result_title a.l:visited,
+body.sep-plus .result_title a.l:hover,
+body.sep-plus .result_title a.l:active {
+  color: var(--sep-text) !important;
+}
+
+body.sep-plus .result_author {
+  margin-top: 4px;
+  margin-bottom: 8px;
+  color: var(--sand-12);
+}
+
+body.sep-plus .result_title a.l {
+  font-weight: 700;
+}
+
+/* The title already links to the entry. */
+body.sep-plus .result_url {
+  display: none !important;
+}
+
+/* Related Entries — pill chips (pipe separators removed in JS) */
+body.sep-plus .sep-plus-related-entries {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0 !important;
+}
+
+body.sep-plus .sep-plus-related-entries a {
+  display: inline-block;
+  box-sizing: border-box;
+  flex: 0 0 auto;
+  padding: 4px 10px !important;
+  border: 1px solid var(--sep-border-subtle) !important;
+  border-radius: 999px !important;
+  background: transparent !important;
+  color: var(--sep-muted) !important;
+  font-family:
+    'Public Sans',
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    Roboto,
+    Oxygen,
+    Ubuntu,
+    Cantarell,
+    'Open Sans',
+    'Helvetica Neue',
+    sans-serif !important;
+  font-size: 14px !important;
+  font-weight: 400 !important;
+  line-height: 20px !important;
+  white-space: nowrap !important;
+  text-decoration: none !important;
+}
+
+body.sep-plus .sep-plus-related-entries a:hover {
+  color: var(--sep-text) !important;
+  border-color: var(--sep-border) !important;
+}
+
+:where(html.sep-plus) #article-content :is(sup, sup a) {
+  font: var(--sep-footnote-label-font) !important;
+}
+
+:where(html.sep-plus) #article-content sup a {
+  color: var(--sand-10) !important;
+}
+
+:where(html.sep-plus) #article-content sup a:hover {
+  color: var(--sep-text) !important;
+}
+
+#article-content.sep-plus-annotation-hovering,
+#article-content.sep-plus-annotation-hovering * {
+  cursor: pointer !important;
+}
+
+/* Hover in and out both ease. Slightly slower than icon buttons. */
+:where(html.sep-plus) [data-highlighters-overlay] div,
+:where(html.sep-plus) #article-content > div[aria-hidden='true'][style*='mix-blend-mode'] div {
+  transition:
+    background-color var(--sep-duration-ui) var(--sep-ease),
+    background-image var(--sep-duration-ui) var(--sep-ease),
+    opacity var(--sep-duration-ui) var(--sep-ease);
+}
+
+[data-sep-plus-bibliography-citation] {
+  border-radius: 2px;
+  color: inherit;
+  text-decoration: none;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+}
+
+body.sep-plus [data-sep-plus-bibliography-citation]:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--sep-text) 32%, transparent) !important;
+  outline-offset: 2px !important;
+  background: color-mix(in srgb, var(--sand-6) 32%, transparent);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  [data-sep-plus-bibliography-citation] {
+    cursor: help;
+    text-decoration-line: underline;
+    text-decoration-style: dotted;
+    /* One step past --sep-border (sand-6 light, sand-7 dark). */
+    text-decoration-color: var(--sand-7);
+    text-decoration-thickness: 1px;
+    text-underline-offset: 0.16em;
+  }
+
+  body.dark [data-sep-plus-bibliography-citation]:not(:hover) {
+    text-decoration-color: var(--sand-8);
+  }
+
+  [data-sep-plus-bibliography-citation]:hover {
+    background: color-mix(in srgb, var(--sand-5) 24%, transparent);
+    text-decoration-color: var(--sep-muted-soft);
+  }
+}
+
+[data-sep-plus-bibliography-entry-id] {
+  scroll-margin-top: 24px;
+}
+
+.sep-plus-footnotes {
+  margin-top: 80px;
+  color: var(--sep-text) !important;
+}
+
+.sep-plus-footnotes > h2 {
+  margin-bottom: 24px;
+}
+
+.sep-plus-footnotes .sep-plus-footnote {
+  scroll-margin-top: 24px;
+}
+
+.sep-plus-footnotes .sep-plus-footnote + .sep-plus-footnote {
+  margin-top: 16px;
+}
+
+.sep-plus-footnotes .sep-plus-footnote > :first-child {
+  margin-top: 0;
+}
+
+.sep-plus-footnotes .sep-plus-footnote > :last-child {
+  margin-bottom: 0;
+}
+
+/* Leading "1." backrefs — match body text, not brand link pink/red. */
+body.sep-plus .sep-plus-footnotes .sep-plus-footnote > :first-child a:first-of-type:link,
+body.sep-plus .sep-plus-footnotes .sep-plus-footnote > :first-child a:first-of-type:visited,
+body.sep-plus .sep-plus-footnotes .sep-plus-footnote > :first-child a:first-of-type:hover {
+  color: var(--sep-text) !important;
+}
+/* Dark Mode — sand scale flips on body.dark; only overrides that need
+   different semantic roles or non-sand brand colors live here. */
+
+:where(html.sep-plus) body.dark {
+  background: var(--sep-article-bg) !important;
+  color: var(--sep-text) !important;
+}
+
+body.dark.sep-plus {
+  background: var(--sep-page-bg) !important;
+}
+
+body.dark.sep-plus :is(#article, #content:not(:has(#article))) {
+  color: var(--sep-text) !important;
+}
+
+:where(html.sep-plus) body.dark #article-sidebar .navbar .nav,
+:where(html.sep-plus) body.dark #article-sidebar .navbar .nav > li > a {
+  background: var(--sep-article-bg) !important;
+}
+
+:where(html.sep-plus) body.dark #article-copyright {
+  border-color: var(--sep-border-subtle) !important;
+}
+
+:where(html.sep-plus) body.dark table.all-rules td,
+:where(html.sep-plus) body.dark table.all-rules th {
+  border: 1px solid var(--sep-muted) !important;
+}
+
+:where(html.sep-plus) body.dark h1,
+:where(html.sep-plus) body.dark h2,
+:where(html.sep-plus) body.dark h3,
+:where(html.sep-plus) body.dark h1 a,
+:where(html.sep-plus) body.dark h2 a,
+:where(html.sep-plus) body.dark h3 a,
+:where(html.sep-plus) body.dark h4,
+:where(html.sep-plus) body.dark h5 {
+  color: var(--sep-text) !important;
+}
+
+:where(html.sep-plus) body.dark .search_results {
+  background: none !important;
+  border: none !important;
+}
+
+:where(html.sep-plus) body.dark img {
+  opacity: 0.75;
+  transition: opacity 0.1s ease;
+}
+
+:where(html.sep-plus) body.dark img:hover {
+  opacity: 1;
+}
+
+:where(html.sep-plus) body.dark .icon-search,
+:where(html.sep-plus) body.dark #article-sidebar .navbar .nav > li > a:hover,
+:where(html.sep-plus) body.dark #article-sidebar .navbar .nav > li.active-item > a {
+  color: var(--sep-text) !important;
+}
+
+:where(html.sep-plus) body.dark #pubinfo em,
+:where(html.sep-plus) body.dark #pubinfo a.sep-pubinfo-author,
+:where(html.sep-plus) body.dark #article-copyright,
+:where(html.sep-plus) body.dark #site-credits,
+:where(html.sep-plus) body.dark .navbar .nav > li > a,
+:where(html.sep-plus) body.dark #article-sidebar .navbar .nav > li > a {
+  color: var(--sep-muted) !important;
+}
+
+:where(html.sep-plus) body.dark #pubinfo a.sep-pubinfo-author:hover,
+:where(html.sep-plus) body.dark .navbar .nav > li > a:hover {
+  color: var(--sep-text) !important;
+}
+
+/* Brand link accents — outside the sand scale */
+:where(html.sep-plus) body.dark a:link,
+:where(html.sep-plus) body.dark a:visited {
+  color: #f9acac !important;
+}
+
+:where(html.sep-plus) body.dark a:hover {
+  color: #ffcbcb !important;
+}
+
+/* Related-entry pills stay sand (beat the pink link accent above). */
+body.dark.sep-plus .sep-plus-related-entries a:link,
+body.dark.sep-plus .sep-plus-related-entries a:visited {
+  color: var(--sep-muted) !important;
+}
+
+body.dark.sep-plus .sep-plus-related-entries a:hover {
+  color: var(--sep-text) !important;
+}
+
+:where(html.sep-plus) body.dark .btn:hover i {
+  color: #ffcbcb !important;
+}
+
+:where(html.sep-plus) body.dark .dropdown-menu,
+:where(html.sep-plus) body.dark .dropdown-menu li a {
+  background: var(--sep-panel-bg) !important;
+  border-color: var(--sep-border) !important;
+}
+
+:where(html.sep-plus) body.dark .btn,
+:where(html.sep-plus) body.dark .btn-group,
+:where(html.sep-plus) body.dark #mission,
+:where(html.sep-plus) body.dark #article-banner-content {
+  background: transparent !important;
+  color: var(--sep-muted) !important;
+}
+
+:where(html.sep-plus) body.dark .btn,
+:where(html.sep-plus) body.dark #mission a,
+:where(html.sep-plus) body.dark #article-banner-content a {
+  color: var(--sep-muted) !important;
+}
+
+:where(html.sep-plus) body.dark .dropdown-menu {
+  color: var(--sep-text) !important;
+}
+
+:where(html.sep-plus) body.dark .caret {
+  border-top: 4px solid var(--sep-text) !important;
+}
+
+:where(html.sep-plus) body.dark .dropdown-menu li a {
+  color: var(--sep-muted) !important;
+}
+
+:where(html.sep-plus) body.dark .dropdown-menu li a:hover {
+  background: var(--sand-7) !important;
+  color: var(--sep-text) !important;
+}
+
+/* Search pager — centered pills. Placed after the dark link accent so
+   sand colors win over the maroon and pink link rules. */
+body.sep-plus .sep-plus-search-pager {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: auto !important;
+  margin: 32px auto 8px !important;
+  padding: 0 !important;
+  font-family: var(--sep-font);
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 20px;
+}
+
+body.sep-plus .sep-plus-search-pager-step {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  height: 36px;
+  padding: 0 16px;
+  border: 1px solid var(--sep-divider);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--sep-text) !important;
+  cursor: pointer;
+  font: inherit;
+  text-decoration: none !important;
+  transition:
+    color var(--sep-duration-fast) var(--sep-ease),
+    background-color var(--sep-duration-fast) var(--sep-ease);
+}
+
+body.sep-plus .sep-plus-search-pager-page {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  min-width: 32px;
+  height: 32px;
+  padding: 0 6px;
+  border-radius: 999px;
+  color: var(--sep-muted) !important;
+  cursor: pointer;
+  font: inherit;
+  text-decoration: none !important;
+  transition:
+    color var(--sep-duration-fast) var(--sep-ease),
+    background-color var(--sep-duration-fast) var(--sep-ease);
+}
+
+body.sep-plus a.sep-plus-search-pager-page:hover {
+  background: var(--sep-bg-elevated);
+  color: var(--sep-text) !important;
+}
+
+body.sep-plus .sep-plus-search-pager-page.is-current {
+  background: var(--sep-hover);
+  color: var(--sep-text) !important;
+}
+
+body.sep-plus .sep-plus-search-pager-gap {
+  color: var(--sep-muted);
+}
+
+body.sep-plus .sep-plus-search-pager-step:hover,
+body.sep-plus .sep-plus-search-pager-page.is-current:hover {
+  color: var(--sep-text) !important;
+}
+
+body.sep-plus .sep-plus-search-pager-step:hover {
+  background: var(--sep-hover);
+}
+
+body.dark.sep-plus .sep-plus-search-pager-step:link,
+body.dark.sep-plus .sep-plus-search-pager-step:visited {
+  color: var(--sep-text) !important;
+}
+
+body.dark.sep-plus .sep-plus-search-pager-page:link,
+body.dark.sep-plus .sep-plus-search-pager-page:visited {
+  color: var(--sep-muted) !important;
+}
+
+body.dark.sep-plus .sep-plus-search-pager-step:hover,
+body.dark.sep-plus .sep-plus-search-pager-page:hover {
+  color: #fff !important;
+}
+
+:where(html.sep-plus) body.dark blockquote {
+  border-color: var(--sep-border) !important;
+}
+
+/* Print */
+
+@media print {
+  :where(html.sep-plus) #article-sidebar,
+  :where(html.sep-plus) #academic-tools,
+  :where(html.sep-plus) #other-internet-resources,
+  :where(html.sep-plus) #related-entries,
+  :where(html.sep-plus) #article-copyright,
+  :where(html.sep-plus) #article-banner,
+  :where(html.sep-plus) #footer,
+  :where(html.sep-plus) #search,
+  :where(html.sep-plus) #search-form,
+  #sep-plus-footnote-layer {
+    display: none !important;
+  }
+
+  :where(html.sep-plus) #article {
+    padding-top: 0 !important;
+    padding-left: 80px !important;
+    padding-right: 80px !important;
+  }
+
+  /* Fixed ink colors — do not use theme vars (dark sand would invert) */
+  :where(html.sep-plus) li,
+  :where(html.sep-plus) p,
+  :where(html.sep-plus) blockquote {
+    color: #21201c !important; /* sand-12 light */
+  }
+
+  :where(html.sep-plus) body.dark a:link,
+  :where(html.sep-plus) body.dark a:visited,
+  :where(html.sep-plus) a:link,
+  :where(html.sep-plus) a:visited {
+    color: #3b3a37 !important; /* sand-6 dark ≈ print link gray */
+  }
+
+  :where(html.sep-plus) body.dark blockquote {
+    border-color: #dad9d6 !important; /* sand-6 light */
+  }
+
+  :where(html.sep-plus) body.dark h1,
+  :where(html.sep-plus) body.dark h2,
+  :where(html.sep-plus) body.dark h3,
+  :where(html.sep-plus) body.dark h1 a,
+  :where(html.sep-plus) body.dark h2 a,
+  :where(html.sep-plus) body.dark h3 a,
+  :where(html.sep-plus) body.dark h4,
+  :where(html.sep-plus) body.dark h5 {
+    color: #21201c !important; /* sand-12 light */
+  }
+
+  :where(html.sep-plus) [data-highlighters-overlay],
+  :where(html.sep-plus) #article-content > div[aria-hidden='true'][style*='mix-blend-mode'] {
+    display: none !important;
+  }
+
+  [data-sep-plus-bibliography-citation] {
+    background: transparent !important;
+    text-decoration: none !important;
+  }
+
+  :where(html.sep-plus) sup {
+    top: 0 !important;
+    font: var(--sep-footnote-label-font) !important;
+  }
+}

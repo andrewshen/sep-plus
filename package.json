@@ -1,0 +1,40 @@
+{
+  "name": "sep-plus",
+  "version": "2.0.1",
+  "private": true,
+  "type": "module",
+  "description": "Improve the Stanford Encyclopedia of Philosophy reading experience",
+  "scripts": {
+    "dev": "vite",
+    "dev:firefox": "vite build --watch --mode firefox --no-emptyOutDir",
+    "build": "tsc --noEmit && npm run build:chrome && npm run build:firefox",
+    "build:chrome": "vite build --mode chrome",
+    "build:firefox": "vite build --mode firefox",
+    "lint:firefox": "web-ext lint --source-dir dist/firefox",
+    "check:dist": "node scripts/check-dist.mjs",
+    "zip:chrome": "npm run build:chrome && web-ext build --source-dir dist/chrome --artifacts-dir artifacts/chrome --overwrite-dest",
+    "zip:firefox": "npm run build:firefox && web-ext build --source-dir dist/firefox --artifacts-dir artifacts/firefox --overwrite-dest",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@highlighters/core": "2.0.0",
+    "@highlighters/react": "^2.0.0",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7"
+  },
+  "devDependencies": {
+    "@crxjs/vite-plugin": "^2.7.1",
+    "@testing-library/dom": "^10.4.2",
+    "@testing-library/react": "^16.3.3",
+    "@types/chrome": "^0.2.2",
+    "@types/react": "^19.2.17",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^6.0.3",
+    "happy-dom": "^20.11.0",
+    "typescript": "^7.0.2",
+    "vite": "^8.1.5",
+    "vitest": "^3.2.4",
+    "web-ext": "^10.8.0"
+  }
+}

@@ -1,0 +1,1426 @@
+@import '../lib/popover.css';
+
+/* Shadow-local sand + semantic tokens (document :root does not pierce here) */
+:host,
+.sep-plus-app {
+  --sand-1: #fdfdfc;
+  --sand-2: #f9f9f8;
+  --sand-3: #f1f0ef;
+  --sand-4: #e9e8e6;
+  --sand-5: #e2e1de;
+  --sand-6: #dad9d6;
+  --sand-7: #cfceca;
+  --sand-8: #bcbbb5;
+  --sand-9: #8d8d86;
+  --sand-10: #82827c;
+  --sand-11: #63635e;
+  --sand-12: #21201c;
+
+  --sep-page-bg: #fff;
+  --sep-article-bg: #fff;
+  --sep-bg: var(--sand-2);
+  --sep-bg-elevated: var(--sand-3);
+  --sep-surface: #fff;
+  --sep-panel-bg: #fff;
+  --sep-text: var(--sand-12);
+  /* SEP brand red; outside the sand scale. */
+  --sep-logo: #8c1515;
+  --sep-muted: var(--sand-11);
+  --sep-muted-soft: var(--sand-9);
+  --sep-border: var(--sand-6);
+  --sep-border-subtle: var(--sand-4);
+  --sep-divider: var(--sand-3);
+  --sep-outline-tick: var(--sand-6);
+  /* Halfway between sand-2 and sand-3. */
+  --sep-hover: color-mix(in srgb, var(--sand-2), var(--sand-3));
+  /* One step past --sep-hover, for controls sitting on a hover surface. */
+  --sep-hover-strong: color-mix(in srgb, var(--sand-3), var(--sand-4));
+  --sep-ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --sep-ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+  --sep-ease: cubic-bezier(0.25, 0.1, 0.25, 1);
+  --sep-duration-fast: 100ms;
+  --sep-duration-ui: 150ms;
+  --sep-duration-drawer: 200ms;
+  --sep-font:
+    'Public Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI',
+    sans-serif;
+
+  font-family: var(--sep-font);
+  color: var(--sep-text);
+  font-synthesis: none;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  box-sizing: border-box;
+}
+
+/* Shadow DOM doesn’t inherit document focus resets. Pointer focus shows no
+   ring; keyboard focus gets the same ring as citations in the article. Text
+   fields draw their own focus state. */
+:host :focus:not(:focus-visible),
+.sep-plus-app :focus:not(:focus-visible),
+.sep-plus-app :is(input[type='search'], input[type='text'], textarea):focus-visible {
+  outline: none;
+}
+
+.sep-plus-app :focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--sep-text) 32%, transparent);
+  outline-offset: 2px;
+}
+
+@supports (color: color(display-p3 1 1 1)) {
+  @media (color-gamut: p3) {
+    :host,
+    .sep-plus-app {
+      --sand-1: color(display-p3 0.992 0.992 0.989);
+      --sand-2: color(display-p3 0.977 0.977 0.973);
+      --sand-3: color(display-p3 0.943 0.942 0.936);
+      --sand-4: color(display-p3 0.913 0.912 0.903);
+      --sand-5: color(display-p3 0.885 0.883 0.873);
+      --sand-6: color(display-p3 0.854 0.852 0.839);
+      --sand-7: color(display-p3 0.813 0.81 0.794);
+      --sand-8: color(display-p3 0.738 0.734 0.713);
+      --sand-9: color(display-p3 0.553 0.553 0.528);
+      --sand-10: color(display-p3 0.511 0.511 0.488);
+      --sand-11: color(display-p3 0.388 0.388 0.37);
+      --sand-12: color(display-p3 0.129 0.126 0.111);
+    }
+  }
+}
+
+.sep-plus-app *,
+.sep-plus-app *::before,
+.sep-plus-app *::after {
+  box-sizing: border-box;
+}
+
+.sep-plus-app {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+  overflow: visible;
+}
+
+.sep-plus-app.sep-annotation-overlay {
+  position: absolute;
+}
+
+.sep-bibliography-preview {
+  display: flex;
+  flex-direction: column;
+  white-space: normal;
+}
+
+.sep-bibliography-preview-entry {
+  min-width: 0;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--sep-divider);
+  color: var(--sep-text);
+  font-size: 14px;
+  line-height: 22px;
+  overflow-wrap: anywhere;
+}
+
+.sep-bibliography-preview-entry:last-child {
+  border-bottom: none;
+}
+
+.sep-bibliography-preview-entry-key {
+  margin-bottom: 2px;
+  color: var(--sep-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.sep-bibliography-preview-entry :is(em, i, cite) {
+  font-style: italic;
+}
+
+.sep-bibliography-preview-entry strong {
+  font-weight: 600;
+}
+
+.sep-popover-body a.sep-bibliography-preview-search {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  width: fit-content;
+  margin-top: 8px;
+  color: var(--sep-muted);
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 22px;
+  text-decoration: none;
+}
+
+.sep-bibliography-preview-entry-body {
+  display: contents;
+}
+
+.sep-popover-body a.sep-bibliography-preview-search svg {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+
+.sep-bibliography-preview-entry a:focus-visible {
+  border-radius: 2px;
+  outline: 2px solid var(--sep-muted-soft);
+  outline-offset: 2px;
+}
+
+.sep-bibliography-preview-entry-body a,
+.sep-bibliography-preview-entry-body a:link,
+.sep-bibliography-preview-entry-body a:visited,
+.sep-bibliography-preview-entry-body a:hover,
+.sep-bibliography-preview-entry-body a:active {
+  color: var(--sep-muted);
+  text-decoration: none;
+}
+
+/* Popover links fade on hover instead of changing color. */
+.sep-popover-body a.sep-bibliography-preview-search,
+.sep-bibliography-preview-entry-body a {
+  transition: opacity var(--sep-duration-fast) var(--sep-ease);
+}
+
+.sep-popover-body a.sep-bibliography-preview-search:hover,
+.sep-bibliography-preview-entry-body a:hover {
+  opacity: 0.5;
+}
+
+.sep-plus-app button,
+.sep-plus-app a,
+.sep-plus-app select,
+.sep-plus-app input {
+  font-family: inherit;
+}
+
+/* Header */
+
+.sep-header {
+  pointer-events: auto;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 2;
+  height: 60px;
+  /* Shown once the title scrolls up under the header. */
+  border-bottom: 1px solid transparent;
+  background: var(--sep-page-bg);
+  transition: border-color var(--sep-duration-fast) var(--sep-ease);
+}
+
+.sep-header.is-scrolled {
+  border-bottom-color: var(--sep-divider);
+}
+
+.sep-header-logo {
+  position: absolute;
+  top: 16px;
+  left: 24px;
+  display: block;
+  width: 19px;
+  height: 28px;
+  transition: opacity var(--sep-duration-fast) var(--sep-ease);
+}
+
+.sep-header-logo:hover {
+  opacity: 0.5;
+}
+
+.sep-header-logo,
+.sep-home-logo {
+  color: var(--sep-logo);
+}
+
+:is(.sep-header-logo, .sep-home-logo) svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.sep-search {
+  position: relative;
+}
+
+.sep-search--header {
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  width: min(400px, calc(100vw - 224px));
+  translate: -50% 0;
+}
+
+.sep-search--hero {
+  width: min(484px, 100%);
+}
+
+.sep-search--hero .sep-search-field {
+  gap: 8px;
+  height: 48px;
+  padding: 0 16px;
+}
+
+/* Full-page search: the field spans the results column. */
+.sep-search-page .sep-search--hero {
+  width: 100%;
+}
+
+/* Results span the field, whatever its size. Vertical offset comes
+   from `.sep-popover--center` (4px under the trigger). */
+.sep-search > .sep-popover {
+  width: 100%;
+}
+
+.sep-search-field {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 40px;
+  padding: 0 12px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: var(--sep-hover);
+  color: var(--sep-muted-soft);
+  cursor: text;
+}
+
+.sep-search-field:focus-within {
+  border-color: var(--sand-4);
+}
+
+.sep-plus-app.is-dark .sep-search-field:focus-within {
+  border-color: var(--sand-6);
+}
+
+.sep-search-field > svg {
+  display: block;
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+
+.sep-plus-app input.sep-search-input {
+  flex: 1;
+  min-width: 0;
+  height: 20px;
+  margin: 0;
+  padding: 0;
+  border: none;
+  outline: none;
+  appearance: none;
+  background: transparent;
+  color: var(--sep-text);
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 20px;
+  text-overflow: ellipsis;
+}
+
+.sep-search-input::-webkit-search-decoration,
+.sep-search-input::-webkit-search-cancel-button,
+.sep-search-input::-webkit-search-results-button,
+.sep-search-input::-webkit-search-results-decoration {
+  display: none;
+  -webkit-appearance: none;
+}
+
+.sep-search-input-wrap {
+  position: relative;
+  display: flex;
+  flex: 1;
+  min-width: 0;
+}
+
+/* The native placeholder stays for assistive tech; AnimatedPlaceholder draws
+   the visible one so changes can animate. */
+.sep-search-input::placeholder {
+  color: transparent;
+}
+
+.sep-search-placeholder {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  color: var(--sep-muted-soft);
+  font-size: 14px;
+  line-height: 20px;
+}
+
+.sep-search-placeholder.is-hidden {
+  visibility: hidden;
+}
+
+.sep-search-placeholder-text {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  transition:
+    opacity 300ms var(--sep-ease-out),
+    transform 300ms var(--sep-ease-out),
+    filter 300ms var(--sep-ease-out);
+}
+
+/* Exit is quicker than entry so the new text leads. Keep in sync with
+   EXIT_MS in AnimatedPlaceholder. */
+.sep-search-placeholder-text.is-exiting {
+  opacity: 0;
+  transform: translateY(-8px);
+  filter: blur(2px);
+  transition-duration: 250ms;
+}
+
+@starting-style {
+  .sep-search-placeholder-text.is-entering {
+    opacity: 0;
+    transform: translateY(8px);
+    filter: blur(2px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sep-search-placeholder-text.is-exiting {
+    transform: none;
+  }
+
+  @starting-style {
+    .sep-search-placeholder-text.is-entering {
+      transform: none;
+    }
+  }
+}
+
+.sep-plus-app button.sep-search-clear {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  /* Matches the right gap to the top/bottom gap in both field sizes. */
+  margin-right: -5px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--sep-muted-soft);
+  cursor: pointer;
+  transition:
+    color var(--sep-duration-fast) var(--sep-ease),
+    background-color var(--sep-duration-fast) var(--sep-ease);
+}
+
+.sep-search-clear svg {
+  display: block;
+  width: 12px;
+  height: 12px;
+}
+
+.sep-plus-app button.sep-search-clear:hover {
+  background: var(--sep-hover-strong);
+  color: var(--sep-text);
+}
+
+.sep-search-slash {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+  padding: 0;
+  border: 1px solid var(--sep-border);
+  border-radius: 4px;
+  background: transparent;
+  color: var(--sep-muted-soft);
+  font-family: var(--sep-font);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 16px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity var(--sep-duration-fast) var(--sep-ease);
+}
+
+.sep-search-field:hover .sep-search-slash {
+  opacity: 1;
+}
+
+.sep-header-actions {
+  position: absolute;
+  top: 16px;
+  right: 24px;
+  display: flex;
+  gap: 4px;
+}
+
+.sep-header-anchor {
+  position: relative;
+}
+
+/* Homepage: the header's action slot on its own (the overlay root is fixed
+   and ignores pointer events, so re-enable them here). */
+.sep-header-actions.sep-home-actions {
+  pointer-events: auto;
+  z-index: 2;
+}
+
+.sep-plus-app button.sep-icon-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 4px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--sep-muted-soft);
+  cursor: pointer;
+  transition:
+    color var(--sep-duration-fast) var(--sep-ease),
+    background-color var(--sep-duration-fast) var(--sep-ease);
+}
+
+.sep-icon-button svg {
+  display: block;
+  width: 20px;
+  height: 20px;
+}
+
+.sep-plus-app button.sep-icon-button:hover,
+.sep-plus-app button.sep-icon-button.is-pressed {
+  background: var(--sep-hover);
+  color: var(--sep-text);
+}
+
+/* Header dropdown placement + motion (surface comes from popover.css) */
+
+/* Closed/exiting state; exit is quicker than entry. Dropdowns hang below
+   their trigger, so they grow down from the top. */
+.sep-popover--dropdown {
+  --sep-popover-enter-y: -4px;
+  pointer-events: none;
+  position: absolute;
+  z-index: 1;
+  opacity: 0;
+  transform: var(--sep-popover-enter-transform);
+  transition:
+    opacity var(--sep-duration-fast) var(--sep-ease-out),
+    transform var(--sep-duration-fast) var(--sep-ease-out);
+}
+
+.sep-popover--dropdown.is-open {
+  pointer-events: auto;
+  opacity: 1;
+  transform: none;
+  transition:
+    opacity var(--sep-duration-ui) var(--sep-ease-out),
+    transform var(--sep-duration-ui) var(--sep-ease-out);
+}
+
+/* Entry runs from here on mount however the popover was opened (click,
+   focus, or shortcut); a next-frame class toggle can skip it after a click. */
+@starting-style {
+  .sep-popover--dropdown.is-open {
+    opacity: 0;
+    transform: var(--sep-popover-enter-transform);
+  }
+}
+
+/* Annotations and settings end in rows with their own spacing, so the
+   surface needs less underneath than the default 8px. */
+.sep-popover.sep-popover--tight-bottom {
+  padding-bottom: 4px;
+}
+
+/* Grow out of the 28px trigger button whose right edge this aligns with. */
+.sep-popover--end {
+  top: calc(100% + 6px);
+  right: 0;
+  transform-origin: calc(100% - 14px) top;
+}
+
+.sep-popover--center {
+  top: calc(100% + 4px);
+  left: 50%;
+  translate: -50% 0;
+  transform-origin: top center;
+}
+
+/* Seven 44px rows, matching the search mock. */
+.sep-popover--menu .sep-popover-body {
+  max-height: min(308px, calc(100vh - 96px));
+}
+
+.sep-plus-app .sep-popover-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  margin: 0;
+  padding: 12px 0;
+  border: none;
+  border-bottom: 1px solid var(--sep-divider);
+  background: transparent;
+  color: var(--sep-text);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 20px;
+  text-align: left;
+  text-decoration: none;
+  transition: opacity var(--sep-duration-fast) var(--sep-ease);
+}
+
+.sep-plus-app .sep-popover-row:last-child {
+  border-bottom: none;
+}
+
+.sep-plus-app .sep-popover-row.is-interactive {
+  cursor: pointer;
+}
+
+.sep-plus-app .sep-popover-row[aria-disabled='true'] {
+  cursor: default;
+}
+
+.sep-popover-row-leading {
+  display: flex;
+  flex-shrink: 0;
+}
+
+.sep-popover-row-main {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.sep-popover-row-label,
+.sep-popover-row-secondary {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sep-popover-row-secondary,
+.sep-popover-row-trailing {
+  color: var(--sep-muted);
+}
+
+.sep-popover-row-trailing {
+  transition: opacity var(--sep-duration-fast) var(--sep-ease);
+}
+
+.sep-popover-row-trailing {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  gap: 6px;
+}
+
+.sep-popover-row-trailing svg {
+  display: block;
+  width: 20px;
+  height: 20px;
+}
+
+.sep-popover-row-chevron {
+  display: flex;
+  color: var(--sep-muted-soft);
+}
+
+.sep-popover-row-trailing .sep-popover-row-chevron svg {
+  width: 12px;
+  height: 12px;
+}
+
+/* Hover fades a row's trailing value (Dark, Yellow, Email…); rows without
+   one, like annotation entries, fade as a whole. */
+.sep-plus-app
+  .sep-popover-row.is-interactive:not([aria-disabled='true']):not(
+    :has(.sep-popover-row-trailing)
+  ):hover,
+.sep-plus-app
+  .sep-popover-row.is-interactive:not([aria-disabled='true']):hover
+  .sep-popover-row-trailing {
+  opacity: 0.5;
+}
+
+.sep-popover-row[aria-disabled='true']
+  :is(.sep-popover-row-label, .sep-popover-row-secondary) {
+  color: var(--sep-muted-soft);
+}
+
+.sep-plus-app select.sep-popover-row-select {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: none;
+  background: transparent;
+  opacity: 0;
+  appearance: none;
+  cursor: pointer;
+}
+
+.sep-swatch-slot {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+}
+
+.sep-swatch {
+  width: 16px;
+  height: 16px;
+  border-radius: 999px;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--sand-12) 10%, transparent);
+}
+
+/* Menu items (search results, annotation actions) */
+
+.sep-search-results {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.sep-plus-app button.sep-menu-item {
+  display: block;
+  width: 100%;
+  padding: 12px;
+  overflow: hidden;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--sep-text);
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 20px;
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sep-plus-app button.sep-menu-item:hover,
+.sep-plus-app button.sep-menu-item.is-active {
+  background: var(--sep-hover);
+}
+
+.sep-plus-app button.sep-menu-item--muted {
+  color: var(--sep-muted);
+}
+
+.sep-plus-app button.sep-menu-item--muted:is(:hover, .is-active) {
+  color: var(--sep-text);
+}
+
+/* Outline */
+
+.sep-outline {
+  --sep-outline-row: 28px;
+  /* Ticks pack tighter than the labels they stand in for. */
+  --sep-outline-tick-row: 20px;
+  --sep-outline-max-height: calc(100vh - 160px);
+  --sep-outline-fade-top: 0px;
+  --sep-outline-fade-bottom: 0px;
+
+  pointer-events: auto;
+  position: fixed;
+  top: 50%;
+  left: 0;
+  z-index: 1;
+  /* 32px inset + 36px active tick + hover slack; widens while open. */
+  width: 108px;
+  padding: 24px 0 24px 32px;
+  transform: translateY(-50%);
+  transition: width 0s linear var(--sep-duration-drawer);
+}
+
+.sep-outline:hover,
+.sep-outline:focus-within {
+  width: 416px;
+  transition-delay: 0s;
+}
+
+.sep-outline-rail,
+.sep-outline-panel-scroll {
+  max-height: var(--sep-outline-max-height);
+  mask-image: linear-gradient(
+    to bottom,
+    transparent 0,
+    #000 var(--sep-outline-fade-top),
+    #000 calc(100% - var(--sep-outline-fade-bottom)),
+    transparent 100%
+  );
+}
+
+.sep-outline-rail {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  overflow: hidden;
+  transition: opacity var(--sep-duration-drawer) var(--sep-ease);
+}
+
+/* Tick length by depth: sections 20px, subsections 14px, sub-subsections
+   8px; the active tick runs 16px longer than its level. */
+.sep-outline-tick {
+  --sep-outline-tick-length: 20;
+
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  height: var(--sep-outline-tick-row);
+}
+
+.sep-outline-tick--level-2 {
+  --sep-outline-tick-length: 14;
+}
+
+.sep-outline-tick--level-3 {
+  --sep-outline-tick-length: 8;
+}
+
+/* 36px bars scaled down so length changes animate on the compositor
+   instead of re-laying out the rail. */
+.sep-outline-tick::before {
+  content: '';
+  width: 36px;
+  height: 2px;
+  background: var(--sep-outline-tick);
+  transform: scaleX(calc(var(--sep-outline-tick-length) / 36));
+  transform-origin: left center;
+  transition:
+    transform var(--sep-duration-ui) var(--sep-ease-out),
+    background-color var(--sep-duration-ui) var(--sep-ease);
+}
+
+.sep-outline-tick.is-active::before {
+  background: var(--sand-9);
+  transform: scaleX(calc((var(--sep-outline-tick-length) + 16) / 36));
+}
+
+.sep-outline:hover .sep-outline-rail,
+.sep-outline:focus-within .sep-outline-rail {
+  opacity: 0;
+}
+
+.sep-outline-panel {
+  box-sizing: border-box;
+  pointer-events: none;
+  position: absolute;
+  top: 50%;
+  left: 24px;
+  width: 360px;
+  background: var(--sep-page-bg);
+  /* Hidden by opacity, not visibility, so its links stay in the tab order
+     and tabbing to one opens the panel via :focus-within. */
+  opacity: 0;
+  transform: translate(-8px, -50%);
+  transition:
+    opacity var(--sep-duration-drawer) var(--sep-ease),
+    transform var(--sep-duration-drawer) var(--sep-ease);
+}
+
+/* Scrolls and fades inside the panel, so the overlap border isn't masked. */
+.sep-outline-panel-scroll {
+  overflow-x: hidden;
+  overflow-y: auto;
+  scrollbar-width: none;
+}
+
+.sep-outline-panel-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+/* Over the reading column: same border, radius and shadow as `.sep-popover`
+   (popover.css). The surface grows outward by its 13px side inset (1px
+   border + 12px padding): 13px further left and 26px wider, so the content
+   box, and with it every label, sits exactly where it does without the
+   border. The panel is centered vertically, so extra top and bottom padding
+   grows it evenly in both directions. */
+.sep-outline.is-overlapping .sep-outline-panel {
+  left: 11px;
+  width: 386px;
+  padding: 14px 12px;
+  border: 1px solid var(--sep-divider);
+  border-radius: 12px;
+  box-shadow: 0 2px 20px -8px rgb(0 0 0 / 10%);
+}
+
+.sep-outline.has-fade-top {
+  --sep-outline-fade-top: 40px;
+}
+
+.sep-outline.has-fade-bottom {
+  --sep-outline-fade-bottom: 40px;
+}
+
+.sep-outline:hover .sep-outline-panel,
+.sep-outline:focus-within .sep-outline-panel {
+  pointer-events: auto;
+  opacity: 1;
+  transform: translate(0, -50%);
+}
+
+.sep-plus-app button.sep-outline-link {
+  display: block;
+  width: 100%;
+  height: var(--sep-outline-row);
+  padding: 4px 24px 4px 8px;
+  overflow: hidden;
+  border: none;
+  background: transparent;
+  color: var(--sep-muted);
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 20px;
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  transition: color var(--sep-duration-fast) var(--sep-ease);
+}
+
+.sep-plus-app button.sep-outline-link--level-2 {
+  padding-left: 22px;
+}
+
+.sep-plus-app button.sep-outline-link--level-3 {
+  padding-left: 36px;
+}
+
+.sep-plus-app button.sep-outline-link:hover,
+.sep-plus-app button.sep-outline-link.is-active {
+  color: var(--sep-text);
+}
+
+/* The scroll area clips overflow, so draw the ring inside the row. */
+.sep-plus-app button.sep-outline-link:focus-visible {
+  border-radius: 6px;
+  outline-offset: -2px;
+}
+
+@media (max-width: 899px) {
+  .sep-outline {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sep-outline-panel,
+  .sep-outline:hover .sep-outline-panel,
+  .sep-outline:focus-within .sep-outline-panel {
+    transform: translate(0, -50%);
+    transition: opacity var(--sep-duration-fast) var(--sep-ease);
+  }
+
+  .sep-outline-tick::before {
+    transition: none;
+  }
+}
+
+/* Homepage */
+
+/* In-flow shadow hosts (homepage, site footer), not the fixed overlay. */
+.sep-plus-app.sep-flow-app {
+  --sep-site-gutter: 24px;
+  --sep-site-max-width: 1092px;
+
+  position: static;
+  pointer-events: auto;
+}
+
+.sep-home {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-height: 100vh;
+  padding: 0 var(--sep-site-gutter);
+  background: var(--sep-page-bg);
+  color: var(--sep-text);
+}
+
+/* Fills the space above the sections and centers its content there; the
+   min height and padding keep room above and below on short windows. */
+.sep-home-hero {
+  display: flex;
+  flex: 1 0 auto;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 40px;
+  width: 100%;
+  min-height: 600px;
+  padding-block: 80px;
+}
+
+.sep-home-logo {
+  display: block;
+  width: 28px;
+  height: 42px;
+  cursor: pointer;
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.sep-home-mission-subject {
+  color: var(--sep-text);
+}
+
+.sep-home-mission {
+  max-width: 816px;
+  margin: 0;
+  color: var(--sep-muted);
+  font-size: clamp(20px, 3vw, 28px);
+  font-weight: 400;
+  line-height: 1.43;
+  text-align: center;
+}
+
+.sep-home-sections {
+  width: min(var(--sep-site-max-width), 100%);
+}
+
+.sep-site-section {
+  padding-top: 32px;
+  padding-bottom: 40px;
+  border-top: 1px solid var(--sep-divider);
+}
+
+:where(.sep-home, .sep-site-footer) h2 {
+  margin: 0;
+}
+
+.sep-home-label {
+  color: var(--sep-muted-soft);
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 20px;
+}
+
+/* Zero-specificity default, so label and column colors win. */
+:where(.sep-home, .sep-site-footer) a {
+  color: inherit;
+}
+
+/* Shared link behavior: gray links go to full text color on hover. Links
+   already at full text color have nowhere to go, so they fade instead.
+   Popover links fade too (see the popover rules near the top). */
+.sep-plus-app a.sep-link {
+  text-decoration: none;
+  transition:
+    color var(--sep-duration-fast) var(--sep-ease),
+    opacity var(--sep-duration-fast) var(--sep-ease);
+}
+
+.sep-plus-app a.sep-link:hover {
+  color: var(--sep-text);
+}
+
+.sep-plus-app a.sep-link.sep-entry-author:hover {
+  opacity: 0.5;
+}
+
+.sep-home-see-all {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.sep-home-see-all svg {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+
+.sep-home-recent {
+  border-top: none;
+}
+
+.sep-home-recent-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.sep-home-carousel {
+  --sep-home-fade-start: 0px;
+  --sep-home-fade-end: 0px;
+
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+  mask-image: linear-gradient(
+    to right,
+    transparent 0,
+    #000 var(--sep-home-fade-start),
+    #000 calc(100% - var(--sep-home-fade-end)),
+    transparent 100%
+  );
+}
+
+.sep-home-carousel::-webkit-scrollbar {
+  display: none;
+}
+
+.sep-home-carousel.has-fade-start {
+  --sep-home-fade-start: 48px;
+}
+
+.sep-home-carousel.has-fade-end {
+  --sep-home-fade-end: 48px;
+}
+
+.sep-plus-app .sep-home-card {
+  display: flex;
+  flex: 0 0 212px;
+  flex-direction: column;
+  gap: 8px;
+  /* Hold 212px; single-line titles would otherwise widen the card. */
+  min-width: 0;
+  min-height: 102px;
+  padding: 16px;
+  border: 1px solid var(--sep-border-subtle);
+  border-radius: 12px;
+  color: var(--sep-text);
+  font-size: 14px;
+  line-height: 20px;
+  text-decoration: none;
+  scroll-snap-align: start;
+  transition: border-color var(--sep-duration-fast) var(--sep-ease);
+}
+
+.sep-plus-app a.sep-home-card:hover {
+  border-color: var(--sep-border);
+}
+
+.sep-home-card-title {
+  overflow: hidden;
+  font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sep-home-card-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.sep-home-card-authors {
+  display: flex;
+  gap: 4px;
+  min-width: 0;
+}
+
+.sep-home-card-author {
+  overflow: hidden;
+  color: var(--sep-muted);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sep-home-card-more,
+.sep-home-card-date {
+  flex-shrink: 0;
+  color: var(--sep-muted-soft);
+}
+
+/* Site footer */
+
+/* Other pages: centered under the content, sized like the homepage. */
+.sep-site-footer-page {
+  display: flex;
+  justify-content: center;
+  padding: 0 var(--sep-site-gutter);
+  background: var(--sep-page-bg);
+  color: var(--sep-text);
+}
+
+.sep-site-footer-page .sep-site-footer {
+  width: min(var(--sep-site-max-width), 100%);
+}
+
+.sep-site-footer-columns {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 32px 48px;
+  padding-right: 60px;
+}
+
+.sep-site-footer-column {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 14px;
+  line-height: 20px;
+}
+
+.sep-site-footer-column-title {
+  color: var(--sep-text);
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 20px;
+}
+
+.sep-site-footer-column .sep-link {
+  color: var(--sep-muted);
+}
+
+.sep-site-footer-legal {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 8px 16px;
+  padding-top: 20px;
+  padding-bottom: 24px;
+  color: var(--sep-muted-soft);
+  font-size: 14px;
+  line-height: 20px;
+}
+
+.sep-site-footer-entry .sep-entry-author {
+  color: var(--sep-text);
+}
+
+.sep-site-footer-legal.sep-site-footer-entry {
+  padding-bottom: 20px;
+}
+
+@media (max-width: 640px) {
+  .sep-home-hero {
+    min-height: 400px;
+    padding-block: 56px;
+  }
+
+  .sep-site-footer-columns {
+    padding-right: 0;
+  }
+
+  .sep-site-footer-column {
+    flex-basis: calc(50% - 24px);
+  }
+}
+
+/* Action menus: the selection toolbar (row) and overflow menus (column)
+   share one surface, button size, spacing, and icon size. */
+
+.sep-popover.sep-actions {
+  /* Small surfaces start smaller so their growth reads like the 400px
+     popovers' (~8px either way) instead of a plain fade. */
+  --sep-popover-enter-scale: 0.95;
+
+  width: max-content;
+  padding: 4px;
+}
+
+.sep-actions .sep-popover-body {
+  display: flex;
+  gap: 2px;
+  overflow: visible;
+}
+
+.sep-actions--vertical .sep-popover-body {
+  flex-direction: column;
+}
+
+.sep-popover.sep-annotation-toolbar {
+  position: absolute;
+  z-index: 1;
+}
+
+.sep-plus-app button.sep-action {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border: 0;
+  /* Concentric with the 12px surface over its 4px padding. */
+  border-radius: 8px;
+  background: transparent;
+  color: var(--sep-muted);
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 20px;
+  text-align: left;
+  white-space: nowrap;
+  transition:
+    color var(--sep-duration-fast) var(--sep-ease),
+    background-color var(--sep-duration-fast) var(--sep-ease);
+}
+
+.sep-action-icon {
+  display: flex;
+  flex: 0 0 16px;
+}
+
+.sep-action-icon svg {
+  width: 16px;
+  height: 16px;
+}
+
+.sep-plus-app button.sep-action:hover {
+  background: var(--sep-hover);
+  color: var(--sep-text);
+}
+
+.sep-plus-app button.sep-action:disabled {
+  cursor: default;
+  opacity: 0.55;
+}
+
+/* Annotation popover */
+
+/* The actions menu drops out of the title row, past the surface edge. */
+.sep-annotation-popover {
+  overflow: visible;
+}
+
+.sep-annotation-menu-anchor {
+  position: relative;
+  display: flex;
+  flex-shrink: 0;
+  /* 28px button in the 20px title line, as in the mock; pulling it 8px into
+     the 20px side padding leaves equal 12px gaps above and to the right. */
+  margin-block: -4px;
+  margin-right: -8px;
+}
+
+.sep-annotation-note-field {
+  padding: 12px 0;
+}
+
+.sep-plus-app textarea.sep-annotation-note {
+  display: block;
+  width: 100%;
+  min-height: 20px;
+  margin: 0;
+  padding: 0;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: var(--sep-text);
+  cursor: text;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 20px;
+  resize: none;
+  overflow: hidden;
+  field-sizing: content;
+}
+
+.sep-annotation-note::placeholder {
+  color: var(--sep-muted-soft);
+  opacity: 1;
+}
+
+/* Same colors as .sep-popover-message.is-error (popover.css). */
+.sep-plus-app .sep-annotation-save-error {
+  display: block;
+  margin: 12px 0 0;
+  padding: 0;
+  border: none;
+  background: none;
+  color: #8f2d36;
+  font: inherit;
+  font-size: 14px;
+  line-height: 20px;
+  text-align: left;
+  cursor: pointer;
+  transition: opacity var(--sep-duration-fast) var(--sep-ease);
+}
+
+.sep-plus-app .sep-annotation-save-error:hover {
+  opacity: 0.6;
+}
+
+.sep-plus-app.is-dark .sep-annotation-save-error {
+  color: #f1a7ad;
+}
+
+.sep-plus-app.is-dark {
+  --sand-1: #111110;
+  --sand-2: #191918;
+  --sand-3: #222221;
+  --sand-4: #2a2a28;
+  --sand-5: #31312e;
+  --sand-6: #3b3a37;
+  --sand-7: #494844;
+  --sand-8: #62605b;
+  --sand-9: #6f6d66;
+  --sand-10: #7c7b74;
+  --sand-11: #b5b3ad;
+  --sand-12: #eeeeec;
+
+  --sep-page-bg: var(--sand-3);
+  --sep-article-bg: var(--sand-3);
+  --sep-bg: var(--sand-2);
+  --sep-bg-elevated: var(--sand-4);
+  --sep-surface: var(--sand-4);
+  --sep-panel-bg: var(--sand-6);
+  --sep-text: var(--sand-12);
+  --sep-logo: var(--sep-text);
+  --sep-muted: var(--sand-11);
+  --sep-muted-soft: var(--sand-9);
+  --sep-border: var(--sand-7);
+  --sep-border-subtle: var(--sand-5);
+  --sep-divider: var(--sand-5);
+  --sep-outline-tick: var(--sand-9);
+  --sep-hover: var(--sand-5);
+  --sep-hover-strong: var(--sand-6);
+}
+
+.sep-plus-app.is-dark .sep-outline-tick.is-active::before {
+  background: #fff;
+}
+
+.sep-plus-app.is-dark button.sep-icon-button,
+.sep-plus-app.is-dark button.sep-search-clear,
+.sep-plus-app.is-dark .sep-search-field > svg {
+  color: var(--sep-muted);
+}
+
+.sep-plus-app.is-dark button.sep-icon-button:hover,
+.sep-plus-app.is-dark button.sep-icon-button.is-pressed,
+.sep-plus-app.is-dark button.sep-search-clear:hover {
+  color: #fff;
+}
+
+@supports (color: color(display-p3 1 1 1)) {
+  @media (color-gamut: p3) {
+    .sep-plus-app.is-dark {
+      --sand-1: color(display-p3 0.067 0.067 0.063);
+      --sand-2: color(display-p3 0.098 0.098 0.094);
+      --sand-3: color(display-p3 0.135 0.135 0.129);
+      --sand-4: color(display-p3 0.164 0.163 0.156);
+      --sand-5: color(display-p3 0.193 0.192 0.183);
+      --sand-6: color(display-p3 0.23 0.229 0.217);
+      --sand-7: color(display-p3 0.285 0.282 0.267);
+      --sand-8: color(display-p3 0.384 0.378 0.357);
+      --sand-9: color(display-p3 0.434 0.428 0.403);
+      --sand-10: color(display-p3 0.487 0.481 0.456);
+      --sand-11: color(display-p3 0.707 0.703 0.68);
+      --sand-12: color(display-p3 0.933 0.933 0.926);
+    }
+  }
+}

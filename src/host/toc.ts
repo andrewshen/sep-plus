@@ -1,0 +1,199 @@
+import type { TocItem } from '../lib/types';
+import { detachNative } from './rollback';
+import { focusJumpTarget, scrollWindowTo } from './scroll';
+
+/** Height of the fixed SEP+ header; keep in sync with `.sep-header`. */
+export const HEADER_HEIGHT = 60;
+
+const SKIP_TEXTS = new Set([
+  'Bibliography',
+  'Academic Tools',
+  'Other Internet Resources',
+  'Related Entries',
+]);
+
+function getTocLevel(text: string): 1 | 2 | 3 {
+  const match = text.trim().match(/^(\d+(?:\.\d+)*)/);
+  if (!match?.[1]) {
+    return 1;
+  }
+  const parts = match[1].split('.');
+  if (parts.length >= 3) {
+    return 3;
+  }
+  if (parts.length === 2) {
+    return 2;
+  }
+  return 1;
+}
+
+export function prepareArticleNav(): void {
+  const articleNav = document.querySelector('#article-nav');
+  if (!articleNav) {
+    return;
+  }
+
+  detachNative(articleNav.querySelector('li'));
+
+  for (const link of Array.from(articleNav.querySelectorAll('a'))) {
+    const text = (link.textContent || '').replace(/\s+/g, ' ').trim();
+    if (text === 'Bibliography' || text === 'Academic Tools') {
+      detachNative(link.closest('li') ?? link);
+    }
+  }
+}
+
+export function collectTocItems(): TocItem[] {
+  const items: TocItem[] = [];
+  const seen = new Set<string>();
+  const links = [
+    ...Array.from(document.querySelectorAll('#toc a')),
+    ...Array.from(document.querySelectorAll('#article-nav a')),
+  ];
+
+  for (const link of links) {
+    const href = link.getAttribute('href');
+    const text = (link.textContent || '').replace(/\s+/g, ' ').trim();
+
+    // Only in-page sections; links to other pages would be dead buttons.
+    if (!href?.startsWith('#') || href === '#pagetopright') {
+      continue;
+    }
+    if (SKIP_TEXTS.has(text) || seen.has(href)) {
+      continue;
+    }
+
+    seen.add(href);
+    items.push({
+      href,
+      text,
+      level: getTocLevel(text),
+    });
+  }
+
+  return items;
+}
+
+/**
+ * contents.html: the A–Z button bar becomes the side outline, one item per
+ * letter. Detach the bar along with jQuery sticky's wrapper, which otherwise
+ * rewrites inline styles on every scroll.
+ */
+export function collectContentsTocItems(): TocItem[] {
+  const nav = document.querySelector('#toc-nav');
+  if (!nav) {
+    return [];
+  }
+
+  const items: TocItem[] = [];
+  for (const link of Array.from(nav.querySelectorAll('a[href^="#"]'))) {
+    const href = link.getAttribute('href') ?? '';
+    const text = (link.textContent || '').trim();
+    if (text && findHeading(href)) {
+      items.push({ href, text, level: 1 });
+    }
+  }
+
+  detachNative(nav.closest('.sticky-wrapper') ?? nav.closest('.sticky') ?? nav);
+
+  // The side outline replaces the per-letter "[jump to top]" links.
+  for (const link of Array.from(
+    document.querySelectorAll('#content h2 a[href="#pagetopright"]'),
+  )) {
+    detachNative(link);
+  }
+
+  // ...and the <hr> divider above each letter heading.
+  for (const heading of Array.from(document.querySelectorAll('#content h2'))) {
+    const prev = heading.previousElementSibling;
+    if (prev?.tagName === 'HR') {
+      detachNative(prev);
+    }
+  }
+  return items;
+}
+
+function fragmentId(href: string): string {
+  const raw = href.startsWith('#') ? href.slice(1) : href;
+  try {
+    return decodeURIComponent(raw);
+  } catch {
+    return raw;
+  }
+}
+
+function findHeading(href: string): Element | null {
+  const id = fragmentId(href);
+  if (!id) {
+    return null;
+  }
+  // No selector strings: ids can contain quotes and other selector syntax.
+  return document.getElementById(id) ?? document.getElementsByName(id)[0] ?? null;
+}
+
+/** Headings don't move between nodes, so resolve each list's targets once. */
+const headingCache = new WeakMap<readonly TocItem[], (Element | null)[]>();
+
+function headingsFor(items: readonly TocItem[]): (Element | null)[] {
+  let headings = headingCache.get(items);
+  if (!headings) {
+    headings = items.map((item) => findHeading(item.href));
+    headingCache.set(items, headings);
+  }
+  return headings;
+}
+
+export function smoothScrollToHref(
+  href: string,
+  options: { focus?: boolean } = {},
+): boolean {
+  const target = findHeading(href);
+  if (!target) {
+    return false;
+  }
+  const top = target.getBoundingClientRect().top + window.scrollY;
+  scrollWindowTo(top - HEADER_HEIGHT - 24);
+  // Like a native anchor: the address shows the section and Back returns.
+  // Compare encoded forms: `location.hash` is `#Kant%E2%80%99s`, not `#Kant’s`.
+  if (href.startsWith('#') && location.hash !== new URL(href, location.href).hash) {
+    history.pushState(history.state, '', href);
+  }
+  if (options.focus) {
+    focusJumpTarget(target.closest('h1, h2, h3, h4, h5, h6') ?? target);
+  }
+  return true;
+}
+
+export function getActiveTocIndex(
+  items: readonly TocItem[],
+  scrollOffset = HEADER_HEIGHT + 40
+): number {
+  const headings = headingsFor(items);
+  let index = -1;
+
+  // Short final sections never reach the offset line; at the bottom of the
+  // page, the last section is the one being read.
+  const atBottom =
+    window.scrollY > 0 &&
+    window.scrollY + window.innerHeight >=
+      document.documentElement.scrollHeight - 1;
+  if (atBottom) {
+    for (let i = headings.length - 1; i >= 0; i--) {
+      if (headings[i]) {
+        return i;
+      }
+    }
+  }
+
+  for (let i = 0; i < headings.length; i++) {
+    const heading = headings[i];
+    if (heading && heading.getBoundingClientRect().top <= scrollOffset) {
+      index = i;
+    }
+  }
+
+  if (index < 0 && items.length) {
+    return 0;
+  }
+  return index;
+}

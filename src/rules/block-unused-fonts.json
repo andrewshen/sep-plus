@@ -1,0 +1,12 @@
+[
+  {
+    "id": 1,
+    "action": { "type": "block" },
+    "condition": {
+      "initiatorDomains": ["plato.stanford.edu"],
+      "requestDomains": ["plato.stanford.edu"],
+      "urlFilter": "font-awesome",
+      "resourceTypes": ["stylesheet"]
+    }
+  }
+]
